@@ -1,2 +1,7 @@
-// Temporary wiring proof — plan 01-02 moves game constants into board.ts.
-export const GRID_SIZE = 10;
+// @steel-horizon/shared — pure barrel. All game rules, types, and the
+// wire protocol live in the sibling modules.
+export * from "./board.js";
+export * from "./fleet.js";
+export * from "./protocol.js";
+export * from "./placement.js";
+export * from "./shots.js";
