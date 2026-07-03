@@ -30,11 +30,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal**: npm-workspaces monorepo (client/server/shared) with the complete Battleship rules engine in `/shared` — board model, placement validation, shot resolution, win detection — fully unit-tested with Vitest.
 **Depends on**: Nothing (first phase)
 **Research**: Unlikely (established stack setup, pure game logic)
-**Plans**: 2 plans
+**Plans**: 4 plans
 
 Plans:
 - [ ] 01-01: Monorepo scaffold — workspaces, TypeScript configs, Vite client shell, Express server shell, shared package wiring, `npm run dev`
-- [ ] 01-02: Shared game logic — board model, fleet definitions, placement validation, shot resolution (hit/miss/sunk), win detection, typed protocol events; exhaustive unit tests
+- [ ] 01-02: Shared foundation — board/coordinate primitives, fleet definitions, typed protocol events, Vitest setup
+- [ ] 01-03: Placement validation (TDD) — fleet legality rules + random fleet generator
+- [ ] 01-04: Shot resolution & win detection (TDD) — hit/miss/sunk, repeat-shot rejection, fleet-destroyed check
 
 ### Phase 2: Multiplayer Server
 **Goal**: Authoritative server running complete games over Socket.IO — room creation with 6-char codes, quick-match queue, lobby ready-up, simultaneous placement, alternating turns with full validation, redacted state snapshots for refresh-proof reconnect — proven by headless socket clients playing scripted games.
@@ -112,7 +114,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/2 | Not started | - |
+| 1. Foundation | 0/4 | Not started | - |
 | 2. Multiplayer Server | 0/3 | Not started | - |
 | 3. Playable 2D Client | 0/3 | Not started | - |
 | 4. 3D Ocean Scene | 0/4 | Not started | - |
