@@ -16,7 +16,7 @@ None
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Monorepo scaffold + shared game rules engine with thorough unit tests
+- [x] **Phase 1: Foundation** - Monorepo scaffold + shared game rules engine with thorough unit tests (completed 2026-07-03)
 - [ ] **Phase 2: Multiplayer Server** - Authoritative Socket.IO server: rooms, matchmaking, full game loop, reconnect
 - [ ] **Phase 3: Playable 2D Client** - Complete flow (lobby → placement → battle → post-game) on a plain 2D board
 - [ ] **Phase 4: 3D Ocean Scene** - Animated water, procedural ships, holographic grid, camera system
@@ -33,10 +33,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Monorepo scaffold — workspaces, TypeScript configs, Vite client shell, Express server shell, shared package wiring, `npm run dev`
-- [ ] 01-02: Shared foundation — board/coordinate primitives, fleet definitions, typed protocol events, Vitest setup
-- [ ] 01-03: Placement validation (TDD) — fleet legality rules + random fleet generator
-- [ ] 01-04: Shot resolution & win detection (TDD) — hit/miss/sunk, repeat-shot rejection, fleet-destroyed check
+- [x] 01-01: Monorepo scaffold — workspaces, TypeScript configs, Vite client shell, Express server shell, shared package wiring, `npm run dev`
+- [x] 01-02: Shared foundation — board/coordinate primitives, fleet definitions, typed protocol events, Vitest setup
+- [x] 01-03: Placement validation (TDD) — fleet legality rules + random fleet generator
+- [x] 01-04: Shot resolution & win detection (TDD) — hit/miss/sunk, repeat-shot rejection, fleet-destroyed check
 
 ### Phase 2: Multiplayer Server
 **Goal**: Authoritative server running complete games over Socket.IO — room creation with 6-char codes, quick-match queue, lobby ready-up, simultaneous placement, alternating turns with full validation, redacted state snapshots for refresh-proof reconnect — proven by headless socket clients playing scripted games.
@@ -114,7 +114,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/4 | Not started | - |
+| 1. Foundation | 4/4 | Complete | 2026-07-03 |
 | 2. Multiplayer Server | 0/3 | Not started | - |
 | 3. Playable 2D Client | 0/3 | Not started | - |
 | 4. 3D Ocean Scene | 0/4 | Not started | - |
