@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 ## Current Position
 
 Phase: 2 of 7 (Multiplayer Server)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-07-04 — Completed 02-01-PLAN.md (rooms & matchmaking: typed Socket.IO server, sessions, quick-match, lobby; 16 server tests green)
+Last activity: 2026-07-04 — Completed 02-02-PLAN.md (authoritative game loop: pure engine, buildSnapshot redaction, placeFleet/fire/rematch handlers; 41 server tests green)
 
-Progress: ██▓░░░░░░░ ~24%
+Progress: ███░░░░░░░ ~29%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 10 min
-- Total execution time: ~0.8 hours
+- Total plans completed: 6
+- Average duration: 11 min
+- Total execution time: ~1.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 22 min | 6 min |
-| 02-multiplayer-server | 1 | 28 min | 28 min |
+| 02-multiplayer-server | 2 | 42 min | 21 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (10 min), 01-02 (6 min), 01-03 (3 min), 01-04 (3 min), 02-01 (28 min)
+- Last 5 plans: 01-02 (6 min), 01-03 (3 min), 01-04 (3 min), 02-01 (28 min), 02-02 (14 min)
 - Trend: server plans are larger than shared-core plans (infra + integration tests)
 
 ## Accumulated Context
@@ -54,6 +54,10 @@ Recent decisions affecting current work:
 - **Per-viewer snapshot sends only (02-01):** snapshots are viewer-specific; never room-broadcast. buildLobbySnapshot is the single redaction point — 02-02 extends it into the full game snapshot.
 - **createServer/start factory with main-module guard (02-01):** tests import the server without binding a port; `npm run dev` (tsx watch) behavior unchanged. Integration tests bind port 0 and await events with timeouts, never sleeps.
 - **Queued player creating/joining dequeues silently (02-01):** createRoom/joinRoom remove the session from the quick-match queue instead of erroring.
+- **Engine is a pure state machine with injected rng (02-02):** server/src/game/engine.ts has no socket.io/timers/I/O; transitions return `{ok:true,...}|{ok:false,code}` with state untouched on rejection; forfeit() already implemented for 02-03's grace timer.
+- **buildSnapshot is the only board-state serialization path (02-02):** server/src/snapshot.ts; room.phase mirrors game.phase via syncRoomPhase after each accepted mutation.
+- **shotResult.shooter is the display name, never the sessionId (02-02):** session ids are resume credentials and must not reach the opponent.
+- **Rematch acceptance resets ready flags (02-02):** post-rematch snapshots read as a clean placement phase.
 
 ### Deferred Issues
 
@@ -70,5 +74,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-04
-Stopped at: Completed 02-01-PLAN.md (SUMMARY created) — ready for 02-02 (game loop)
+Stopped at: Completed 02-02-PLAN.md (SUMMARY created) — ready for 02-03 (reconnect & resilience)
 Resume file: None
