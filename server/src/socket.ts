@@ -32,10 +32,12 @@ import { MatchmakingQueue } from "./matchmaking.js";
 import {
   createGame,
   fire as engineFire,
+  forfeit as engineForfeit,
   placeFleet as enginePlaceFleet,
   requestRematch as engineRequestRematch,
 } from "./game/engine.js";
 import { buildSnapshot } from "./snapshot.js";
+import { resolveGraceMs } from "./config.js";
 
 export interface SocketData {
   sessionId: string;
@@ -61,6 +63,8 @@ export interface SocketServerDeps {
   matchmaking?: MatchmakingQueue;
   /** Randomness for the engine's coin flips; tests inject a fixed value. */
   rng?: () => number;
+  /** Disconnect grace before forfeit (ms); tests inject ~100–200ms. */
+  graceMs?: number;
 }
 
 const NAME_MAX_LENGTH = 20;
@@ -121,9 +125,13 @@ export function createSocketServer(
   const rooms = deps.rooms ?? new InMemoryRoomStore();
   const matchmaking = deps.matchmaking ?? new MatchmakingQueue();
   const rng = deps.rng ?? Math.random;
+  const graceMs = resolveGraceMs(deps.graceMs);
 
   /** Live socket per session, for per-viewer snapshot sends and pairing. */
   const socketsBySession = new Map<string, GameSocket>();
+
+  /** Pending disconnect-grace timers, keyed by room+player. */
+  const graceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   const io: GameServer = new Server(httpServer);
 
@@ -175,6 +183,74 @@ export function createSocketServer(
     return roomCode == null ? undefined : rooms.get(roomCode);
   }
 
+  function graceKey(roomCode: string, sessionId: string): string {
+    return `${roomCode}:${sessionId}`;
+  }
+
+  /**
+   * Cancel a pending grace timer. MUST run on every reconnect — a stale
+   * timer firing after the player returned would forfeit a live game.
+   */
+  function clearGraceTimer(roomCode: string, sessionId: string): void {
+    const key = graceKey(roomCode, sessionId);
+    const timer = graceTimers.get(key);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      graceTimers.delete(key);
+    }
+  }
+
+  /** Detach a session from its room so the code can be reused. */
+  function detachSession(sessionId: string): void {
+    const session = sessions.get(sessionId);
+    if (session !== undefined) {
+      sessions.set(sessionId, { name: session.name, roomCode: null });
+    }
+  }
+
+  /**
+   * Delete the room once it is fully abandoned: every seat disconnected
+   * AND no grace timer still pending (a pending timer means someone may
+   * yet return). Frees the room code and un-links the sessions so the
+   * store does not leak.
+   */
+  function maybeDeleteRoom(room: Room): void {
+    const abandoned = room.players.every((p) => !p.connected);
+    const graced = room.players.some((p) =>
+      graceTimers.has(graceKey(room.code, p.sessionId)),
+    );
+    if (!abandoned || graced) return;
+    for (const player of room.players) detachSession(player.sessionId);
+    rooms.delete(room.code);
+  }
+
+  /** Grace expired without a reconnect: forfeit a live game, free a lobby seat. */
+  function onGraceExpired(roomCode: string, sessionId: string): void {
+    graceTimers.delete(graceKey(roomCode, sessionId));
+    const room = rooms.get(roomCode);
+    if (room === undefined) return;
+    const player = room.players.find((p) => p.sessionId === sessionId);
+    // Defensive: a reconnect clears the timer, so a connected player here
+    // means a stale timer slipped through — never forfeit them.
+    if (player === undefined || player.connected) return;
+
+    if (room.game !== null && room.game.phase !== "gameover") {
+      // Placement or battle: the absent player concedes; opponent wins.
+      const result = engineForfeit(room.game, sessionId);
+      if (result.ok) {
+        syncRoomPhase(room);
+        sendRoomState(room);
+      }
+    } else if (room.game === null) {
+      // Lobby: free the seat — a solo lobby stays open for a new joiner.
+      room.players = room.players.filter((p) => p.sessionId !== sessionId);
+      detachSession(sessionId);
+      sendRoomState(room);
+    }
+    // Gameover rooms linger for rematch until fully abandoned.
+    maybeDeleteRoom(room);
+  }
+
   /** Create a room, seat the players, and join their sockets to its channel. */
   function createRoomWith(
     entries: { sessionId: string; name: string }[],
@@ -202,8 +278,35 @@ export function createSocketServer(
 
   io.on("connection", (socket) => {
     const sessionId = socket.data.sessionId;
+
+    // Last-connect-wins: a refresh often opens the new socket before the
+    // old one's disconnect fires. Hand the session to the newest socket
+    // and drop the stale one — its disconnect handler sees it is no longer
+    // current and leaves the session's state alone. Re-point the map
+    // BEFORE disconnecting so the old socket's handler observes the swap.
+    const previous = socketsBySession.get(sessionId);
     socketsBySession.set(sessionId, socket);
+    if (previous !== undefined && previous.id !== socket.id) {
+      previous.disconnect(true);
+    }
+
     socket.emit("session", { sessionId });
+
+    // Session-resume: a known session seated in a room rejoins its
+    // channel and is restored from ONE full snapshot — buildSnapshot
+    // already carries phase, own fleet, both shot histories, turn, and
+    // winner, so resume works identically in lobby, placement, battle,
+    // and gameover with no phase-special code.
+    const seatedRoom = roomOf(sessionId);
+    const seat = seatedRoom?.players.find((p) => p.sessionId === sessionId);
+    if (seatedRoom !== undefined && seat !== undefined) {
+      socket.join(seatedRoom.code);
+      seat.connected = true;
+      clearGraceTimer(seatedRoom.code, sessionId);
+      // Reconnector gets the resume snapshot; the opponent's snapshot
+      // flips `opponent.connected` back to true.
+      sendRoomState(seatedRoom);
+    }
 
     socket.on("createRoom", (payload) => {
       const name = validateName(payload?.name);
@@ -391,10 +494,30 @@ export function createSocketServer(
     });
 
     socket.on("disconnect", () => {
+      // A superseded socket (same session, newer tab took over) must not
+      // touch session state — the session lives on through the new socket.
+      if (socketsBySession.get(sessionId) !== socket) return;
+      socketsBySession.delete(sessionId);
       matchmaking.remove(sessionId);
-      if (socketsBySession.get(sessionId) === socket) {
-        socketsBySession.delete(sessionId);
-      }
+
+      const room = roomOf(sessionId);
+      const player = room?.players.find((p) => p.sessionId === sessionId);
+      if (room === undefined || player === undefined) return;
+
+      // The opponent's next snapshot flips `opponent.connected` false —
+      // that IS the disconnect notification (no dedicated event type).
+      player.connected = false;
+      sendRoomState(room);
+
+      // Start the grace clock. unref() so pending timers never hold the
+      // process open (the listening server does that while it runs).
+      clearGraceTimer(room.code, sessionId);
+      const timer = setTimeout(
+        () => onGraceExpired(room.code, sessionId),
+        graceMs,
+      );
+      timer.unref();
+      graceTimers.set(graceKey(room.code, sessionId), timer);
     });
   });
 
