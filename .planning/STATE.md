@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Two people on different machines play a complete, cheat-resistant game of Battleship inside a cinematic 3D naval scene — and both halves (bulletproof multiplayer, hyper-realistic presentation) are equally non-negotiable.
-**Current focus:** Phase 4 — 3D Ocean Scene (not yet started)
+**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 1 of 7 complete)
 
 ## Current Position
 
-Phase: 3 of 7 (Playable 2D Client) — Complete
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-07-04 — Completed 03-03-PLAN.md (battle screen, post-game screen, human-verified two-browser checkpoint approved). Checkpoint testing surfaced and fixed two real bugs: a `.board` CSS class collision between placement.css/battle.css that broke the placement grid's layout, and a sunk-ship highlighting heuristic that broke on touching ships — fixed at the protocol level by adding server-supplied `sunkShipCells`. Phase 3 exit criterion met: full lobby→placement→battle→postgame→rematch loop playable in two real browsers.
+Phase: 4 of 7 (3D Ocean Scene) — In progress
+Plan: 1 of 7 in current phase — Complete
+Status: Plan 04-01 complete; ready to plan/execute 04-02
+Last activity: 2026-07-04 — Completed 04-01-PLAN.md (R3F foundation: pinned three/fiber/drei dependencies, Gerstner-wave ocean shader with shared wave-math module `waves.ts`, sky/sun/fog, SceneRoot with dev perf stats, isolated `/?dev=scene` sandbox route). Human visual checkpoint approved on first pass: animated waves, naval time-of-day feel, stable FPS, and the real app (`/`) confirmed unaffected.
 
 Progress: ██████░░░░ ~57%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: ~17 min
-- Total execution time: ~2.6 hours
+- Total plans completed: 10
+- Average duration: ~18 min
+- Total execution time: ~3.1 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: ██████░░░░ ~57%
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
 | 03-playable-2d-client | 3 | ~98 min | ~33 min |
+| 04-3d-ocean-scene | 1 | ~30 min | ~30 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (14 min), 02-03 (25 min), 03-01 (28 min), 03-02 (~35 min), 03-03 (~35 min incl. checkpoint fix-iterate)
-- Trend: integration-heavy plans (server, client wiring + browser verification) run ~25-35 min; human checkpoints add real bug-fixing time worth the cost (found 2 genuine bugs in 03-03)
+- Last 5 plans: 02-03 (25 min), 03-01 (28 min), 03-02 (~35 min), 03-03 (~35 min incl. checkpoint fix-iterate), 04-01 (~30 min, checkpoint approved first pass)
+- Trend: integration-heavy plans (server, client wiring + browser verification) run ~25-35 min; human checkpoints add real bug-fixing time worth the cost (found 2 genuine bugs in 03-03, none needed in 04-01)
 
 ## Accumulated Context
 
@@ -72,6 +73,11 @@ Recent decisions affecting current work:
 - **Single drag mechanism: pointer events only (03-02):** pointerdown/pointermove/pointerup on window, no HTML5 DnD — avoids cross-browser DnD fiddliness per the plan's constraint.
 - **CSS class names must be unique across screen stylesheets (03-03):** placement.css and battle.css both defined `.board` with incompatible layouts (grid vs flex); the later-loaded stylesheet won the cascade and silently broke the other screen. All screen-level container classes should be prefixed/scoped (e.g. `.placement-grid`) rather than generic names like `.board`.
 - **Sunk-ship cells are server-supplied, not client-inferred (03-03):** `ShotRecord`/`shotResult` now carry `sunkShipCells: Coordinate[]` populated by the engine from the exact placement that was resolved. A sunk ship's shape is permanently public the instant it dies and never exposes any other ship (touching or not), so this is safe to reveal in full — replaces a same-axis-run-length heuristic that broke whenever two sunk ships touched.
+- **Pinned R3F stack, not latest (04-01):** three@0.185.1 / @react-three/fiber@8.9.2 / @react-three/drei@9.122.0 — fiber 9.x/drei 10.x require React 19, conflicting with the Phase 1 React 18.3 pin.
+- **Single source of truth for wave math (04-01):** `client/src/scene/waves.ts` exports `WaveParams` + `gerstnerHeight()`; Ocean's shader and 04-02's ship bob/pitch must both read these exact constants, never re-derive an approximation.
+- **Stylized shader ocean, not reflection-based Water.js (04-01):** holographic teal/blue Fresnel-rim shader chosen over three's mirror-reflection Water addon for cost and aesthetic fit.
+- **Shader time driven by useFrame mutation, not React state (04-01):** `uniforms.uTime.value` is set directly inside `useFrame`; routing animation time through React state would force a re-render every frame.
+- **New scene work gets an isolated `?dev=scene` sandbox route (04-01):** `main.tsx` branches to `SceneSandbox` only on that query param; the real app entry point is otherwise untouched. Plan 04-06 removes the sandbox once the scene is wired into the real screens.
 
 ### Deferred Issues
 
@@ -88,5 +94,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-04
-Stopped at: Completed 03-03-PLAN.md (SUMMARY created) — Phase 3 complete, ready to plan Phase 4 (3D Ocean Scene)
+Stopped at: Completed 04-01-PLAN.md (SUMMARY created) — Phase 4 plan 1 of 7 complete, ready to plan/execute 04-02
 Resume file: None
