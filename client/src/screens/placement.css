@@ -26,8 +26,8 @@
 
 .board {
   display: grid;
-  grid-template-columns: 1.4rem auto;
-  grid-template-rows: 1.4rem auto;
+  grid-template-columns: 1.4rem min(70vmin, 26rem);
+  grid-template-rows: 1.4rem min(70vmin, 26rem);
   user-select: none;
   -webkit-user-select: none;
 }
