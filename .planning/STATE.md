@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Two people on different machines play a complete, cheat-resistant game of Battleship inside a cinematic 3D naval scene — and both halves (bulletproof multiplayer, hyper-realistic presentation) are equally non-negotiable.
-**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 1 of 7 complete)
+**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 2 of 7 complete)
 
 ## Current Position
 
 Phase: 4 of 7 (3D Ocean Scene) — In progress
-Plan: 1 of 7 in current phase — Complete
-Status: Plan 04-01 complete; ready to plan/execute 04-02
-Last activity: 2026-07-04 — Completed 04-01-PLAN.md (R3F foundation: pinned three/fiber/drei dependencies, Gerstner-wave ocean shader with shared wave-math module `waves.ts`, sky/sun/fog, SceneRoot with dev perf stats, isolated `/?dev=scene` sandbox route). Human visual checkpoint approved on first pass: animated waves, naval time-of-day feel, stable FPS, and the real app (`/`) confirmed unaffected.
+Plan: 2 of 7 in current phase — Complete
+Status: Plan 04-02 complete; ready to execute 04-03
+Last activity: 2026-07-04 — Completed 04-02-PLAN.md (procedural ships: one parameterized `<ShipModel>` builder via ExtrudeGeometry covering all 5 classes, class spec tables derived from shared SHIP_LENGTHS, wave-synced bob/pitch/roll in FleetShips.tsx). Human checkpoint approved after 2 fix iterations — initial submission had ships underwater/detached; fixes established explicit waterline constants, a shared frame clock between ocean shader and wave sampling, camera lookAt, and steepness tuned against hull freeboard.
 
-Progress: ██████░░░░ ~57%
+Progress: ██████░░░░ ~60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: ~18 min
-- Total execution time: ~3.1 hours
+- Total plans completed: 11
+- Average duration: ~26 min
+- Total execution time: ~4.7 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: ██████░░░░ ~57%
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
 | 03-playable-2d-client | 3 | ~98 min | ~33 min |
-| 04-3d-ocean-scene | 1 | ~30 min | ~30 min |
+| 04-3d-ocean-scene | 2 | ~125 min | ~63 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (25 min), 03-01 (28 min), 03-02 (~35 min), 03-03 (~35 min incl. checkpoint fix-iterate), 04-01 (~30 min, checkpoint approved first pass)
-- Trend: integration-heavy plans (server, client wiring + browser verification) run ~25-35 min; human checkpoints add real bug-fixing time worth the cost (found 2 genuine bugs in 03-03, none needed in 04-01)
+- Last 5 plans: 03-01 (28 min), 03-02 (~35 min), 03-03 (~35 min incl. checkpoint fix-iterate), 04-01 (~30 min, checkpoint approved first pass), 04-02 (~95 min incl. 2 checkpoint fix iterations)
+- Trend: integration-heavy plans run ~25-35 min; 3D visual work runs longer when the human checkpoint surfaces real rendering bugs (04-02's flotation fixes took ~2/3 of its duration) — the checkpoint keeps proving its worth (2 genuine bugs in 03-03, 2 fix rounds in 04-02)
 
 ## Accumulated Context
 
@@ -78,6 +78,11 @@ Recent decisions affecting current work:
 - **Stylized shader ocean, not reflection-based Water.js (04-01):** holographic teal/blue Fresnel-rim shader chosen over three's mirror-reflection Water addon for cost and aesthetic fit.
 - **Shader time driven by useFrame mutation, not React state (04-01):** `uniforms.uTime.value` is set directly inside `useFrame`; routing animation time through React state would force a re-render every frame.
 - **New scene work gets an isolated `?dev=scene` sandbox route (04-01):** `main.tsx` branches to `SceneSandbox` only on that query param; the real app entry point is otherwise untouched. Plan 04-06 removes the sandbox once the scene is wired into the real screens.
+- **One parameterized procedural builder per asset family (04-02):** `<ShipModel shipClass=...>` covers all 5 classes from a `ShipClassSpec` table (relative multipliers off shared `SHIP_LENGTHS`); geometries/materials memoized on the class key, never rebuilt per frame.
+- **Shared frame clock for everything that must agree with the water (04-02):** Ocean's `uTime` and FleetShips' `gerstnerHeight` sampling both read `clock.elapsedTime` — Ocean accumulating its own delta desynced water from ships by the pre-first-frame gap. Any future wake/splash/projectile animation must use the same clock and `waves.ts` constants.
+- **Explicit waterline constants, not ad-hoc nudges (04-02):** `KEEL_DEPTH` (40% of draft below waterline) and `DECK_LINE` (1.1 drafts above) in ShipHull.tsx encode ExtrudeGeometry's real y-span (bevel extends past both extrude faces; extrude depth maps to +Y after rotateX). Deck furniture is placed flush with the real deck line.
+- **Wave steepness is tuned against ship scale (04-02):** summed crest amplitude must stay below the smallest hull's freeboard or trough-riding ships vanish behind neighboring crests; the two shortest classes carry proportionally higher draft ratios for the same reason.
+- **Pitch/roll via finite-difference wave sampling (04-02):** ship attitude comes from sampling `gerstnerHeight` at small offsets along local length/beam axes — no independent sine approximation, no drift from the surface.
 
 ### Deferred Issues
 
@@ -94,5 +99,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-04
-Stopped at: Completed 04-01-PLAN.md (SUMMARY created) — Phase 4 plan 1 of 7 complete, ready to plan/execute 04-02
+Stopped at: Completed 04-02-PLAN.md (SUMMARY created) — Phase 4 plan 2 of 7 complete, ready to execute 04-03
 Resume file: None
