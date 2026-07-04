@@ -8,6 +8,7 @@ import { create } from "zustand";
 import type {
   Coordinate,
   ErrorCode,
+  FleetPlacement,
   RoomSnapshot,
   ShipClassId,
   ShotOutcome,
@@ -38,6 +39,9 @@ interface GameStore {
   joinRoom: (name: string, code: string) => void;
   quickMatch: (name: string) => void;
   setReady: (ready: boolean) => void;
+  placeFleet: (fleet: FleetPlacement) => void;
+  fire: (target: Coordinate) => void;
+  requestRematch: () => void;
 }
 
 /** Connect first (persisting the name) so the emit rides the new socket. */
@@ -67,6 +71,12 @@ export const useGameStore = create<GameStore>((set) => ({
     connectAndEmit(name, () => socket.emit("quickMatch", { name })),
 
   setReady: (ready) => socket.emit("setReady", { ready }),
+
+  placeFleet: (fleet) => socket.emit("placeFleet", { fleet }),
+
+  fire: (target) => socket.emit("fire", { target }),
+
+  requestRematch: () => socket.emit("requestRematch"),
 }));
 
 // --- Socket listeners: registered exactly once at module init ---
