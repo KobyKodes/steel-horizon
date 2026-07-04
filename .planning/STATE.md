@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 ## Current Position
 
 Phase: 3 of 7 (Playable 2D Client)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-07-04 — Completed 03-01-PLAN.md (socket layer + snapshot-driven store, landing/lobby screens, phase router; 17/17 headless two-browser checks green)
+Last activity: 2026-07-04 — Completed 03-02-PLAN.md (drag-to-place fleet placement UI: PlacementBoard + PlacementScreen, randomize/clear/ready-up, additive placeFleet store action; 14/14 two-browser Playwright checks green, typecheck/build clean, 48/48 server tests still green). Note: 03-03 (battle screen) commit bf7cdc7 is also present on main from a parallel run but has no 03-03-SUMMARY.md yet — treat 03-03 as not yet closed out.
 
-Progress: ████░░░░░░ ~38%
+Progress: █████░░░░░ ~46%
 
 ## Performance Metrics
 
@@ -29,11 +29,11 @@ Progress: ████░░░░░░ ~38%
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
-| 03-playable-2d-client | 1 | 28 min | 28 min |
+| 03-playable-2d-client | 2 | ~63 min | ~32 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (3 min), 02-01 (28 min), 02-02 (14 min), 02-03 (25 min), 03-01 (28 min)
-- Trend: integration-heavy plans (server, client wiring + browser verification) run ~25 min
+- Last 5 plans: 02-01 (28 min), 02-02 (14 min), 02-03 (25 min), 03-01 (28 min), 03-02 (~35 min)
+- Trend: integration-heavy plans (server, client wiring + browser verification) run ~25-35 min
 
 ## Accumulated Context
 
@@ -66,6 +66,10 @@ Recent decisions affecting current work:
 - **Client socket auth is callback-form (03-01):** socket.io re-reads sessionStorage per reconnect attempt, so a mid-session sessionId mint is offered automatically; sessionId lives in sessionStorage only (per-tab identity).
 - **Store listeners registered once at module init (03-01):** never inside React effects (StrictMode-safe); store module auto-connects on load when sessionStorage holds a name, making refresh restore zero-click.
 - **snapshot.phase IS the client routing (03-01):** App.tsx switches on the snapshot; no router library, no client-side transitions; Placement/Battle/PostGame stubs exclusively owned by 03-02/03-03.
+- **Draft fleet state is local-only until one terminal emit (03-02):** PlacementBoard is a controlled component (draft + onChange, zero owned fleet state); PlacementScreen owns the draft and the only wire traffic is a single `placeFleet` emit — snapshot.you.fleet is the sole post-submission source of truth (refresh-proof).
+- **No client setReady(true) after placeFleet (03-02):** server's setReady is lobby-phase-only (WRONG_PHASE elsewhere); placement "ready" is fully represented by an accepted fleet, and the engine flips lobby->battle itself once both fleets land.
+- **Draft-time legality is a lightweight inline bounds+collision check, not a validateFleetPlacement call (03-02):** that shared function asserts exact 5-ship composition and would reject every intermediate drafting state; it still runs once, as the single source of truth, at Ready-time against the complete draft.
+- **Single drag mechanism: pointer events only (03-02):** pointerdown/pointermove/pointerup on window, no HTML5 DnD — avoids cross-browser DnD fiddliness per the plan's constraint.
 
 ### Deferred Issues
 
@@ -82,5 +86,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-04
-Stopped at: Completed 03-01-PLAN.md (SUMMARY created) — ready for 03-02 and 03-03 (parallelizable against the 03-01 seams)
+Stopped at: Completed 03-02-PLAN.md (SUMMARY created). 03-03 has a commit on main (bf7cdc7, battle screen) from a parallel run but no SUMMARY — its closeout (SUMMARY + STATE update) is still outstanding before phase 3 can be declared complete.
 Resume file: None
