@@ -12,7 +12,7 @@ import type {
   ShipClassId,
   ShotOutcome,
 } from "@steel-horizon/shared";
-import { connect, socket, storeSessionId } from "./socket";
+import { connect, getStoredName, socket, storeSessionId } from "./socket";
 
 export type ConnectionState =
   | "idle"
@@ -105,3 +105,11 @@ socket.on("shotResult", (entry) => {
 socket.on("errorEvent", (payload) => {
   useGameStore.setState({ lastError: payload });
 });
+
+// Refresh resume: if this tab already has an identity, reconnect immediately —
+// the server's session-resume snapshot restores the correct screen without
+// any user action. (Auth callback pulls sessionId/name from sessionStorage.)
+if (getStoredName()) {
+  useGameStore.setState({ connection: "connecting" });
+  socket.connect();
+}
