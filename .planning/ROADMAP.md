@@ -46,7 +46,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Rooms & matchmaking — create/join by code, quick-match queue, lobby with ready indicators, double-join rejection
+- [x] 02-01: Rooms & matchmaking — create/join by code, quick-match queue, lobby with ready indicators, double-join rejection (completed 2026-07-04)
 - [ ] 02-02: Game loop — placement phase, coin-flip first turn, shot handling with server-side validation, sunk/win resolution, post-game reveal + rematch
 - [ ] 02-03: Reconnect & headless verification — redacted snapshot on reconnect, 60s grace/forfeit, scripted headless-client games as integration tests
 
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-07-03 |
-| 2. Multiplayer Server | 0/3 | Not started | - |
+| 2. Multiplayer Server | 1/3 | In progress | - |
 | 3. Playable 2D Client | 0/3 | Not started | - |
 | 4. 3D Ocean Scene | 0/4 | Not started | - |
 | 5. Cinematics & Audio | 0/3 | Not started | - |
