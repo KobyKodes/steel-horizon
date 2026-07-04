@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 ## Current Position
 
 Phase: 2 of 7 (Multiplayer Server)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-07-04 — Completed 02-02-PLAN.md (authoritative game loop: pure engine, buildSnapshot redaction, placeFleet/fire/rematch handlers; 41 server tests green)
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-07-04 — Completed 02-03-PLAN.md (refresh-proof reconnect, grace forfeit, room cleanup; headless full-game + reconnect suites; 48 server tests green)
 
-Progress: ███░░░░░░░ ~29%
+Progress: ███░░░░░░░ ~33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 11 min
-- Total execution time: ~1.1 hours
+- Total plans completed: 7
+- Average duration: 13 min
+- Total execution time: ~1.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 22 min | 6 min |
-| 02-multiplayer-server | 2 | 42 min | 21 min |
+| 02-multiplayer-server | 3 | 67 min | 22 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (6 min), 01-03 (3 min), 01-04 (3 min), 02-01 (28 min), 02-02 (14 min)
+- Last 5 plans: 01-03 (3 min), 01-04 (3 min), 02-01 (28 min), 02-02 (14 min), 02-03 (25 min)
 - Trend: server plans are larger than shared-core plans (infra + integration tests)
 
 ## Accumulated Context
@@ -58,6 +58,10 @@ Recent decisions affecting current work:
 - **buildSnapshot is the only board-state serialization path (02-02):** server/src/snapshot.ts; room.phase mirrors game.phase via syncRoomPhase after each accepted mutation.
 - **shotResult.shooter is the display name, never the sessionId (02-02):** session ids are resume credentials and must not reach the opponent.
 - **Rematch acceptance resets ready flags (02-02):** post-rematch snapshots read as a clean placement phase.
+- **Last-connect-wins on same-session double connect (02-03):** socketsBySession is re-pointed BEFORE the old socket is dropped, so superseded sockets skip ALL disconnect side effects (including matchmaking removal) — this is what makes refresh safe.
+- **Grace timers keyed room+player, cleared on reconnect, unref()'d (02-03):** graceMs precedence is factory override > RECONNECT_GRACE_MS env > 60s default; expiry forfeits live games via the engine or frees a lobby seat.
+- **Room deletion gated on fully-abandoned (02-03):** every seat disconnected AND no grace timer pending; gameover rooms linger for rematch until abandoned; deleted rooms unlink their sessions so codes free up.
+- **Reconnect is snapshot-driven only (02-03):** a new socket offering a known sessionId is restored from one buildSnapshot in any phase; server/test/helpers.ts playToVictory proves snapshots alone can drive a client (the Phase 3 template).
 
 ### Deferred Issues
 
@@ -74,5 +78,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-04
-Stopped at: Completed 02-02-PLAN.md (SUMMARY created) — ready for 02-03 (reconnect & resilience)
+Stopped at: Completed 02-03-PLAN.md (SUMMARY created) — Phase 2 complete, ready to plan Phase 3 (Playable 2D Client)
 Resume file: None

@@ -17,7 +17,7 @@ None
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Monorepo scaffold + shared game rules engine with thorough unit tests (completed 2026-07-03)
-- [ ] **Phase 2: Multiplayer Server** - Authoritative Socket.IO server: rooms, matchmaking, full game loop, reconnect
+- [x] **Phase 2: Multiplayer Server** - Authoritative Socket.IO server: rooms, matchmaking, full game loop, reconnect (completed 2026-07-04)
 - [ ] **Phase 3: Playable 2D Client** - Complete flow (lobby → placement → battle → post-game) on a plain 2D board
 - [ ] **Phase 4: 3D Ocean Scene** - Animated water, procedural ships, holographic grid, camera system
 - [ ] **Phase 5: Cinematics & Audio** - Firing sequences, particles, sinking animations, HUD polish, sound
@@ -47,8 +47,8 @@ Plans:
 
 Plans:
 - [x] 02-01: Rooms & matchmaking — create/join by code, quick-match queue, lobby with ready indicators, double-join rejection (completed 2026-07-04)
-- [ ] 02-02: Game loop — placement phase, coin-flip first turn, shot handling with server-side validation, sunk/win resolution, post-game reveal + rematch
-- [ ] 02-03: Reconnect & headless verification — redacted snapshot on reconnect, 60s grace/forfeit, scripted headless-client games as integration tests
+- [x] 02-02: Game loop — placement phase, coin-flip first turn, shot handling with server-side validation, sunk/win resolution, post-game reveal + rematch (completed 2026-07-04)
+- [x] 02-03: Reconnect & headless verification — redacted snapshot on reconnect, 60s grace/forfeit, scripted headless-client games as integration tests (completed 2026-07-04)
 
 ### Phase 3: Playable 2D Client
 **Goal**: Two people in different browsers play a complete game against the real server on a plain 2D board — landing screen, lobby, drag-to-place with rotate/randomize, battle with shot log, post-game stats and rematch. Proves the entire multiplayer flow before any 3D work.
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-07-03 |
-| 2. Multiplayer Server | 2/3 | In progress | - |
+| 2. Multiplayer Server | 3/3 | Complete | 2026-07-04 |
 | 3. Playable 2D Client | 0/3 | Not started | - |
 | 4. 3D Ocean Scene | 0/4 | Not started | - |
 | 5. Cinematics & Audio | 0/3 | Not started | - |
