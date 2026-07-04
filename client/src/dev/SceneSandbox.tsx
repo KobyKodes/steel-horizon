@@ -10,12 +10,14 @@ import { FleetShips, type FleetShipInstance } from "../scene/ships/FleetShips";
 // Spaced by ship center (ShipModel recenters its hull around its own local
 // origin) with at least each pair's combined half-lengths of clearance, so
 // the longest hulls (carrier/battleship) never overlap.
+// Ships sit on the z=0 line the SceneRoot camera looks at, so the whole
+// fleet is framed in view rather than hugging the bottom of the frustum.
 const SANDBOX_FLEET: FleetShipInstance[] = [
-  { shipClass: "carrier", position: [-28, 15] },
-  { shipClass: "battleship", position: [-14, 15] },
-  { shipClass: "cruiser", position: [0, 15] },
-  { shipClass: "submarine", position: [14, 15] },
-  { shipClass: "destroyer", position: [28, 15] },
+  { shipClass: "carrier", position: [-30, 0] },
+  { shipClass: "battleship", position: [-14, 0] },
+  { shipClass: "cruiser", position: [0, 0] },
+  { shipClass: "submarine", position: [14, 0] },
+  { shipClass: "destroyer", position: [28, 0] },
 ];
 
 export function SceneSandbox() {

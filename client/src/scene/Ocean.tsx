@@ -110,8 +110,12 @@ export function Ocean() {
     [],
   );
 
-  useFrame((_, delta) => {
-    material.uniforms.uTime!.value += delta;
+  // Drive uTime from the shared frame clock — NOT by accumulating delta.
+  // FleetShips samples gerstnerHeight() with clock.elapsedTime; if the
+  // shader accumulated its own time it would lag by however long passed
+  // before the ocean's first frame, desyncing ships from the water.
+  useFrame((state) => {
+    material.uniforms.uTime!.value = state.clock.elapsedTime;
   });
 
   return (

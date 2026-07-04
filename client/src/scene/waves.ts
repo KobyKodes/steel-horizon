@@ -19,10 +19,15 @@ export interface WaveParams {
 // Three layered waves: a long, low-frequency swell plus two shorter,
 // crosswise waves for surface detail. Directions are given un-normalized;
 // gerstnerHeight normalizes them.
+//
+// Steepness values are tuned against ship scale (ShipClasses.ts): the
+// summed crest amplitude must stay comfortably below the smallest hull's
+// freeboard, or ships riding a trough disappear behind the neighboring
+// crest and read as sunk.
 export const WAVES: WaveParams[] = [
-  { dirX: 1.0, dirZ: 0.3, steepness: 0.15, wavelength: 40 },
-  { dirX: 0.6, dirZ: -0.8, steepness: 0.1, wavelength: 22 },
-  { dirX: -0.3, dirZ: 1.0, steepness: 0.08, wavelength: 12 },
+  { dirX: 1.0, dirZ: 0.3, steepness: 0.11, wavelength: 40 },
+  { dirX: 0.6, dirZ: -0.8, steepness: 0.07, wavelength: 22 },
+  { dirX: -0.3, dirZ: 1.0, steepness: 0.05, wavelength: 12 },
 ];
 
 const GRAVITY = 9.8;

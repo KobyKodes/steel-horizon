@@ -53,9 +53,12 @@ export const SHIP_CLASSES: Record<ShipClassId, ShipClassSpec> = {
   // Multiple turrets, standard superstructure, radar mast.
   battleship: specFor("battleship", 0.15, 0.1, 3, true, false),
   // Slightly slimmer than the battleship, fewer turrets.
-  cruiser: specFor("cruiser", 0.13, 0.09, 2, true, false),
+  cruiser: specFor("cruiser", 0.13, 0.1, 2, true, false),
   // Narrowest, lowest-profile, single conning tower, no turrets.
-  submarine: specFor("submarine", 0.09, 0.06, 0, false, false),
+  // Draft ratios for the two shortest classes are proportionally higher so
+  // their absolute freeboard still clears the short detail waves' chop —
+  // at the original ratios their hulls were regularly awash.
+  submarine: specFor("submarine", 0.09, 0.085, 0, false, false),
   // Shortest, narrow, 1-2 turrets, small mast.
-  destroyer: specFor("destroyer", 0.14, 0.08, 1, false, false),
+  destroyer: specFor("destroyer", 0.14, 0.12, 1, false, false),
 };

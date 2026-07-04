@@ -11,6 +11,19 @@ import { SHIP_CLASSES, type ShipClassSpec } from "./ShipClasses";
 // geometries/materials are constructed once via useMemo keyed on
 // shipClass, never recreated per frame.
 
+// Waterline placement. The extruded+beveled hull body spans local Y in
+// [-0.25 * draft, +1.25 * draft] once rotated flat (bevelThickness adds
+// 0.25 * draft beyond BOTH extrude faces). We shift it so KEEL_DEPTH of
+// hull height sits below y=0 (the resting waterline) and the remainder
+// rides above as visible freeboard — a floating ship, not a submerged or
+// perched one.
+const KEEL_DEPTH = 0.4; // fraction of draft below the waterline
+const HULL_Y_MIN_RAW = -0.25; // pre-translate hull bottom, in drafts
+const HULL_Y_MAX_RAW = 1.25; // pre-translate hull top (deck line), in drafts
+const HULL_Y_SHIFT = -KEEL_DEPTH - HULL_Y_MIN_RAW; // = -0.15 drafts
+/** Deck line height above the waterline, in multiples of draft. */
+export const DECK_LINE = HULL_Y_MAX_RAW + HULL_Y_SHIFT; // = 1.1 drafts
+
 const HULL_COLOR = "#5b6470";
 const DECK_COLOR = "#3f4650";
 const SUPERSTRUCTURE_COLOR = "#7a828c";
@@ -41,12 +54,12 @@ function buildHullGeometry(spec: ShipClassSpec): THREE.BufferGeometry {
 
   // Shape is extruded along local Z; rotate so the hull lies flat with
   // length along local X, draft (height) along local Y, beam along the
-  // world Z axis. After rotation the hull spans y in [-draft, 0] (deck
-  // line at the waterline, keel at -draft). Nudge it up so a freeboard
-  // slice (30% of draft) rides above the waterline like a real hull,
-  // rather than sitting fully submerged with the deck line AT y=0.
+  // world Z axis. rotateX(-PI/2) maps the extrude axis to +Y, so the hull
+  // body (including bevels) spans y in [HULL_Y_MIN_RAW, HULL_Y_MAX_RAW]
+  // drafts. Shift it down so KEEL_DEPTH of the hull sits below the
+  // waterline (y=0) and the deck line lands at DECK_LINE drafts above it.
   geometry.rotateX(-Math.PI / 2);
-  geometry.translate(0, draft * 0.3, 0);
+  geometry.translate(0, draft * HULL_Y_SHIFT, 0);
 
   return geometry;
 }
@@ -105,10 +118,10 @@ export function ShipModel({ shipClass }: { shipClass: ShipClassId }) {
   );
 
   const { length, beam, draft, turretCount, hasRadar, hasFlatDeck } = spec;
-  // Matches the hull's freeboard translate above: the hull's top (deck
-  // line) sits at y = draft * 0.3, so deck/superstructure/turrets sit
-  // flush with that same line.
-  const deckY = draft * 0.3;
+  // The hull's top (deck line) sits at y = draft * DECK_LINE, so the deck
+  // plate, superstructure, and turrets sit flush with that line instead of
+  // being buried inside the hull body.
+  const deckY = draft * DECK_LINE;
   const superstructureX = length * 0.42;
 
   const turretPositions = useMemo<[number, number, number][]>(() => {
