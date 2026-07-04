@@ -40,10 +40,13 @@ function buildHullGeometry(spec: ShipClassSpec): THREE.BufferGeometry {
   });
 
   // Shape is extruded along local Z; rotate so the hull lies flat with
-  // length along local X, draft (height) along local Y, beam along Z is
-  // rotated to lie along the correct beam axis, keel resting near y=0.
+  // length along local X, draft (height) along local Y, beam along the
+  // world Z axis. After rotation the hull spans y in [-draft, 0] (deck
+  // line at the waterline, keel at -draft). Nudge it up so a freeboard
+  // slice (30% of draft) rides above the waterline like a real hull,
+  // rather than sitting fully submerged with the deck line AT y=0.
   geometry.rotateX(-Math.PI / 2);
-  geometry.translate(0, -draft, 0);
+  geometry.translate(0, draft * 0.3, 0);
 
   return geometry;
 }
@@ -102,7 +105,10 @@ export function ShipModel({ shipClass }: { shipClass: ShipClassId }) {
   );
 
   const { length, beam, draft, turretCount, hasRadar, hasFlatDeck } = spec;
-  const deckY = draft * 0.15;
+  // Matches the hull's freeboard translate above: the hull's top (deck
+  // line) sits at y = draft * 0.3, so deck/superstructure/turrets sit
+  // flush with that same line.
+  const deckY = draft * 0.3;
   const superstructureX = length * 0.42;
 
   const turretPositions = useMemo<[number, number, number][]>(() => {
@@ -117,7 +123,12 @@ export function ShipModel({ shipClass }: { shipClass: ShipClassId }) {
   }, [turretCount, length, deckY]);
 
   return (
-    <group>
+    // Everything above is built stern-at-0/bow-at-length; recenter so the
+    // model's own local origin (what FleetShips positions in world space)
+    // is the ship's midpoint, not its stern. Without this, placing ships
+    // by "position" causes neighboring hulls to overlap by up to a full
+    // ship length.
+    <group position={[-length / 2, 0, 0]}>
       {/* Hull */}
       <mesh geometry={hullGeometry} material={hullMaterial} />
 

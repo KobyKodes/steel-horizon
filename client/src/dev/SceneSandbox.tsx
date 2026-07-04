@@ -7,12 +7,15 @@ import { FleetShips, type FleetShipInstance } from "../scene/ships/FleetShips";
 //
 // One instance of each of the 5 ship classes, spread out atop the 04-01
 // Ocean plane, for a side-by-side silhouette + wave-sync check.
+// Spaced by ship center (ShipModel recenters its hull around its own local
+// origin) with at least each pair's combined half-lengths of clearance, so
+// the longest hulls (carrier/battleship) never overlap.
 const SANDBOX_FLEET: FleetShipInstance[] = [
-  { shipClass: "carrier", position: [-24, -10] },
-  { shipClass: "battleship", position: [-12, 6] },
-  { shipClass: "cruiser", position: [2, -6] },
-  { shipClass: "submarine", position: [14, 10] },
-  { shipClass: "destroyer", position: [24, -2] },
+  { shipClass: "carrier", position: [-28, 15] },
+  { shipClass: "battleship", position: [-14, 15] },
+  { shipClass: "cruiser", position: [0, 15] },
+  { shipClass: "submarine", position: [14, 15] },
+  { shipClass: "destroyer", position: [28, 15] },
 ];
 
 export function SceneSandbox() {
