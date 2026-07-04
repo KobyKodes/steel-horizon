@@ -1,0 +1,220 @@
+/* Minimal dark utilitarian baseline — global styles plus landing/lobby.
+   Placement and battle screens own their CSS in plans 03-02 / 03-03.
+   Phase 4/5 replaces the visuals entirely. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  background: #10151c;
+  color: #dce3ec;
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+}
+
+button {
+  font: inherit;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid #3a4a5e;
+  border-radius: 6px;
+  background: #1d2836;
+  color: #dce3ec;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #27364a;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+input[type="text"] {
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #3a4a5e;
+  border-radius: 6px;
+  background: #0c1117;
+  color: #dce3ec;
+}
+
+input[type="text"]:focus {
+  outline: 2px solid #4a7bb5;
+  outline-offset: 0;
+}
+
+/* --- Status bar --- */
+
+.status-bar {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  background: #0c1117;
+  border-bottom: 1px solid #232f3f;
+  color: #8fa0b5;
+}
+
+.status-bar .room-code {
+  font-weight: 600;
+  color: #dce3ec;
+  letter-spacing: 0.12em;
+}
+
+.status-bar .warn {
+  color: #e6b450;
+}
+
+/* --- Screen layout --- */
+
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  max-width: 26rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.tagline {
+  margin: 0;
+  color: #8fa0b5;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+}
+
+.field span {
+  font-size: 0.85rem;
+  color: #8fa0b5;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.actions > button {
+  width: 100%;
+}
+
+.join-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.join-row .code-input {
+  width: 7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.join-row button {
+  flex: 1;
+}
+
+.waiting {
+  color: #8fa0b5;
+  font-style: italic;
+}
+
+/* --- Banners --- */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.banner.error {
+  background: #3a1d22;
+  border: 1px solid #7a3540;
+  color: #f0c4ca;
+}
+
+.banner-dismiss {
+  padding: 0 0.4rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* --- Lobby --- */
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.9rem;
+  background: #1d2836;
+  border: 1px solid #3a4a5e;
+  border-radius: 6px;
+}
+
+.ready-tag {
+  font-size: 0.8rem;
+  color: #8fa0b5;
+}
+
+.ready-tag.is-ready {
+  color: #7fd07f;
+}
+
+.share-link {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.share-link input {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #8fa0b5;
+}
