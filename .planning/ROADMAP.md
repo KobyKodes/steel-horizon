@@ -57,7 +57,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: App shell & connection — landing screen, name entry, create/join/quick-match, Zustand store driven by server snapshots, lobby
+- [x] 03-01: App shell & connection — landing screen, name entry, create/join/quick-match, Zustand store driven by server snapshots, lobby (completed 2026-07-04)
 - [ ] 03-02: Placement UI — 2D grid, drag-to-place, R/right-click rotate, randomize button, ready-up
 - [ ] 03-03: Battle & post-game — targeting board, shot results, turn indicator, shot log, board reveal, stats, rematch flow
 

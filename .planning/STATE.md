@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Two people on different machines play a complete, cheat-resistant game of Battleship inside a cinematic 3D naval scene — and both halves (bulletproof multiplayer, hyper-realistic presentation) are equally non-negotiable.
-**Current focus:** Phase 2 — Multiplayer Server
+**Current focus:** Phase 3 — Playable 2D Client
 
 ## Current Position
 
-Phase: 2 of 7 (Multiplayer Server)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-07-04 — Completed 02-03-PLAN.md (refresh-proof reconnect, grace forfeit, room cleanup; headless full-game + reconnect suites; 48 server tests green)
+Phase: 3 of 7 (Playable 2D Client)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-07-04 — Completed 03-01-PLAN.md (socket layer + snapshot-driven store, landing/lobby screens, phase router; 17/17 headless two-browser checks green)
 
-Progress: ███░░░░░░░ ~33%
+Progress: ████░░░░░░ ~38%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 13 min
-- Total execution time: ~1.5 hours
+- Total plans completed: 8
+- Average duration: 15 min
+- Total execution time: ~2 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: ███░░░░░░░ ~33%
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
+| 03-playable-2d-client | 1 | 28 min | 28 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (3 min), 01-04 (3 min), 02-01 (28 min), 02-02 (14 min), 02-03 (25 min)
-- Trend: server plans are larger than shared-core plans (infra + integration tests)
+- Last 5 plans: 01-04 (3 min), 02-01 (28 min), 02-02 (14 min), 02-03 (25 min), 03-01 (28 min)
+- Trend: integration-heavy plans (server, client wiring + browser verification) run ~25 min
 
 ## Accumulated Context
 
@@ -62,6 +63,9 @@ Recent decisions affecting current work:
 - **Grace timers keyed room+player, cleared on reconnect, unref()'d (02-03):** graceMs precedence is factory override > RECONNECT_GRACE_MS env > 60s default; expiry forfeits live games via the engine or frees a lobby seat.
 - **Room deletion gated on fully-abandoned (02-03):** every seat disconnected AND no grace timer pending; gameover rooms linger for rematch until abandoned; deleted rooms unlink their sessions so codes free up.
 - **Reconnect is snapshot-driven only (02-03):** a new socket offering a known sessionId is restored from one buildSnapshot in any phase; server/test/helpers.ts playToVictory proves snapshots alone can drive a client (the Phase 3 template).
+- **Client socket auth is callback-form (03-01):** socket.io re-reads sessionStorage per reconnect attempt, so a mid-session sessionId mint is offered automatically; sessionId lives in sessionStorage only (per-tab identity).
+- **Store listeners registered once at module init (03-01):** never inside React effects (StrictMode-safe); store module auto-connects on load when sessionStorage holds a name, making refresh restore zero-click.
+- **snapshot.phase IS the client routing (03-01):** App.tsx switches on the snapshot; no router library, no client-side transitions; Placement/Battle/PostGame stubs exclusively owned by 03-02/03-03.
 
 ### Deferred Issues
 
@@ -78,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-04
-Stopped at: Completed 02-03-PLAN.md (SUMMARY created) — Phase 2 complete, ready to plan Phase 3 (Playable 2D Client)
+Stopped at: Completed 03-01-PLAN.md (SUMMARY created) — ready for 03-02 and 03-03 (parallelizable against the 03-01 seams)
 Resume file: None
