@@ -6,7 +6,11 @@ import http from "node:http";
 import { pathToFileURL } from "node:url";
 import express from "express";
 import { GRID_SIZE } from "@steel-horizon/shared";
-import { createSocketServer, type GameServer } from "./socket.js";
+import {
+  createSocketServer,
+  type GameServer,
+  type SocketServerDeps,
+} from "./socket.js";
 
 export interface ServerHandles {
   app: express.Express;
@@ -14,7 +18,7 @@ export interface ServerHandles {
   io: GameServer;
 }
 
-export function createServer(): ServerHandles {
+export function createServer(deps: SocketServerDeps = {}): ServerHandles {
   const app = express();
 
   app.get("/health", (_req, res) => {
@@ -22,7 +26,7 @@ export function createServer(): ServerHandles {
   });
 
   const httpServer = http.createServer(app);
-  const io = createSocketServer(httpServer);
+  const io = createSocketServer(httpServer, deps);
 
   return { app, httpServer, io };
 }

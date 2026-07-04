@@ -3,6 +3,7 @@
 // of truth. Store is a Map behind a narrow interface (Redis-swappable).
 
 import type { RoomPhase } from "@steel-horizon/shared";
+import type { Game } from "./game/engine.js";
 
 export interface RoomPlayer {
   sessionId: string;
@@ -16,8 +17,8 @@ export interface Room {
   /** Up to 2 players; index 0 is the creator. */
   players: RoomPlayer[];
   phase: RoomPhase;
-  /** Occupied by the 02-02 game engine; null until placement completes setup. */
-  game: unknown | null;
+  /** The authoritative engine state; null while the room is in the lobby. */
+  game: Game | null;
 }
 
 export interface RoomStore {
