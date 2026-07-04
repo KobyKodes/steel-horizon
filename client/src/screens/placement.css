@@ -1,0 +1,212 @@
+/* Placement screen + board. Utilitarian 2D baseline (Phase 4/5 replaces
+   visuals). Owned by plan 03-02. */
+
+.screen.placement {
+  max-width: 46rem;
+  justify-content: flex-start;
+  padding-top: 1.5rem;
+}
+
+/* --- Board + dock layout --- */
+
+.placement-board {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.placement-board.is-dragging {
+  cursor: grabbing;
+}
+
+/* --- Grid --- */
+
+.board {
+  display: grid;
+  grid-template-columns: 1.4rem auto;
+  grid-template-rows: 1.4rem auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.board-corner {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.col-headers {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+}
+
+.row-headers {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: repeat(10, 1fr);
+}
+
+.col-headers span,
+.row-headers span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #8fa0b5;
+}
+
+.cells {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  width: min(70vmin, 26rem);
+  aspect-ratio: 1;
+  border: 1px solid #3a4a5e;
+  background: #0c1117;
+  touch-action: none;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #1c2634;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #b8d4f0;
+}
+
+.cell.ship {
+  background: #33506e;
+  border-color: #4a7bb5;
+  cursor: grab;
+}
+
+.placement-board.is-disabled .cell.ship {
+  cursor: default;
+}
+
+.cell.ship.lifting {
+  opacity: 0.35;
+}
+
+.cell.ghost-legal {
+  background: #2e5b3a;
+  border-color: #57a06a;
+}
+
+.cell.ghost-illegal {
+  background: #63262e;
+  border-color: #a04552;
+}
+
+.cell.flash-illegal {
+  animation: flash-illegal 0.45s ease-out;
+}
+
+@keyframes flash-illegal {
+  0%,
+  60% {
+    background: #8a2f3b;
+    border-color: #c05563;
+  }
+  100% {
+    background: #33506e;
+    border-color: #4a7bb5;
+  }
+}
+
+/* --- Dock --- */
+
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 11rem;
+}
+
+.dock h2 {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8fa0b5;
+}
+
+.dock-ship {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.7rem;
+  background: #1d2836;
+  border: 1px solid #3a4a5e;
+  border-radius: 6px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.dock-ship.lifting {
+  opacity: 0.35;
+}
+
+.dock-ship-name {
+  font-size: 0.9rem;
+}
+
+.dock-ship-cells {
+  display: flex;
+  gap: 2px;
+}
+
+.dock-ship-cells i {
+  width: 0.9rem;
+  height: 0.9rem;
+  background: #33506e;
+  border: 1px solid #4a7bb5;
+}
+
+.dock-empty {
+  margin: 0;
+  color: #8fa0b5;
+  font-style: italic;
+}
+
+/* --- Screen chrome (controls, status) --- */
+
+.placement-controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.placement-controls .ready-button {
+  background: #23503a;
+  border-color: #3e7a58;
+}
+
+.placement-controls .ready-button:hover:not(:disabled) {
+  background: #2d6448;
+}
+
+.placement-status {
+  margin: 0;
+  color: #8fa0b5;
+  text-align: center;
+}
+
+.placement-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5f7085;
+  text-align: center;
+}
