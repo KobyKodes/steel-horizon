@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Monorepo scaffold + shared game rules engine with thorough unit tests (completed 2026-07-03)
 - [x] **Phase 2: Multiplayer Server** - Authoritative Socket.IO server: rooms, matchmaking, full game loop, reconnect (completed 2026-07-04)
-- [ ] **Phase 3: Playable 2D Client** - Complete flow (lobby → placement → battle → post-game) on a plain 2D board
+- [x] **Phase 3: Playable 2D Client** - Complete flow (lobby → placement → battle → post-game) on a plain 2D board (completed 2026-07-04)
 - [ ] **Phase 4: 3D Ocean Scene** - Animated water, procedural ships, holographic grid, camera system
 - [ ] **Phase 5: Cinematics & Audio** - Firing sequences, particles, sinking animations, HUD polish, sound
 - [ ] **Phase 6: Resilience & Edge Cases** - Turn timers, disconnect handling, reduced-effects mode, final QA
@@ -58,8 +58,8 @@ Plans:
 
 Plans:
 - [x] 03-01: App shell & connection — landing screen, name entry, create/join/quick-match, Zustand store driven by server snapshots, lobby (completed 2026-07-04)
-- [ ] 03-02: Placement UI — 2D grid, drag-to-place, R/right-click rotate, randomize button, ready-up
-- [ ] 03-03: Battle & post-game — targeting board, shot results, turn indicator, shot log, board reveal, stats, rematch flow
+- [x] 03-02: Placement UI — 2D grid, drag-to-place, R/right-click rotate, randomize button, ready-up (completed 2026-07-04)
+- [x] 03-03: Battle & post-game — targeting board, shot results, turn indicator, shot log, board reveal, stats, rematch flow (completed 2026-07-04)
 
 ### Phase 4: 3D Ocean Scene
 **Goal**: The 2D board replaced by the cinematic scene — animated ocean with sun glare and fog, procedurally built ship meshes bobbing on the waves, glowing holographic grid overlay, smooth camera transitions between fleet view and targeting view — while the proven multiplayer flow keeps working unchanged.
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-07-03 |
 | 2. Multiplayer Server | 3/3 | Complete | 2026-07-04 |
-| 3. Playable 2D Client | 0/3 | Not started | - |
+| 3. Playable 2D Client | 3/3 | Complete | 2026-07-04 |
 | 4. 3D Ocean Scene | 0/4 | Not started | - |
 | 5. Cinematics & Audio | 0/3 | Not started | - |
 | 6. Resilience & Edge Cases | 0/2 | Not started | - |
