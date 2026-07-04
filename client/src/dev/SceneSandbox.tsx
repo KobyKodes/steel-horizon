@@ -1,5 +1,6 @@
 import { SceneRoot } from "../scene/SceneRoot";
 import { FleetShips, type FleetShipInstance } from "../scene/ships/FleetShips";
+import { HoloGrid } from "../scene/grid/HoloGrid";
 
 // Standalone full-viewport harness for isolated visual verification of the
 // 3D scene across plans 04-01 through 04-05. Reached via /?dev=scene.
@@ -10,14 +11,15 @@ import { FleetShips, type FleetShipInstance } from "../scene/ships/FleetShips";
 // Spaced by ship center (ShipModel recenters its hull around its own local
 // origin) with at least each pair's combined half-lengths of clearance, so
 // the longest hulls (carrier/battleship) never overlap.
-// Ships sit on the z=0 line the SceneRoot camera looks at, so the whole
-// fleet is framed in view rather than hugging the bottom of the frustum.
+// Ships sit behind the HoloGrid footprint (grid spans roughly x/z in
+// [-20, 20] around the origin the camera looks at), so the grid overlay
+// and the fleet silhouettes are both fully visible without overlapping.
 const SANDBOX_FLEET: FleetShipInstance[] = [
-  { shipClass: "carrier", position: [-30, 0] },
-  { shipClass: "battleship", position: [-14, 0] },
-  { shipClass: "cruiser", position: [0, 0] },
-  { shipClass: "submarine", position: [14, 0] },
-  { shipClass: "destroyer", position: [28, 0] },
+  { shipClass: "carrier", position: [-30, -32] },
+  { shipClass: "battleship", position: [-14, -32] },
+  { shipClass: "cruiser", position: [0, -32] },
+  { shipClass: "submarine", position: [14, -32] },
+  { shipClass: "destroyer", position: [28, -32] },
 ];
 
 export function SceneSandbox() {
@@ -25,6 +27,7 @@ export function SceneSandbox() {
     <div style={{ position: "fixed", inset: 0 }}>
       <SceneRoot>
         <FleetShips ships={SANDBOX_FLEET} />
+        <HoloGrid />
       </SceneRoot>
     </div>
   );
