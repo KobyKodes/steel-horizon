@@ -460,7 +460,10 @@ export function createSocketServer(
         target: result.record.target,
         result: result.record.result,
         ...(result.record.sunkShip !== undefined
-          ? { sunkShip: result.record.sunkShip }
+          ? {
+              sunkShip: result.record.sunkShip,
+              sunkShipCells: result.record.sunkShipCells,
+            }
           : {}),
       });
 

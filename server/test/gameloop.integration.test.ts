@@ -227,11 +227,16 @@ describe("game loop over sockets", () => {
       aliceShot,
       bobShot,
     ]);
+    const destroyerCells = [
+      { col: 5, row: 9 },
+      { col: 6, row: 9 },
+    ];
     expect(sunkForAlice).toEqual({
       shooter: "Alice",
       target: { col: 6, row: 9 },
       result: "sunk",
       sunkShip: "destroyer",
+      sunkShipCells: destroyerCells,
     });
     expect(sunkForBob.sunkShip).toBe("destroyer");
 
@@ -243,7 +248,12 @@ describe("game loop over sockets", () => {
       afterSunkB.shotsAgainstYou.filter((s) => s.result !== "miss"),
     ).toEqual([
       { target: { col: 5, row: 9 }, result: "hit" },
-      { target: { col: 6, row: 9 }, result: "sunk", sunkShip: "destroyer" },
+      {
+        target: { col: 6, row: 9 },
+        result: "sunk",
+        sunkShip: "destroyer",
+        sunkShipCells: destroyerCells,
+      },
     ]);
     expect(afterSunkB.phase).toBe("battle");
 

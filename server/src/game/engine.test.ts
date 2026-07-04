@@ -164,6 +164,10 @@ describe("fire", () => {
         target: { col: 6, row: 9 },
         result: "sunk",
         sunkShip: "destroyer",
+        sunkShipCells: [
+          { col: 5, row: 9 },
+          { col: 6, row: 9 },
+        ],
       },
       gameOver: false,
     });

@@ -44,13 +44,64 @@ describe("resolveShot", () => {
       ok: true,
       result: "sunk",
       ship: "cruiser",
+      cells: [
+        { col: 0, row: 4 },
+        { col: 1, row: 4 },
+        { col: 2, row: 4 },
+      ],
     });
   });
 
   it("sinks the destroyer on its second cell after one prior hit", () => {
     expect(
       resolveShot(fleet, [{ col: 0, row: 8 }], { col: 1, row: 8 }),
-    ).toEqual({ ok: true, result: "sunk", ship: "destroyer" });
+    ).toEqual({
+      ok: true,
+      result: "sunk",
+      ship: "destroyer",
+      cells: [
+        { col: 0, row: 8 },
+        { col: 1, row: 8 },
+      ],
+    });
+  });
+
+  it("reports only the sunk ship's own cells when an adjacent ship touches it (legal layout)", () => {
+    // battleship (A3-D3) and cruiser (A5-C5) don't touch in `fleet`, so
+    // build a fleet where a ship's sinking cell is orthogonally adjacent to
+    // another ship's cells — the touching cells must never bleed into the
+    // reported `cells` for either ship.
+    const touchingFleet: FleetPlacement = [
+      {
+        ship: "cruiser",
+        origin: { col: 1, row: 1 },
+        orientation: "vertical",
+      }, // B2-B4
+      {
+        ship: "submarine",
+        origin: { col: 1, row: 4 },
+        orientation: "horizontal",
+      }, // B5-D5 (touches the cruiser at B4/B5)
+    ];
+    const priorHits: Coordinate[] = [
+      { col: 1, row: 1 },
+      { col: 1, row: 2 },
+      { col: 1, row: 4 },
+      { col: 2, row: 4 },
+      { col: 3, row: 4 },
+    ];
+    expect(
+      resolveShot(touchingFleet, priorHits, { col: 1, row: 3 }),
+    ).toEqual({
+      ok: true,
+      result: "sunk",
+      ship: "cruiser",
+      cells: [
+        { col: 1, row: 1 },
+        { col: 1, row: 2 },
+        { col: 1, row: 3 },
+      ],
+    });
   });
 
   it("rejects a repeat of a previous hit with CELL_ALREADY_SHOT", () => {

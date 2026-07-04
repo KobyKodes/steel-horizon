@@ -21,7 +21,7 @@ import type { ErrorCode } from "./protocol.js";
 export type ShotResolution =
   | { ok: true; result: "miss" }
   | { ok: true; result: "hit"; ship: ShipClassId }
-  | { ok: true; result: "sunk"; ship: ShipClassId }
+  | { ok: true; result: "sunk"; ship: ShipClassId; cells: Coordinate[] }
   | { ok: false; error: Extract<ErrorCode, "OUT_OF_BOUNDS" | "CELL_ALREADY_SHOT"> };
 
 /**
@@ -51,7 +51,7 @@ export function resolveShot(
         previousShots.some((shot) => coordsEqual(shot, cell)),
     );
     if (sunk) {
-      return { ok: true, result: "sunk", ship: placement.ship };
+      return { ok: true, result: "sunk", ship: placement.ship, cells };
     }
     return { ok: true, result: "hit", ship: placement.ship };
   }

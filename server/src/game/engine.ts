@@ -160,7 +160,12 @@ export function fire(
 
   const record: ShotRecord =
     resolution.result === "sunk"
-      ? { target, result: "sunk", sunkShip: resolution.ship }
+      ? {
+          target,
+          result: "sunk",
+          sunkShip: resolution.ship,
+          sunkShipCells: resolution.cells,
+        }
       : { target, result: resolution.result };
   shooter.shots.push(record);
 

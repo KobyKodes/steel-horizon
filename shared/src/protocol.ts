@@ -32,6 +32,12 @@ export interface ShotRecord {
   target: Coordinate;
   result: ShotOutcome;
   sunkShip?: ShipClassId;
+  /**
+   * All cells of the ship this shot sank. Safe to reveal in full: once a
+   * ship is sunk its shape is permanently public, and this never touches
+   * the cells of other (possibly touching, still-alive) ships.
+   */
+  sunkShipCells?: Coordinate[];
 }
 
 /**
@@ -96,6 +102,7 @@ export interface ServerToClientEvents {
     target: Coordinate;
     result: ShotOutcome;
     sunkShip?: ShipClassId;
+    sunkShipCells?: Coordinate[];
   }) => void;
   errorEvent: (payload: { code: ErrorCode; message: string }) => void;
 }
