@@ -24,7 +24,7 @@
 
 /* --- Grid --- */
 
-.board {
+.placement-grid {
   display: grid;
   grid-template-columns: 1.4rem min(70vmin, 26rem);
   grid-template-rows: 1.4rem min(70vmin, 26rem);

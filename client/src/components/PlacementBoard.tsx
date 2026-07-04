@@ -285,7 +285,7 @@ export default function PlacementBoard({
       className={`placement-board${disabled ? " is-disabled" : ""}${dragging ? " is-dragging" : ""}`}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <div className="board">
+      <div className="placement-grid">
         <div className="board-corner" />
         <div className="col-headers">
           {Array.from({ length: GRID_SIZE }, (_, col) => (
