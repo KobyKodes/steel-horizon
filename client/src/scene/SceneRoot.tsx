@@ -1,14 +1,16 @@
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor, Stats } from "@react-three/drei";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Ocean } from "./Ocean";
 import { SkyDome } from "./SkyDome";
 
 // Root of the 3D scene: everything later Phase 4 plans (grid, ships,
 // camera rig) mounts inside this <Canvas>. Ocean + SkyDome are the shared
 // environment; PerformanceMonitor/Stats give the perf baseline every
-// subsequent plan compares against.
-export function SceneRoot() {
+// subsequent plan compares against. `children` lets callers (e.g. the dev
+// sandbox, later real screens) compose additional scene content inside the
+// same Canvas without duplicating the environment setup.
+export function SceneRoot({ children }: { children?: ReactNode }) {
   const [dpr, setDpr] = useState(1.5);
 
   return (
@@ -20,6 +22,7 @@ export function SceneRoot() {
       {import.meta.env.DEV && <Stats />}
       <SkyDome />
       <Ocean />
+      {children}
     </Canvas>
   );
 }
