@@ -1,0 +1,351 @@
+/* Battle + post-game styles (plan 03-03). Plain 2D utilitarian — Phase 4/5
+   replaces the visuals entirely. */
+
+.battle-screen,
+.postgame-screen {
+  max-width: 64rem;
+  justify-content: flex-start;
+}
+
+/* --- Turn indicator --- */
+
+.turn-indicator {
+  width: 100%;
+  text-align: center;
+  padding: 0.55rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: #1d2836;
+  border: 1px solid #3a4a5e;
+  color: #8fa0b5;
+}
+
+.turn-indicator.your-turn {
+  background: #14321c;
+  border-color: #2e6b3e;
+  color: #8fe6a0;
+}
+
+/* --- Layout --- */
+
+.battle-layout {
+  display: flex;
+  gap: 2rem;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.battle-main,
+.battle-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.battle-main h2,
+.battle-side h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.battle-side h3,
+.battle-main h3,
+.fleet-status h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #8fa0b5;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* --- Boards --- */
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  --cell: 2.6rem;
+}
+
+.battle-side .board,
+.postgame-boards .board {
+  --cell: 1.7rem;
+}
+
+.board-row {
+  display: flex;
+  gap: 2px;
+}
+
+.row-label,
+.col-label {
+  width: var(--cell);
+  height: var(--cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #61708a;
+  flex: none;
+}
+
+.row-label {
+  width: 1.2rem;
+}
+
+.board .cell {
+  width: var(--cell);
+  height: var(--cell);
+  flex: none;
+  padding: 0;
+  border: 1px solid #26374d;
+  border-radius: 3px;
+  background: #16202e;
+  position: relative;
+  cursor: default;
+}
+
+/* Targeting board interactivity */
+.board.targeting .cell.targetable {
+  cursor: crosshair;
+}
+
+.board.targeting .cell.targetable:hover {
+  background: #24405e;
+  border-color: #4a7bb5;
+}
+
+.board .cell:disabled {
+  opacity: 1; /* board cells convey state via color, not opacity */
+}
+
+.board .cell.pending {
+  background: #3a3f2a;
+  border-color: #7a7a40;
+}
+
+/* Shot results */
+.board .cell.miss::after {
+  content: "";
+  position: absolute;
+  inset: 38%;
+  border-radius: 50%;
+  background: #5c6e85;
+}
+
+.board .cell.hit {
+  background: #6e2430;
+  border-color: #a03a4a;
+}
+
+.board .cell.hit::after {
+  content: "\2715";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f0b2ba;
+  font-size: calc(var(--cell) * 0.5);
+  line-height: 1;
+}
+
+.board .cell.hit.sunk {
+  background: #451018;
+  border-color: #e05a6e;
+  outline: 1px solid #e05a6e;
+  outline-offset: -3px;
+}
+
+/* Your fleet: ship silhouettes + incoming fire */
+.board .cell.ship {
+  background: #2a3c52;
+  border-color: #4a6a8f;
+}
+
+.board .cell.ship.hit {
+  background: #6e2430;
+  border-color: #a03a4a;
+}
+
+/* --- Fleet status lists --- */
+
+.fleet-status ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.fleet-status li.sunk {
+  color: #e05a6e;
+  text-decoration: line-through;
+}
+
+/* --- Shot log --- */
+
+.shot-log {
+  width: 100%;
+  max-width: 20rem;
+  height: 11rem;
+  overflow-y: auto;
+  background: #0c1117;
+  border: 1px solid #232f3f;
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.shot-log ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.shot-log .log-miss {
+  color: #8fa0b5;
+}
+
+.shot-log .log-hit {
+  color: #f0c4ca;
+}
+
+.shot-log .log-sunk {
+  color: #e6b450;
+  font-weight: 600;
+}
+
+.shot-log .log-section {
+  margin: 0.35rem 0 0.15rem;
+  color: #61708a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+}
+
+.shot-log .log-empty {
+  margin: 0;
+  color: #61708a;
+  font-style: italic;
+}
+
+/* --- Post-game --- */
+
+.result-banner {
+  width: 100%;
+  text-align: center;
+  padding: 1rem;
+  border-radius: 6px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+
+.result-banner.victory {
+  background: #14321c;
+  border: 1px solid #2e6b3e;
+  color: #8fe6a0;
+}
+
+.result-banner.defeat {
+  background: #3a1d22;
+  border: 1px solid #7a3540;
+  color: #f0c4ca;
+}
+
+.result-banner .win-reason {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.postgame-boards {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.postgame-boards h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.6rem 1rem;
+  background: #1d2836;
+  border: 1px solid #3a4a5e;
+  border-radius: 6px;
+  min-width: 7rem;
+}
+
+.stat .stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.stat .stat-label {
+  font-size: 0.75rem;
+  color: #8fa0b5;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.rematch-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rematch-note {
+  margin: 0;
+  color: #8fa0b5;
+  font-style: italic;
+}
+
+.rematch-note.opponent-wants {
+  color: #e6b450;
+  font-style: normal;
+}
+
+.leave-link {
+  background: none;
+  border: none;
+  color: #61708a;
+  text-decoration: underline;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.leave-link:hover:not(:disabled) {
+  background: none;
+  color: #8fa0b5;
+}
