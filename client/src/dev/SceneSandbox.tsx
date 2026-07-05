@@ -1,29 +1,37 @@
 import { useState } from "react";
-import { coordToLabel, type Coordinate } from "@steel-horizon/shared";
+import {
+  coordToLabel,
+  type Coordinate,
+  type ShipPlacement,
+} from "@steel-horizon/shared";
 import { SceneRoot } from "../scene/SceneRoot";
-import { FleetShips, type FleetShipInstance } from "../scene/ships/FleetShips";
-import { HoloGrid } from "../scene/grid/HoloGrid";
+import { FleetShips } from "../scene/ships/FleetShips";
+import { HoloGrid, type CellState } from "../scene/grid/HoloGrid";
 import type { CameraView } from "../scene/camera/CameraRig";
 
 // Standalone full-viewport harness for isolated visual verification of the
 // 3D scene across plans 04-01 through 04-05. Reached via /?dev=scene.
 // Removed once the scene is wired into the real screens (plan 04-06).
 //
-// One instance of each of the 5 ship classes, spread out atop the 04-01
-// Ocean plane, for a side-by-side silhouette + wave-sync check.
-// Spaced by ship center (ShipModel recenters its hull around its own local
-// origin) with at least each pair's combined half-lengths of clearance, so
-// the longest hulls (carrier/battleship) never overlap.
-// Ships sit behind the HoloGrid footprint (grid spans roughly x/z in
-// [-20, 20] around the origin the camera looks at), so the grid overlay
-// and the fleet silhouettes are both fully visible without overlapping.
-const SANDBOX_FLEET: FleetShipInstance[] = [
-  { shipClass: "carrier", position: [-30, -32] },
-  { shipClass: "battleship", position: [-14, -32] },
-  { shipClass: "cruiser", position: [0, -32] },
-  { shipClass: "submarine", position: [14, -32] },
-  { shipClass: "destroyer", position: [28, -32] },
+// One instance of each of the 5 ship classes, spread along a single grid
+// row via the shared `cellToWorld` mapping (04-05) — the same positioning
+// system HoloGrid and the real GameSceneAdapter use, so the sandbox stays
+// representative of real integration rather than drifting to its own math.
+const SANDBOX_FLEET: ShipPlacement[] = [
+  { ship: "carrier", origin: { col: 0, row: 0 }, orientation: "horizontal" },
+  { ship: "battleship", origin: { col: 0, row: 2 }, orientation: "horizontal" },
+  { ship: "cruiser", origin: { col: 0, row: 4 }, orientation: "horizontal" },
+  { ship: "submarine", origin: { col: 0, row: 6 }, orientation: "horizontal" },
+  { ship: "destroyer", origin: { col: 0, row: 8 }, orientation: "horizontal" },
 ];
+
+// Sample cellStates map for verifying HoloGrid's hit/miss/sunk marker
+// rendering in isolation.
+const SANDBOX_CELL_STATES = new Map<string, CellState>([
+  ["3,3", "miss"],
+  ["4,3", "hit"],
+  ["5,3", "sunk"],
+]);
 
 const readoutStyle: React.CSSProperties = {
   position: "absolute",
@@ -62,8 +70,12 @@ export function SceneSandbox() {
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       <SceneRoot view={view}>
-        <FleetShips ships={SANDBOX_FLEET} />
-        <HoloGrid onHoverCell={setHoveredCell} onSelectCell={setSelectedCell} />
+        <FleetShips placements={SANDBOX_FLEET} />
+        <HoloGrid
+          onHoverCell={setHoveredCell}
+          onSelectCell={setSelectedCell}
+          cellStates={SANDBOX_CELL_STATES}
+        />
       </SceneRoot>
       <div style={readoutStyle}>
         <div>hover: {hoveredCell ? coordToLabel(hoveredCell) : "—"}</div>

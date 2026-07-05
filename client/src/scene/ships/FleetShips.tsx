@@ -1,9 +1,10 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import type { ShipClassId } from "@steel-horizon/shared";
+import { SHIP_LENGTHS, type ShipClassId, type ShipPlacement } from "@steel-horizon/shared";
 import { ShipModel } from "./ShipHull";
 import { gerstnerHeight } from "../waves";
+import { cellToWorld } from "../grid/gridCoords";
 
 // Places a single ship and keeps its group's position/rotation locked to
 // the ocean surface every frame. Samples the EXACT gerstnerHeight()
@@ -21,9 +22,18 @@ const SAMPLE_OFFSET = 1.5;
 interface FloatingShipProps {
   shipClass: ShipClassId;
   position: [number, number];
+  /** Yaw around Y, aligning the hull's length axis with the placement's orientation. */
+  rotationY: number;
+  /** Sunk ships render with a dimmed/damaged material tint (full sinking animation is Phase 5 scope). */
+  sunk: boolean;
 }
 
-function FloatingShip({ shipClass, position }: FloatingShipProps) {
+function FloatingShip({
+  shipClass,
+  position,
+  rotationY,
+  sunk,
+}: FloatingShipProps) {
   const groupRef = useRef<Group>(null);
   const [x, z] = position;
 
@@ -53,28 +63,59 @@ function FloatingShip({ shipClass, position }: FloatingShipProps) {
   });
 
   return (
-    <group ref={groupRef} position={[x, 0, z]}>
-      <ShipModel shipClass={shipClass} />
+    <group ref={groupRef} position={[x, 0, z]} rotation-y={rotationY}>
+      <ShipModel shipClass={shipClass} sunk={sunk} />
     </group>
   );
 }
 
-export interface FleetShipInstance {
-  shipClass: ShipClassId;
-  position: [number, number];
+export interface FleetShipsProps {
+  /** Real ship placements — positioned via the shared `cellToWorld` mapping. */
+  placements: ShipPlacement[];
+  /** Ships to render with a damaged material tint. */
+  sunkShips?: ShipClassId[];
 }
 
-/** Renders a set of floating ships, each independently tracking the ocean surface. */
-export function FleetShips({ ships }: { ships: FleetShipInstance[] }) {
+/** Renders a fleet's ships, each independently tracking the ocean surface. */
+export function FleetShips({ placements, sunkShips }: FleetShipsProps) {
+  const sunkSet = new Set(sunkShips ?? []);
+
   return (
     <>
-      {ships.map((ship, i) => (
-        <FloatingShip
-          key={`${ship.shipClass}-${i}`}
-          shipClass={ship.shipClass}
-          position={ship.position}
-        />
-      ))}
+      {placements.map((placement, i) => {
+        // ShipModel recenters its hull around its own local origin
+        // (midpoint, not stern), so position at the placement's occupied
+        // *center* cell — not its origin (first) cell — or the ship
+        // renders shifted half its length off its actual grid footprint.
+        const length = SHIP_LENGTHS[placement.ship];
+        const centerOffset = (length - 1) / 2;
+        const center =
+          placement.orientation === "horizontal"
+            ? {
+                col: placement.origin.col + centerOffset,
+                row: placement.origin.row,
+              }
+            : {
+                col: placement.origin.col,
+                row: placement.origin.row + centerOffset,
+              };
+        const [x, z] = cellToWorld(center);
+        // Ships are modeled stern-at-origin/bow-toward-local-+X. Horizontal
+        // placements grow along grid columns (world +x, ship's local +X
+        // already matches); vertical placements grow along grid rows
+        // (world +z), so yaw the hull 90° to align its length axis there.
+        const rotationY =
+          placement.orientation === "horizontal" ? 0 : Math.PI / 2;
+        return (
+          <FloatingShip
+            key={`${placement.ship}-${i}`}
+            shipClass={placement.ship}
+            position={[x, z]}
+            rotationY={rotationY}
+            sunk={sunkSet.has(placement.ship)}
+          />
+        );
+      })}
     </>
   );
 }

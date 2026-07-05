@@ -29,6 +29,12 @@ const DECK_COLOR = "#3f4650";
 const SUPERSTRUCTURE_COLOR = "#7a828c";
 const RADAR_COLOR = "#c9d6de";
 
+// Sunk-ship damage tint: a simple darkened, rust-red-shifted color swap
+// (no geometry change, no sinking animation — that's Phase 5 scope).
+const HULL_COLOR_SUNK = "#3a2426";
+const DECK_COLOR_SUNK = "#2a1c1e";
+const SUPERSTRUCTURE_COLOR_SUNK = "#4a2e30";
+
 function buildHullGeometry(spec: ShipClassSpec): THREE.BufferGeometry {
   const { length, beam, draft } = spec;
   const halfBeam = beam / 2;
@@ -100,21 +106,37 @@ function Radar({ position }: { position: [number, number, number] }) {
   );
 }
 
-export function ShipModel({ shipClass }: { shipClass: ShipClassId }) {
+export function ShipModel({
+  shipClass,
+  sunk = false,
+}: {
+  shipClass: ShipClassId;
+  /** Renders the hull/deck/superstructure with a dimmed damage tint. */
+  sunk?: boolean;
+}) {
   const spec = SHIP_CLASSES[shipClass];
 
   const hullGeometry = useMemo(() => buildHullGeometry(spec), [spec]);
   const hullMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: HULL_COLOR }),
-    [],
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: sunk ? HULL_COLOR_SUNK : HULL_COLOR,
+      }),
+    [sunk],
   );
   const deckMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: DECK_COLOR }),
-    [],
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: sunk ? DECK_COLOR_SUNK : DECK_COLOR,
+      }),
+    [sunk],
   );
   const superstructureMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: SUPERSTRUCTURE_COLOR }),
-    [],
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: sunk ? SUPERSTRUCTURE_COLOR_SUNK : SUPERSTRUCTURE_COLOR,
+      }),
+    [sunk],
   );
 
   const { length, beam, draft, turretCount, hasRadar, hasFlatDeck } = spec;
