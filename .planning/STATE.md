@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Two people on different machines play a complete, cheat-resistant game of Battleship inside a cinematic 3D naval scene — and both halves (bulletproof multiplayer, hyper-realistic presentation) are equally non-negotiable.
-**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 5 of 7 complete)
+**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 6 of 7 complete)
 
 ## Current Position
 
 Phase: 4 of 7 (3D Ocean Scene) — In progress
-Plan: 5 of 7 in current phase — Complete
-Status: Plan 04-05 complete; ready to execute 04-06
-Last activity: 2026-07-05 — Completed 04-05-PLAN.md (Battle screen 3D integration: new `gridCoords.ts` establishes the one shared `cellToWorld` grid-to-world mapping; `HoloGrid` gained a `cellStates` prop rendering hit/miss/sunk shot markers; `FleetShips` now positions real `ShipPlacement[]` fleets instead of 04-02's fixed demo row; new `GameSceneAdapter` composes the scene behind a game-facing API and is now what `BattleScreen` renders instead of `TargetingBoard.tsx`, which is deleted). Checkpoint self-verified per yolo config via a real two-browser Playwright run against the live server: room creation/join through battle, alternating live fire with correct hit/miss markers on the 3D grid, turn gating enforced, fleet view showing real ship placements, zero console errors. Two bugs found and fixed during self-verification: ship hull length not matching its grid-cell footprint (BASE_UNIT now equals gridCoords' CELL_SIZE), and the player's own ships incorrectly rendering during targeting view (GameSceneAdapter now renders FleetShips only when view === "fleet").
+Plan: 6 of 7 in current phase — Complete
+Status: Plan 04-06 complete; ready to execute 04-07 (Placement — final Phase 4 plan)
+Last activity: 2026-07-05 — Completed 04-06-PLAN.md (Post-Game 3D reveal: `GameSceneAdapter` gained a `mode?: "interactive" | "reveal"` prop — reveal mode disables all `HoloGrid` hover/click via a new `interactive` prop and always renders the fleet regardless of camera view; `PostGameScreen` now shows both fleets via two reveal-mode adapters instead of the deleted `FleetBoard.tsx`; `BattleScreen`'s side-panel fleet reveal was migrated to the same adapter since FleetBoard's other consumer couldn't be left dangling. Every screen except Placement now renders its board via the 3D scene). Checkpoint self-verified per yolo config: a Node socket.io-client script drove two real sessions through create/join/ready/place/fire to a real gameover against the live dev server (mirroring server/test/helpers.ts's playToVictory), then headless Playwright resumed one session via sessionStorage to render the actual Post-Game screen — both reveal boards showed correct hit/miss/sunk markers matching the real shot history, zero console errors, rematch flow intact. Two bugs found and fixed during self-verification: an ocean shader two-tone banding seam (removed the deep/shallow height mix) and an awkwardly-cropped fleet camera framing in the smaller reveal boards (CameraRig's fleet view repositioned). Logged ISS-001 (BattleScreen now runs two simultaneous live R3F Canvases) to ISSUES.md for Phase 6.
 
-Progress: ███████░░░ ~63% (15/24 plans complete across all phases; Phase 4 tracked at 7 plans total per 04-06/07 PLAN.md files already on disk)
+Progress: ███████░░░ ~67% (16/24 plans complete across all phases; Phase 4 tracked at 7 plans total per 04-07-PLAN.md already on disk)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
-- Average duration: ~29 min
-- Total execution time: ~7 hours
+- Total plans completed: 15
+- Average duration: ~32 min
+- Total execution time: ~8.2 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: ███████░░░ ~63% (15/24 plans complete across all p
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
 | 03-playable-2d-client | 3 | ~98 min | ~33 min |
-| 04-3d-ocean-scene | 5 | ~265 min | ~53 min |
+| 04-3d-ocean-scene | 6 | ~337 min | ~56 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (~30 min, checkpoint approved first pass), 04-02 (~95 min incl. 2 checkpoint fix iterations), 04-03 (~50 min, checkpoint approved first pass), 04-04 (~35 min, checkpoint self-verified first pass), 04-05 (~55 min, checkpoint self-verified with 2 in-flight bug fixes found via screenshots/live playtest)
-- Trend: integration-heavy plans run ~25-55 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots (and, for 04-05, a full two-browser live-server playtest) before the human checkpoint catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop
+- Last 5 plans: 04-02 (~95 min incl. 2 checkpoint fix iterations), 04-03 (~50 min, checkpoint approved first pass), 04-04 (~35 min, checkpoint self-verified first pass), 04-05 (~55 min, checkpoint self-verified with 2 in-flight bug fixes found via screenshots/live playtest), 04-06 (~72 min, checkpoint self-verified via a scripted socket.io playthrough + Playwright session resume, with 2 in-flight visual bug fixes found)
+- Trend: integration-heavy plans run ~25-55 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots (and, for 04-05/04-06, a full live-server playtest) before the human checkpoint catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop. 04-06 also established a faster self-verification path for read-only/reveal-only plans: a scripted socket.io-client playthrough to gameover plus a single Playwright session resume, instead of driving live 3D firing through canvas raycasts.
 
 ## Accumulated Context
 
@@ -91,10 +91,14 @@ Recent decisions affecting current work:
 - **`cellToWorld` in `client/src/scene/grid/gridCoords.ts` is the one grid-to-world coordinate mapping (04-05):** every 3D component that positions content by grid coordinate — `HoloGrid`'s cells, `FleetShips`' placements, and `ShipClasses.ts`'s `BASE_UNIT` (world units per grid-cell of ship length, now equal to `CELL_SIZE`) — reads this instead of approximating its own math. 04-06/04-07 must do the same.
 - **`GameSceneAdapter` is the game-facing wrapper over the state-agnostic scene primitives (04-05):** `client/src/scene/GameSceneAdapter.tsx` converts `ShotRecord[]` into `HoloGrid`'s `cellStates` map (porting `TargetingBoard`'s old `sunkCellsFrom` logic verbatim) and gates `onFire` on turn + no-existing-shot, mirroring the old `clickable` guard. `HoloGrid`/`FleetShips` themselves stay game-state-agnostic; 04-06 (post-game) and 04-07 (placement) build their own adapters over the same primitives rather than teaching the primitives new game rules.
 - **Ships render only in fleet view (04-05):** `GameSceneAdapter` renders `FleetShips` only when `view === "fleet"` — the grid is one shared physical space used for two different boards (your fleet vs. the enemy's waters) depending on camera framing, so rendering your own ships unconditionally showed them superimposed on the targeting view's grid (caught via live two-browser Playwright verification, fixed before the plan's final commit).
+- **`GameSceneAdapter`'s `mode` prop is the branch point for read-only display (04-06):** `mode?: "interactive" | "reveal"` (default interactive); reveal mode always renders the fleet (no `view === "fleet"` gate, since a reveal board only ever shows one board) and passes `HoloGrid`'s new `interactive={false}` to suppress all hover/click/cursor behavior, leaving only the static `cellStates` markers. Any future read-only board reuses this rather than a new adapter.
+- **Deleting a shared component requires migrating every consumer in the same commit (04-06):** `FleetBoard.tsx` had two consumers (`PostGameScreen` and `BattleScreen`'s side panel); both were migrated to `GameSceneAdapter mode="reveal"` together even though the plan's file list only named `PostGameScreen.tsx`, since deleting the file with a dangling import elsewhere would break the build.
+- **Two independent Canvases for side-by-side reveal boards, not one shared Canvas (04-06):** `PostGameScreen`'s two `GameSceneAdapter` instances each mount their own `SceneRoot`/`Canvas`. Acceptable for a static, non-time-pressured screen; ISS-001 flags that `BattleScreen`'s equivalent (interactive main canvas + reveal side canvas, both running continuously during live play) is a real per-frame cost worth measuring in Phase 6.
+- **Fast self-verification path for read-only/non-firing plans (04-06):** rather than driving live 3D firing through canvas raycasts, a Node `socket.io-client` script plays a full game to gameover against the live dev server (mirroring `server/test/helpers.ts`'s `playToVictory`/fixed fleets), then a single headless Playwright browser resumes one session via `sessionStorage` to render the real screen. Reuse this pattern for any future plan whose diff is confined to a read-only/reveal view.
 
 ### Deferred Issues
 
-None yet.
+- **ISS-001 (open):** BattleScreen runs two simultaneous live R3F Canvases (interactive main panel + read-only reveal side panel), each with its own continuous `frameloop="always"` render loop — roughly doubles per-frame GPU/CPU cost during live gameplay versus the single-canvas 04-05 baseline. Low risk today; flagged for Phase 6's 60fps budget work. See `.planning/ISSUES.md`.
 
 ### Pending Todos
 
@@ -107,5 +111,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-05
-Stopped at: Completed 04-05-PLAN.md (SUMMARY created) — Phase 4 plan 5 of 7 complete, ready to execute 04-06
+Stopped at: Completed 04-06-PLAN.md (SUMMARY created) — Phase 4 plan 6 of 7 complete, ready to execute 04-07 (Placement, final Phase 4 plan)
 Resume file: None
