@@ -66,13 +66,16 @@ Plans:
 **Depends on**: Phase 3
 **Research**: Likely (specialized 3D techniques)
 **Research topics**: R3F water/ocean shader approaches (Drei helpers vs custom GLSL), procedural ship mesh construction in Three.js, wave-synced buoyancy, camera rig transitions, 60fps performance budgeting
-**Plans**: 4 plans
+**Plans**: 7 plans (expanded from initial 4-plan estimate during 04-RESEARCH.md/planning — integration into real screens split out per-screen to keep each plan focused)
 
 Plans:
-- [ ] 04-01: Ocean environment — water shader, sky/sun/fog, time-of-day gradient, render loop and performance baseline
-- [ ] 04-02: Procedural ships — hull/superstructure/turret/radar meshes for all 5 classes, wave bob and pitch
-- [ ] 04-03: Holographic grid & interaction — glowing grid overlay, hover readout, cell targeting, placement in 3D
-- [ ] 04-04: Camera system & view integration — fleet view / targeting view rig, animated transitions, 2D board retired
+- [x] 04-01: Ocean environment — water shader, sky/sun/fog, time-of-day gradient, render loop and performance baseline (completed 2026-07-04)
+- [x] 04-02: Procedural ships — hull/superstructure/turret/radar meshes for all 5 classes, wave bob and pitch (completed 2026-07-05)
+- [x] 04-03: Holographic grid & interaction — glowing grid overlay, hover readout, cell targeting, placement in 3D (completed 2026-07-05)
+- [x] 04-04: Camera system — fleet view / targeting view rig with damp-based animated transitions, isolated in the dev sandbox (completed 2026-07-05)
+- [ ] 04-05: Battle screen integration — wire ocean/ships/grid/camera into the real Battle screen via a `GameSceneAdapter`, retiring the 2D `TargetingBoard`
+- [ ] 04-06: Post-game integration — read-only reveal mode on `GameSceneAdapter`, retiring the 2D `FleetBoard`
+- [ ] 04-07: Placement integration — 3D placement interaction on the holographic grid, retiring the 2D `PlacementBoard` and the dev sandbox; completes "2D board retired" across every screen
 
 ### Phase 5: Cinematics & Audio
 **Goal**: Every shot is a cinematic beat — camera push-in, shell arc with smoke trail, splash or explosion with screen shake, listing/sinking ships with bubbles and debris, each ≤2.5s and skippable — plus the naval-command HUD (fleet silhouettes, shot log, timers) and self-contained audio with persisted mute.
@@ -117,7 +120,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation | 4/4 | Complete | 2026-07-03 |
 | 2. Multiplayer Server | 3/3 | Complete | 2026-07-04 |
 | 3. Playable 2D Client | 3/3 | Complete | 2026-07-04 |
-| 4. 3D Ocean Scene | 0/4 | Not started | - |
+| 4. 3D Ocean Scene | 4/7 | In progress | - |
 | 5. Cinematics & Audio | 0/3 | Not started | - |
 | 6. Resilience & Edge Cases | 0/2 | Not started | - |
 | 7. Deployment | 0/2 | Not started | - |

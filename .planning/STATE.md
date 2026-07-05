@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Two people on different machines play a complete, cheat-resistant game of Battleship inside a cinematic 3D naval scene — and both halves (bulletproof multiplayer, hyper-realistic presentation) are equally non-negotiable.
-**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 3 of 7 complete)
+**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 4 of 7 complete)
 
 ## Current Position
 
 Phase: 4 of 7 (3D Ocean Scene) — In progress
-Plan: 3 of 7 in current phase — Complete
-Status: Plan 04-03 complete; ready to execute 04-04
-Last activity: 2026-07-05 — Completed 04-03-PLAN.md (interactive holographic grid: instanced 10x10 `<HoloGrid>` via drei `<Instances>` for one draw call, hover/click emitting shared `Coordinate` via callbacks, three visual cell states with amber reserved for the "selected" state). Human checkpoint approved on first pass — pre-checkpoint self-verification via headless Playwright caught and fixed one real rendering bug (transparent draw-order washout against the Ocean plane, fixed with explicit `renderOrder`).
+Plan: 4 of 7 in current phase — Complete
+Status: Plan 04-04 complete; ready to execute 04-05
+Last activity: 2026-07-05 — Completed 04-04-PLAN.md (camera rig: `CameraRig` damps the R3F camera between named `fleetView`/`targetingView` configs via per-axis `THREE.MathUtils.damp`, no GSAP/Theatre.js; `SceneRoot` now requires an external `view` prop instead of a hardcoded static camera; sandbox toggle added). Checkpoint self-verified per yolo config via headless Playwright: smooth transitions with no snapping across repeated/rapid toggles, both views usably framed their content, zero console errors, and transition timing confirmed frame-rate independent under 6x CPU throttling.
 
-Progress: ███████░░░ ~65%
+Progress: ██████░░░░ ~58% (14/24 plans complete across all phases; Phase 4 now tracked at 7 plans total per 04-05/06/07 PLAN.md files already on disk)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: ~28 min
-- Total execution time: ~5.5 hours
+- Total execution time: ~6 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: ███████░░░ ~65%
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
 | 03-playable-2d-client | 3 | ~98 min | ~33 min |
-| 04-3d-ocean-scene | 3 | ~175 min | ~58 min |
+| 04-3d-ocean-scene | 4 | ~210 min | ~53 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (~35 min incl. checkpoint fix-iterate), 04-01 (~30 min, checkpoint approved first pass), 04-02 (~95 min incl. 2 checkpoint fix iterations), 04-03 (~50 min, checkpoint approved first pass)
+- Last 5 plans: 04-01 (~30 min, checkpoint approved first pass), 04-02 (~95 min incl. 2 checkpoint fix iterations), 04-03 (~50 min, checkpoint approved first pass), 04-04 (~35 min, checkpoint self-verified first pass)
 - Trend: integration-heavy plans run ~25-35 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots before the human checkpoint (introduced in 04-03) catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop
 
 ## Accumulated Context
@@ -87,6 +87,7 @@ Recent decisions affecting current work:
 - **drei `<Instances>`/`<Instance>` for any repeated identical geometry (04-03):** one draw call for all 100 grid cells; per-instance R3F pointer events (`onPointerOver`/`onPointerOut`/`onClick`) handle hover/click natively, no manual `THREE.Raycaster`.
 - **Explicit `renderOrder` for transparent content stacked above another transparent surface (04-03):** three does not guarantee transparent-object draw order by scene depth. The Ocean plane (`alpha 0.95`) could draw after HoloGrid's additive-blended cells and multiply their glow by 0.05, washing out all cell states. HoloGrid sets `renderOrder={1}` so it always composites after the ocean. Any future overlay above the water (wake trails, projectile effects) must do the same.
 - **Amber reserved exclusively for the grid's "selected" cell state (04-03):** the one deliberate warm-color departure from the scene's all-teal palette, so a locked target reads unmistakably; future grid-based UI (targeting, placement) should keep this color meaning consistent rather than introducing new accent colors.
+- **Camera transitions use per-axis `THREE.MathUtils.damp`, not GSAP/Theatre.js (04-04):** `client/src/scene/camera/CameraRig.tsx` damps both camera position and a separate `lookAt` target `Vector3` toward named `fleetView`/`targetingView` configs every frame, using elapsed delta time so convergence speed is frame-rate independent (confirmed via 6x CPU-throttled headless verification). `SceneRoot`'s `view` prop is now required (no default), forcing every future screen integration (04-05/06/07) to explicitly choose a camera view rather than inheriting a stale implicit default.
 
 ### Deferred Issues
 
@@ -103,5 +104,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-05
-Stopped at: Completed 04-03-PLAN.md (SUMMARY created) — Phase 4 plan 3 of 7 complete, ready to execute 04-04
+Stopped at: Completed 04-04-PLAN.md (SUMMARY created) — Phase 4 plan 4 of 7 complete, ready to execute 04-05
 Resume file: None
