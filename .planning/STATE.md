@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Two people on different machines play a complete, cheat-resistant game of Battleship inside a cinematic 3D naval scene — and both halves (bulletproof multiplayer, hyper-realistic presentation) are equally non-negotiable.
-**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 2 of 7 complete)
+**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 3 of 7 complete)
 
 ## Current Position
 
 Phase: 4 of 7 (3D Ocean Scene) — In progress
-Plan: 2 of 7 in current phase — Complete
-Status: Plan 04-02 complete; ready to execute 04-03
-Last activity: 2026-07-04 — Completed 04-02-PLAN.md (procedural ships: one parameterized `<ShipModel>` builder via ExtrudeGeometry covering all 5 classes, class spec tables derived from shared SHIP_LENGTHS, wave-synced bob/pitch/roll in FleetShips.tsx). Human checkpoint approved after 2 fix iterations — initial submission had ships underwater/detached; fixes established explicit waterline constants, a shared frame clock between ocean shader and wave sampling, camera lookAt, and steepness tuned against hull freeboard.
+Plan: 3 of 7 in current phase — Complete
+Status: Plan 04-03 complete; ready to execute 04-04
+Last activity: 2026-07-05 — Completed 04-03-PLAN.md (interactive holographic grid: instanced 10x10 `<HoloGrid>` via drei `<Instances>` for one draw call, hover/click emitting shared `Coordinate` via callbacks, three visual cell states with amber reserved for the "selected" state). Human checkpoint approved on first pass — pre-checkpoint self-verification via headless Playwright caught and fixed one real rendering bug (transparent draw-order washout against the Ocean plane, fixed with explicit `renderOrder`).
 
-Progress: ██████░░░░ ~60%
+Progress: ███████░░░ ~65%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: ~26 min
-- Total execution time: ~4.7 hours
+- Total plans completed: 12
+- Average duration: ~28 min
+- Total execution time: ~5.5 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: ██████░░░░ ~60%
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
 | 03-playable-2d-client | 3 | ~98 min | ~33 min |
-| 04-3d-ocean-scene | 2 | ~125 min | ~63 min |
+| 04-3d-ocean-scene | 3 | ~175 min | ~58 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (28 min), 03-02 (~35 min), 03-03 (~35 min incl. checkpoint fix-iterate), 04-01 (~30 min, checkpoint approved first pass), 04-02 (~95 min incl. 2 checkpoint fix iterations)
-- Trend: integration-heavy plans run ~25-35 min; 3D visual work runs longer when the human checkpoint surfaces real rendering bugs (04-02's flotation fixes took ~2/3 of its duration) — the checkpoint keeps proving its worth (2 genuine bugs in 03-03, 2 fix rounds in 04-02)
+- Last 5 plans: 03-03 (~35 min incl. checkpoint fix-iterate), 04-01 (~30 min, checkpoint approved first pass), 04-02 (~95 min incl. 2 checkpoint fix iterations), 04-03 (~50 min, checkpoint approved first pass)
+- Trend: integration-heavy plans run ~25-35 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots before the human checkpoint (introduced in 04-03) catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop
 
 ## Accumulated Context
 
@@ -83,6 +83,10 @@ Recent decisions affecting current work:
 - **Explicit waterline constants, not ad-hoc nudges (04-02):** `KEEL_DEPTH` (40% of draft below waterline) and `DECK_LINE` (1.1 drafts above) in ShipHull.tsx encode ExtrudeGeometry's real y-span (bevel extends past both extrude faces; extrude depth maps to +Y after rotateX). Deck furniture is placed flush with the real deck line.
 - **Wave steepness is tuned against ship scale (04-02):** summed crest amplitude must stay below the smallest hull's freeboard or trough-riding ships vanish behind neighboring crests; the two shortest classes carry proportionally higher draft ratios for the same reason.
 - **Pitch/roll via finite-difference wave sampling (04-02):** ship attitude comes from sampling `gerstnerHeight` at small offsets along local length/beam axes — no independent sine approximation, no drift from the surface.
+- **HoloGrid is a pure, game-state-agnostic primitive (04-03):** `client/src/scene/grid/HoloGrid.tsx` only emits `Coordinate` via `onHoverCell`/`onSelectCell`; it has no knowledge of fleets/shots/turns. 04-05 and 04-06 add a `cellStates` prop for shot markers rather than teaching it game rules.
+- **drei `<Instances>`/`<Instance>` for any repeated identical geometry (04-03):** one draw call for all 100 grid cells; per-instance R3F pointer events (`onPointerOver`/`onPointerOut`/`onClick`) handle hover/click natively, no manual `THREE.Raycaster`.
+- **Explicit `renderOrder` for transparent content stacked above another transparent surface (04-03):** three does not guarantee transparent-object draw order by scene depth. The Ocean plane (`alpha 0.95`) could draw after HoloGrid's additive-blended cells and multiply their glow by 0.05, washing out all cell states. HoloGrid sets `renderOrder={1}` so it always composites after the ocean. Any future overlay above the water (wake trails, projectile effects) must do the same.
+- **Amber reserved exclusively for the grid's "selected" cell state (04-03):** the one deliberate warm-color departure from the scene's all-teal palette, so a locked target reads unmistakably; future grid-based UI (targeting, placement) should keep this color meaning consistent rather than introducing new accent colors.
 
 ### Deferred Issues
 
@@ -98,6 +102,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-04
-Stopped at: Completed 04-02-PLAN.md (SUMMARY created) — Phase 4 plan 2 of 7 complete, ready to execute 04-03
+Last session: 2026-07-05
+Stopped at: Completed 04-03-PLAN.md (SUMMARY created) — Phase 4 plan 3 of 7 complete, ready to execute 04-04
 Resume file: None
