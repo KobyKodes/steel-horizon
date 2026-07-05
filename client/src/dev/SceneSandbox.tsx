@@ -3,6 +3,7 @@ import { coordToLabel, type Coordinate } from "@steel-horizon/shared";
 import { SceneRoot } from "../scene/SceneRoot";
 import { FleetShips, type FleetShipInstance } from "../scene/ships/FleetShips";
 import { HoloGrid } from "../scene/grid/HoloGrid";
+import type { CameraView } from "../scene/camera/CameraRig";
 
 // Standalone full-viewport harness for isolated visual verification of the
 // 3D scene across plans 04-01 through 04-05. Reached via /?dev=scene.
@@ -39,13 +40,28 @@ const readoutStyle: React.CSSProperties = {
   pointerEvents: "none",
 };
 
+const viewToggleStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 12,
+  right: 12,
+  padding: "8px 16px",
+  background: "rgba(2, 24, 32, 0.75)",
+  border: "1px solid rgba(63, 193, 214, 0.4)",
+  borderRadius: 4,
+  color: "#bdf1ff",
+  fontFamily: "monospace",
+  fontSize: 14,
+  cursor: "pointer",
+};
+
 export function SceneSandbox() {
   const [hoveredCell, setHoveredCell] = useState<Coordinate | null>(null);
   const [selectedCell, setSelectedCell] = useState<Coordinate | null>(null);
+  const [view, setView] = useState<CameraView>("fleet");
 
   return (
     <div style={{ position: "fixed", inset: 0 }}>
-      <SceneRoot>
+      <SceneRoot view={view}>
         <FleetShips ships={SANDBOX_FLEET} />
         <HoloGrid onHoverCell={setHoveredCell} onSelectCell={setSelectedCell} />
       </SceneRoot>
@@ -53,6 +69,15 @@ export function SceneSandbox() {
         <div>hover: {hoveredCell ? coordToLabel(hoveredCell) : "—"}</div>
         <div>selected: {selectedCell ? coordToLabel(selectedCell) : "—"}</div>
       </div>
+      <button
+        type="button"
+        style={viewToggleStyle}
+        onClick={() =>
+          setView((v) => (v === "fleet" ? "targeting" : "fleet"))
+        }
+      >
+        view: {view} (click to toggle)
+      </button>
     </div>
   );
 }
