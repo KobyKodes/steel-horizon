@@ -73,7 +73,7 @@ Plans:
 - [x] 04-02: Procedural ships — hull/superstructure/turret/radar meshes for all 5 classes, wave bob and pitch (completed 2026-07-05)
 - [x] 04-03: Holographic grid & interaction — glowing grid overlay, hover readout, cell targeting, placement in 3D (completed 2026-07-05)
 - [x] 04-04: Camera system — fleet view / targeting view rig with damp-based animated transitions, isolated in the dev sandbox (completed 2026-07-05)
-- [ ] 04-05: Battle screen integration — wire ocean/ships/grid/camera into the real Battle screen via a `GameSceneAdapter`, retiring the 2D `TargetingBoard`
+- [x] 04-05: Battle screen integration — wire ocean/ships/grid/camera into the real Battle screen via a `GameSceneAdapter`, retiring the 2D `TargetingBoard` (completed 2026-07-05)
 - [ ] 04-06: Post-game integration — read-only reveal mode on `GameSceneAdapter`, retiring the 2D `FleetBoard`
 - [ ] 04-07: Placement integration — 3D placement interaction on the holographic grid, retiring the 2D `PlacementBoard` and the dev sandbox; completes "2D board retired" across every screen
 

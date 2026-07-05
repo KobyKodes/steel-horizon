@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Two people on different machines play a complete, cheat-resistant game of Battleship inside a cinematic 3D naval scene — and both halves (bulletproof multiplayer, hyper-realistic presentation) are equally non-negotiable.
-**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 4 of 7 complete)
+**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 5 of 7 complete)
 
 ## Current Position
 
 Phase: 4 of 7 (3D Ocean Scene) — In progress
-Plan: 4 of 7 in current phase — Complete
-Status: Plan 04-04 complete; ready to execute 04-05
-Last activity: 2026-07-05 — Completed 04-04-PLAN.md (camera rig: `CameraRig` damps the R3F camera between named `fleetView`/`targetingView` configs via per-axis `THREE.MathUtils.damp`, no GSAP/Theatre.js; `SceneRoot` now requires an external `view` prop instead of a hardcoded static camera; sandbox toggle added). Checkpoint self-verified per yolo config via headless Playwright: smooth transitions with no snapping across repeated/rapid toggles, both views usably framed their content, zero console errors, and transition timing confirmed frame-rate independent under 6x CPU throttling.
+Plan: 5 of 7 in current phase — Complete
+Status: Plan 04-05 complete; ready to execute 04-06
+Last activity: 2026-07-05 — Completed 04-05-PLAN.md (Battle screen 3D integration: new `gridCoords.ts` establishes the one shared `cellToWorld` grid-to-world mapping; `HoloGrid` gained a `cellStates` prop rendering hit/miss/sunk shot markers; `FleetShips` now positions real `ShipPlacement[]` fleets instead of 04-02's fixed demo row; new `GameSceneAdapter` composes the scene behind a game-facing API and is now what `BattleScreen` renders instead of `TargetingBoard.tsx`, which is deleted). Checkpoint self-verified per yolo config via a real two-browser Playwright run against the live server: room creation/join through battle, alternating live fire with correct hit/miss markers on the 3D grid, turn gating enforced, fleet view showing real ship placements, zero console errors. Two bugs found and fixed during self-verification: ship hull length not matching its grid-cell footprint (BASE_UNIT now equals gridCoords' CELL_SIZE), and the player's own ships incorrectly rendering during targeting view (GameSceneAdapter now renders FleetShips only when view === "fleet").
 
-Progress: ██████░░░░ ~58% (14/24 plans complete across all phases; Phase 4 now tracked at 7 plans total per 04-05/06/07 PLAN.md files already on disk)
+Progress: ███████░░░ ~63% (15/24 plans complete across all phases; Phase 4 tracked at 7 plans total per 04-06/07 PLAN.md files already on disk)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
-- Average duration: ~28 min
-- Total execution time: ~6 hours
+- Total plans completed: 14
+- Average duration: ~29 min
+- Total execution time: ~7 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: ██████░░░░ ~58% (14/24 plans complete across all p
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
 | 03-playable-2d-client | 3 | ~98 min | ~33 min |
-| 04-3d-ocean-scene | 4 | ~210 min | ~53 min |
+| 04-3d-ocean-scene | 5 | ~265 min | ~53 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (~30 min, checkpoint approved first pass), 04-02 (~95 min incl. 2 checkpoint fix iterations), 04-03 (~50 min, checkpoint approved first pass), 04-04 (~35 min, checkpoint self-verified first pass)
-- Trend: integration-heavy plans run ~25-35 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots before the human checkpoint (introduced in 04-03) catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop
+- Last 5 plans: 04-01 (~30 min, checkpoint approved first pass), 04-02 (~95 min incl. 2 checkpoint fix iterations), 04-03 (~50 min, checkpoint approved first pass), 04-04 (~35 min, checkpoint self-verified first pass), 04-05 (~55 min, checkpoint self-verified with 2 in-flight bug fixes found via screenshots/live playtest)
+- Trend: integration-heavy plans run ~25-55 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots (and, for 04-05, a full two-browser live-server playtest) before the human checkpoint catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop
 
 ## Accumulated Context
 
@@ -88,6 +88,9 @@ Recent decisions affecting current work:
 - **Explicit `renderOrder` for transparent content stacked above another transparent surface (04-03):** three does not guarantee transparent-object draw order by scene depth. The Ocean plane (`alpha 0.95`) could draw after HoloGrid's additive-blended cells and multiply their glow by 0.05, washing out all cell states. HoloGrid sets `renderOrder={1}` so it always composites after the ocean. Any future overlay above the water (wake trails, projectile effects) must do the same.
 - **Amber reserved exclusively for the grid's "selected" cell state (04-03):** the one deliberate warm-color departure from the scene's all-teal palette, so a locked target reads unmistakably; future grid-based UI (targeting, placement) should keep this color meaning consistent rather than introducing new accent colors.
 - **Camera transitions use per-axis `THREE.MathUtils.damp`, not GSAP/Theatre.js (04-04):** `client/src/scene/camera/CameraRig.tsx` damps both camera position and a separate `lookAt` target `Vector3` toward named `fleetView`/`targetingView` configs every frame, using elapsed delta time so convergence speed is frame-rate independent (confirmed via 6x CPU-throttled headless verification). `SceneRoot`'s `view` prop is now required (no default), forcing every future screen integration (04-05/06/07) to explicitly choose a camera view rather than inheriting a stale implicit default.
+- **`cellToWorld` in `client/src/scene/grid/gridCoords.ts` is the one grid-to-world coordinate mapping (04-05):** every 3D component that positions content by grid coordinate — `HoloGrid`'s cells, `FleetShips`' placements, and `ShipClasses.ts`'s `BASE_UNIT` (world units per grid-cell of ship length, now equal to `CELL_SIZE`) — reads this instead of approximating its own math. 04-06/04-07 must do the same.
+- **`GameSceneAdapter` is the game-facing wrapper over the state-agnostic scene primitives (04-05):** `client/src/scene/GameSceneAdapter.tsx` converts `ShotRecord[]` into `HoloGrid`'s `cellStates` map (porting `TargetingBoard`'s old `sunkCellsFrom` logic verbatim) and gates `onFire` on turn + no-existing-shot, mirroring the old `clickable` guard. `HoloGrid`/`FleetShips` themselves stay game-state-agnostic; 04-06 (post-game) and 04-07 (placement) build their own adapters over the same primitives rather than teaching the primitives new game rules.
+- **Ships render only in fleet view (04-05):** `GameSceneAdapter` renders `FleetShips` only when `view === "fleet"` — the grid is one shared physical space used for two different boards (your fleet vs. the enemy's waters) depending on camera framing, so rendering your own ships unconditionally showed them superimposed on the targeting view's grid (caught via live two-browser Playwright verification, fixed before the plan's final commit).
 
 ### Deferred Issues
 
@@ -104,5 +107,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-05
-Stopped at: Completed 04-04-PLAN.md (SUMMARY created) — Phase 4 plan 4 of 7 complete, ready to execute 04-05
+Stopped at: Completed 04-05-PLAN.md (SUMMARY created) — Phase 4 plan 5 of 7 complete, ready to execute 04-06
 Resume file: None
