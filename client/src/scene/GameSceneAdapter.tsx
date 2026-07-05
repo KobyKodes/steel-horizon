@@ -2,9 +2,14 @@
 // (SceneRoot/CameraRig, FleetShips, HoloGrid). This is the only place real
 // RoomSnapshot-shaped data (fleet placements, shot history, turn gating)
 // touches the scene; HoloGrid and FleetShips themselves stay
-// game-state-agnostic. 04-06 (post-game) and 04-07 (placement) build their
-// own thin adapters over the same underlying pieces rather than teaching
-// HoloGrid/FleetShips new game rules directly.
+// game-state-agnostic. 04-07 (placement) builds its own thin adapter over
+// the same underlying pieces rather than teaching HoloGrid/FleetShips new
+// game rules directly.
+//
+// Two modes: "interactive" (04-05's Battle screen — fleet/targeting view
+// toggle, live firing) and "reveal" (04-06's Post-Game screen — a single
+// read-only display of one fleet plus its shot history, no firing, no
+// hover/click at all).
 
 import type {
   Coordinate,
@@ -53,19 +58,23 @@ function cellStatesFrom(shots: ShotRecord[]): Map<string, CellState> {
 
 export interface GameSceneAdapterProps {
   view: CameraView;
-  /** Your own fleet's placements; null before placement completes. */
+  /** Default "interactive" (Battle screen); "reveal" is a read-only display (Post-Game screen). */
+  mode?: "interactive" | "reveal";
+  /** Fleet placements to render; null before placement completes. */
   yourFleet: FleetPlacement | null;
-  /** Shot history against the opponent, driving the targeting grid's markers. */
+  /** Shot history against this fleet's opponent, driving the grid's markers. */
   shots: ShotRecord[];
-  /** Whether firing is currently allowed (your turn). */
-  canFire: boolean;
-  onFire: (target: Coordinate) => void;
+  /** Whether firing is currently allowed (your turn). Ignored in "reveal" mode. */
+  canFire?: boolean;
+  /** Ignored in "reveal" mode. */
+  onFire?: (target: Coordinate) => void;
   /** Ships in `yourFleet` to render with the damaged material tint. */
   sunkShips?: ShipClassId[];
 }
 
 export function GameSceneAdapter({
   view,
+  mode = "interactive",
   yourFleet,
   shots,
   canFire,
@@ -73,31 +82,39 @@ export function GameSceneAdapter({
   sunkShips,
 }: GameSceneAdapterProps) {
   const cellStates = cellStatesFrom(shots);
+  const isReveal = mode === "reveal";
 
   return (
     <div className="game-scene">
       <SceneRoot view={view}>
-        {/* Ships only render in fleet view. The grid is shared physical
-            space for both views (04-05 established one cellToWorld mapping
-            for everything), but it stands for two different boards — your
-            own fleet in fleet view, the enemy's waters in targeting view —
-            so your ships must not appear while the grid is being read as
-            the enemy's board. */}
-        {view === "fleet" && yourFleet && (
+        {/* In interactive mode, ships only render in fleet view — the grid
+            is shared physical space for both views (04-05 established one
+            cellToWorld mapping for everything), but it stands for two
+            different boards (your own fleet vs. the enemy's waters), so
+            your ships must not appear while the grid is being read as the
+            enemy's board. In reveal mode there's only ever one board being
+            shown (this fleet + its shot history), so the ships always render. */}
+        {(isReveal || view === "fleet") && yourFleet && (
           <FleetShips placements={yourFleet} sunkShips={sunkShips} />
         )}
         <HoloGrid
           cellStates={cellStates}
-          onSelectCell={(target) => {
-            // Mirrors TargetingBoard's old `clickable` gate: only forward a
-            // fire attempt when it's your turn AND the cell has no existing
-            // shot record — HoloGrid already withholds callbacks for cells
-            // with a state, this additionally guards the (turn-gated) case
-            // where the cell is untargeted but it's not your turn.
-            if (!canFire) return;
-            if (cellStates.has(cellKey(target))) return;
-            onFire(target);
-          }}
+          interactive={!isReveal}
+          onSelectCell={
+            isReveal
+              ? undefined
+              : (target) => {
+                  // Mirrors TargetingBoard's old `clickable` gate: only
+                  // forward a fire attempt when it's your turn AND the cell
+                  // has no existing shot record — HoloGrid already
+                  // withholds callbacks for cells with a state, this
+                  // additionally guards the (turn-gated) case where the
+                  // cell is untargeted but it's not your turn.
+                  if (!canFire) return;
+                  if (cellStates.has(cellKey(target))) return;
+                  onFire?.(target);
+                }
+          }
         />
       </SceneRoot>
     </div>

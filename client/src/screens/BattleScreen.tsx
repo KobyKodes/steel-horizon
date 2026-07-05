@@ -12,7 +12,6 @@ import {
 import { useGameStore } from "../store";
 import { GameSceneAdapter } from "../scene/GameSceneAdapter";
 import type { CameraView } from "../scene/camera/CameraRig";
-import FleetBoard from "../components/FleetBoard";
 import ShotLog from "../components/ShotLog";
 import "./battle.css";
 
@@ -124,7 +123,13 @@ export default function BattleScreen() {
 
         <section className="battle-side">
           <h2>Your fleet</h2>
-          <FleetBoard fleet={you.fleet} shots={shotsAgainstYou} />
+          <GameSceneAdapter
+            view="fleet"
+            mode="reveal"
+            yourFleet={you.fleet}
+            shots={shotsAgainstYou}
+            sunkShips={yourSunkShips}
+          />
           <div className="fleet-status">
             <h3>Damage report</h3>
             <ul>

@@ -91,17 +91,24 @@ export interface HoloGridProps {
    * state-agnostic, it just renders whatever it's handed.
    */
   cellStates?: Map<string, CellState>;
+  /**
+   * Set false for a pure read-only display (04-06's post-game reveal):
+   * disables hover/click entirely, including the hover/selected cell
+   * highlight — only the static `cellStates` markers render. Defaults true.
+   */
+  interactive?: boolean;
 }
 
 export function HoloGrid({
   onHoverCell,
   onSelectCell,
   cellStates,
+  interactive = true,
 }: HoloGridProps) {
   const cells = useMemo(buildCells, []);
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  useCursor(hovered !== null);
+  useCursor(interactive && hovered !== null);
 
   // Pointer-out for cell A can arrive AFTER pointer-over for adjacent cell
   // B; the ref lets the out handler skip clearing a hover it no longer
@@ -139,6 +146,7 @@ export function HoloGrid({
         {cells.map((cell) => {
           const key = cellKey(cell);
           const hasState = cellStates?.has(key) ?? false;
+          const disabled = !interactive || hasState;
           const color =
             key === selected
               ? COLOR_SELECTED
@@ -151,7 +159,7 @@ export function HoloGrid({
               position={[cell.x, cell.y, 0]}
               color={color}
               onPointerOver={
-                hasState
+                disabled
                   ? undefined
                   : (event) => {
                       event.stopPropagation();
@@ -159,14 +167,14 @@ export function HoloGrid({
                     }
               }
               onPointerOut={
-                hasState
+                disabled
                   ? undefined
                   : () => {
                       if (hoveredRef.current === key) applyHover(null, null);
                     }
               }
               onClick={
-                hasState
+                disabled
                   ? undefined
                   : (event) => {
                       event.stopPropagation();

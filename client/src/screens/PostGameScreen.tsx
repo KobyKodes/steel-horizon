@@ -2,9 +2,13 @@
 // stats, and the both-must-accept rematch loop. Everything renders from the
 // gameover snapshot; `revealedOpponentFleet` is only non-null here.
 
-import type { ShotRecord } from "@steel-horizon/shared";
+import {
+  cellsForPlacement,
+  type FleetPlacement,
+  type ShotRecord,
+} from "@steel-horizon/shared";
 import { useGameStore } from "../store";
-import FleetBoard from "../components/FleetBoard";
+import { GameSceneAdapter } from "../scene/GameSceneAdapter";
 import "./battle.css";
 
 function accuracy(shots: ShotRecord[]): number {
@@ -25,6 +29,22 @@ function longestStreak(shots: ShotRecord[]): number {
     }
   }
   return best;
+}
+
+/** Ships fully hit by `shots`, for the reveal boards' damage tint. */
+function sunkShipsIn(fleet: FleetPlacement | null, shots: ShotRecord[]) {
+  const hitCells = new Set(
+    shots
+      .filter((s) => s.result !== "miss")
+      .map((s) => `${s.target.col},${s.target.row}`),
+  );
+  return (fleet ?? [])
+    .filter((placement) =>
+      cellsForPlacement(placement).every((c) =>
+        hitCells.has(`${c.col},${c.row}`),
+      ),
+    )
+    .map((placement) => placement.ship);
 }
 
 const WIN_REASON_TEXT: Record<string, string> = {
@@ -73,11 +93,23 @@ export default function PostGameScreen() {
       <div className="postgame-boards">
         <div>
           <h2>Your waters</h2>
-          <FleetBoard fleet={you.fleet} shots={shotsAgainstYou} />
+          <GameSceneAdapter
+            view="fleet"
+            mode="reveal"
+            yourFleet={you.fleet}
+            shots={shotsAgainstYou}
+            sunkShips={sunkShipsIn(you.fleet, shotsAgainstYou)}
+          />
         </div>
         <div>
           <h2>{opponent?.name ?? "Opponent"}&rsquo;s waters (revealed)</h2>
-          <FleetBoard fleet={revealedOpponentFleet} shots={yourShots} />
+          <GameSceneAdapter
+            view="fleet"
+            mode="reveal"
+            yourFleet={revealedOpponentFleet}
+            shots={yourShots}
+            sunkShips={opponent?.sunkShips}
+          />
         </div>
       </div>
 
