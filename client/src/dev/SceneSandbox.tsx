@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { coordToLabel, type Coordinate } from "@steel-horizon/shared";
 import { SceneRoot } from "../scene/SceneRoot";
 import { FleetShips, type FleetShipInstance } from "../scene/ships/FleetShips";
 import { HoloGrid } from "../scene/grid/HoloGrid";
@@ -22,13 +24,35 @@ const SANDBOX_FLEET: FleetShipInstance[] = [
   { shipClass: "destroyer", position: [28, -32] },
 ];
 
+const readoutStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 12,
+  left: 12,
+  padding: "8px 12px",
+  background: "rgba(2, 24, 32, 0.75)",
+  border: "1px solid rgba(63, 193, 214, 0.4)",
+  borderRadius: 4,
+  color: "#bdf1ff",
+  fontFamily: "monospace",
+  fontSize: 14,
+  lineHeight: 1.6,
+  pointerEvents: "none",
+};
+
 export function SceneSandbox() {
+  const [hoveredCell, setHoveredCell] = useState<Coordinate | null>(null);
+  const [selectedCell, setSelectedCell] = useState<Coordinate | null>(null);
+
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       <SceneRoot>
         <FleetShips ships={SANDBOX_FLEET} />
-        <HoloGrid />
+        <HoloGrid onHoverCell={setHoveredCell} onSelectCell={setSelectedCell} />
       </SceneRoot>
+      <div style={readoutStyle}>
+        <div>hover: {hoveredCell ? coordToLabel(hoveredCell) : "—"}</div>
+        <div>selected: {selectedCell ? coordToLabel(selectedCell) : "—"}</div>
+      </div>
     </div>
   );
 }
