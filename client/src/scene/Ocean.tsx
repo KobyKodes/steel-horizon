@@ -65,16 +65,16 @@ const FRAGMENT_SHADER = /* glsl */ `
   uniform vec3 uGlowColor;
 
   void main() {
-    // Stylized holographic gradient: deep teal in the troughs, brighter
-    // cyan at the crests, no mirror-reflection sampling.
-    float heightMix = clamp(vHeight * 2.5 + 0.6, 0.0, 1.0);
-    vec3 base = mix(uDeepColor, uShallowColor, heightMix);
+    // Single consistent shallow-water shade — no deep/shallow height mix
+    // and no view-angle-driven fresnel darkening, both of which produced a
+    // visible two-tone seam across the water (worst under the near-camera
+    // holographic grid, where perspective foreshortening compresses any
+    // angular falloff into a hard-looking line).
+    vec3 base = uShallowColor;
 
-    // Fresnel rim brightening: glancing (near-horizon) view angles glow
-    // brighter, straight-down views show more of the base gradient.
     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-    float fresnel = pow(1.0 - clamp(dot(normalize(vNormal), viewDir), 0.0, 1.0), 2.0);
-    vec3 color = base + uGlowColor * fresnel * 0.6;
+    float fresnel = pow(1.0 - clamp(dot(normalize(vNormal), viewDir), 0.0, 1.0), 1.1);
+    vec3 color = base + uGlowColor * fresnel * 0.3;
 
     gl_FragColor = vec4(color, 0.95);
   }

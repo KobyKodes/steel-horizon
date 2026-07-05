@@ -23,8 +23,8 @@ interface ViewConfig {
 
 const VIEWS: Record<CameraView, ViewConfig> = {
   fleet: {
-    position: [0, 46, 6],
-    lookAt: [-1, 0, -32],
+    position: [0, 65, 26],
+    lookAt: [-1, 1, -8],
   },
   targeting: {
     position: [0, 20, 52],
