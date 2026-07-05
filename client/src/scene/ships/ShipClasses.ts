@@ -7,6 +7,7 @@
 // Submarine lowest-profile) rather than literal world units.
 
 import { SHIP_LENGTHS, type ShipClassId } from "@steel-horizon/shared";
+import { CELL_SIZE } from "../grid/gridCoords";
 
 export interface ShipClassSpec {
   /** Hull length in world units (scene scale, not grid cells). */
@@ -23,10 +24,13 @@ export interface ShipClassSpec {
   hasFlatDeck: boolean;
 }
 
-// Base unit scales SHIP_LENGTHS (grid-cell lengths, 2-5) up to a visually
-// convincing world-space hull length; beam/draft are derived relative to
-// that per-class length so proportions stay consistent across classes.
-const BASE_UNIT = 3.2;
+// Base unit scales SHIP_LENGTHS (grid-cell lengths, 2-5) up to world-space
+// hull length; beam/draft are derived relative to that per-class length so
+// proportions stay consistent across classes. This MUST equal gridCoords'
+// CELL_SIZE (04-05) — a ship of N grid cells needs to visually span
+// exactly N cells' worth of world units, or it reads as covering the wrong
+// number of grid squares once placed via cellToWorld.
+const BASE_UNIT = CELL_SIZE;
 
 function specFor(
   shipClass: ShipClassId,
@@ -35,8 +39,14 @@ function specFor(
   turretCount: number,
   hasRadar: boolean,
   hasFlatDeck: boolean,
+  // Small per-class fudge on top of the exact cell-count length. The hull
+  // shape's pointed bow/stern taper inward from the full extruded length,
+  // so a hull sized to exactly N*CELL_SIZE reads as slightly short of
+  // filling its Nth cell — this nudges the longest classes back out to a
+  // visually tight fit without meaningfully overshooting into the next cell.
+  lengthScale = 1,
 ): ShipClassSpec {
-  const length = SHIP_LENGTHS[shipClass] * BASE_UNIT;
+  const length = SHIP_LENGTHS[shipClass] * BASE_UNIT * lengthScale;
   return {
     length,
     beam: length * beamRatio,
@@ -48,10 +58,11 @@ function specFor(
 }
 
 export const SHIP_CLASSES: Record<ShipClassId, ShipClassSpec> = {
-  // Longest + widest, flat flight deck, no turrets.
-  carrier: specFor("carrier", 0.19, 0.09, 0, true, true),
+  // Longest, flat flight deck, no turrets. Slimmer beam than before so the
+  // hull stays inside the width of the single grid row it's placed on.
+  carrier: specFor("carrier", 0.15, 0.09, 0, true, true, 1.08),
   // Multiple turrets, standard superstructure, radar mast.
-  battleship: specFor("battleship", 0.15, 0.1, 3, true, false),
+  battleship: specFor("battleship", 0.15, 0.1, 3, true, false, 1.06),
   // Slightly slimmer than the battleship, fewer turrets.
   cruiser: specFor("cruiser", 0.13, 0.1, 2, true, false),
   // Narrowest, lowest-profile, single conning tower, no turrets.
