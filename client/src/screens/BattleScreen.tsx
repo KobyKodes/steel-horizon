@@ -3,13 +3,15 @@
 // your fleet board, currentTurn gates firing. When the server flips phase to
 // gameover the App router swaps screens — no navigation logic here.
 
+import { useState } from "react";
 import {
   SHIP_LENGTHS,
   cellsForPlacement,
   type ShipClassId,
 } from "@steel-horizon/shared";
 import { useGameStore } from "../store";
-import TargetingBoard from "../components/TargetingBoard";
+import { GameSceneAdapter } from "../scene/GameSceneAdapter";
+import type { CameraView } from "../scene/camera/CameraRig";
 import FleetBoard from "../components/FleetBoard";
 import ShotLog from "../components/ShotLog";
 import "./battle.css";
@@ -47,6 +49,10 @@ function ErrorBanner() {
 export default function BattleScreen() {
   const snapshot = useGameStore((s) => s.snapshot);
   const fire = useGameStore((s) => s.fire);
+  // Realizes PROJECT.md's "two views... smooth animated camera transition
+  // when switching" — CameraRig damps between them, GameSceneAdapter just
+  // forwards the choice.
+  const [viewMode, setViewMode] = useState<CameraView>("targeting");
 
   if (!snapshot) return null;
 
@@ -64,6 +70,9 @@ export default function BattleScreen() {
     const hits = cells.filter((c) => hitCells.has(`${c.col},${c.row}`)).length;
     return { ship: placement.ship, hits, length: cells.length };
   });
+  const yourSunkShips = yourDamage
+    .filter(({ hits, length }) => hits === length)
+    .map(({ ship }) => ship);
 
   return (
     <div className="screen battle-screen">
@@ -78,8 +87,26 @@ export default function BattleScreen() {
 
       <div className="battle-layout">
         <section className="battle-main">
-          <h2>Enemy waters</h2>
-          <TargetingBoard shots={yourShots} canFire={yourTurn} onFire={fire} />
+          <div className="battle-main-header">
+            <h2>{viewMode === "targeting" ? "Enemy waters" : "Your fleet"}</h2>
+            <button
+              type="button"
+              className="view-toggle"
+              onClick={() =>
+                setViewMode((v) => (v === "targeting" ? "fleet" : "targeting"))
+              }
+            >
+              {viewMode === "targeting" ? "View your fleet" : "View enemy waters"}
+            </button>
+          </div>
+          <GameSceneAdapter
+            view={viewMode}
+            yourFleet={you.fleet}
+            shots={yourShots}
+            canFire={yourTurn}
+            onFire={fire}
+            sunkShips={yourSunkShips}
+          />
           <div className="fleet-status">
             <h3>{opponent?.name ?? "Opponent"}&rsquo;s fleet</h3>
             <ul>

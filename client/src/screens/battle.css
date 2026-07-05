@@ -51,6 +51,40 @@
   font-size: 1.1rem;
 }
 
+/* --- 3D scene (plan 04-05) --- */
+
+.battle-main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.view-toggle {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  background: #1d2836;
+  border: 1px solid #3a4a5e;
+  border-radius: 6px;
+  color: #bdf1ff;
+  cursor: pointer;
+}
+
+.view-toggle:hover {
+  background: #24405e;
+  border-color: #4a7bb5;
+}
+
+.game-scene {
+  position: relative;
+  width: 100%;
+  max-width: 40rem;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #26374d;
+}
+
 .battle-side h3,
 .battle-main h3,
 .fleet-status h3 {
@@ -108,23 +142,8 @@
   cursor: default;
 }
 
-/* Targeting board interactivity */
-.board.targeting .cell.targetable {
-  cursor: crosshair;
-}
-
-.board.targeting .cell.targetable:hover {
-  background: #24405e;
-  border-color: #4a7bb5;
-}
-
 .board .cell:disabled {
   opacity: 1; /* board cells convey state via color, not opacity */
-}
-
-.board .cell.pending {
-  background: #3a3f2a;
-  border-color: #7a7a40;
 }
 
 /* Shot results */
@@ -151,13 +170,6 @@
   color: #f0b2ba;
   font-size: calc(var(--cell) * 0.5);
   line-height: 1;
-}
-
-.board .cell.hit.sunk {
-  background: #451018;
-  border-color: #e05a6e;
-  outline: 1px solid #e05a6e;
-  outline-offset: -3px;
 }
 
 /* Your fleet: ship silhouettes + incoming fire */
