@@ -22,18 +22,25 @@ interface ViewConfig {
 }
 
 const VIEWS: Record<CameraView, ViewConfig> = {
+  // Both views tightened + centered in 04-07 (user feedback: grid/ships
+  // read too small, and the grid sat low in the frame). The lookAt z
+  // values are solved numerically so the grid's near/far edges (z ±19.7 at
+  // altitude 1.8) project to symmetric NDC y (~±0.77) — the grid is
+  // vertically centered with margin on all sides in every consumer
+  // (placement, both battle views, the smaller side/post-game reveal
+  // boards) — verified via headless screenshots of each.
   fleet: {
-    // Tightened in 04-07 (user feedback: grid/ships read too small). Close
-    // enough that the 10x10 grid (x/z ~[-19, 19] at altitude 1.8) fills
-    // most of the frame while all four corners stay inside every consumer
-    // (placement, battle fleet view, the smaller side/post-game reveal
-    // boards) — verified via headless screenshots of each.
     position: [0, 48, 22],
-    lookAt: [0, 0, -5],
+    lookAt: [0, 0, 2],
   },
+  // Overhead like the fleet view (user feedback: the enemy grid should be
+  // viewable from above just like your own fleet), but slightly higher and
+  // more top-down — flatter perspective suits aiming at cells, and the
+  // small framing difference keeps the damped view toggle reading as a
+  // camera move rather than an instant content swap.
   targeting: {
-    position: [0, 20, 52],
-    lookAt: [0, 0, 0],
+    position: [0, 56, 14],
+    lookAt: [0, 0, 1],
   },
 };
 
