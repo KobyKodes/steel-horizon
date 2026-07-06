@@ -50,6 +50,30 @@ const VIEWS: Record<CameraView, ViewConfig> = {
 // mathematically reaches 0 — "substantially complete" is what's verified).
 const DAMP_SMOOTH_TIME = 0.22;
 
+// Screen shake tuning (05-01). Shake is a small additive offset to
+// camera.position applied AFTER camera.lookAt() each frame — never a
+// direct mutation of camera.rotation, which is what made drei's
+// <CameraShake> fight this rig's lookAt-driven rotation (05-RESEARCH.md
+// Pitfall 1). Intensity decays toward 0 via the same MathUtils.damp
+// pattern used for view transitions, so decay speed is frame-rate
+// independent.
+const SHAKE_MAGNITUDE = 0.6; // world units of offset at intensity 1
+const SHAKE_DECAY_SMOOTH_TIME = 0.5; // seconds; intensity settles within a few seconds
+
+// Module-level shake intensity, mutated by triggerCameraShake and decayed
+// inside CameraRig's own useFrame. A plain module-level primitive (not a
+// ref/imperative handle) keeps CameraRig a plain component callable the
+// same way by existing consumers (SceneRoot renders `<CameraRig view={view} />`
+// with no ref today) — 05-03 imports triggerCameraShake directly instead.
+let shakeIntensity = 0;
+
+/** Triggers a decaying camera shake. Overlapping triggers take the max
+ * intensity rather than stacking additively, so a second impact during an
+ * existing shake doesn't runaway-amplify. */
+export function triggerCameraShake(intensity: number): void {
+  shakeIntensity = Math.max(shakeIntensity, intensity);
+}
+
 export interface CameraRigProps {
   view: CameraView;
   /**
@@ -122,6 +146,22 @@ export function CameraRig({ view, shellFocus }: CameraRigProps) {
     }
 
     camera.lookAt(lookAtTarget.current);
+
+    // Shake is applied here, after lookAt() has set rotation from the
+    // (undisturbed) lookAtTarget — a position-only nudge reads as shake
+    // without ever touching camera.rotation directly.
+    if (shakeIntensity > 0.001) {
+      camera.position.x += (Math.random() * 2 - 1) * shakeIntensity * SHAKE_MAGNITUDE;
+      camera.position.y += (Math.random() * 2 - 1) * shakeIntensity * SHAKE_MAGNITUDE;
+      shakeIntensity = MathUtils.damp(
+        shakeIntensity,
+        0,
+        1 / SHAKE_DECAY_SMOOTH_TIME,
+        delta,
+      );
+    } else if (shakeIntensity !== 0) {
+      shakeIntensity = 0;
+    }
   });
 
   return null;
