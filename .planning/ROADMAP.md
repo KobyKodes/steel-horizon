@@ -86,7 +86,7 @@ Plans:
 
 Plans:
 - [x] 05-01: Camera primitives — CameraRig gains a dynamic shell-follow focus and a hand-rolled screen shake, with no regression to existing fleet/targeting damped transitions (completed 2026-07-06)
-- [ ] 05-02: Particle burst — one reusable `Points`-based component covering splash/explosion/debris, resolving the gritty-naval-vs-holographic aesthetic tension
+- [x] 05-02: Particle burst — one reusable `Points`-based component covering splash/explosion/debris, resolving the gritty-naval-vs-holographic aesthetic tension via layered realism (completed 2026-07-06)
 - [ ] 05-03: Firing sequence — shell projectile (parabolic arc + smoke trail) wired into the real Battle screen: camera follow, impact particle burst + shake, held-back hit/miss/sunk marker, ≤2.5s and skippable
 - [ ] 05-04: Sinking sequence — dramatic list/flood/slide-under layered additively on FleetShips' existing wave bob, triggered once per newly-sunk ship
 - [ ] 05-05: Fleet-status HUD — naval-command silhouette indicators replacing the plain text fleet-status list
