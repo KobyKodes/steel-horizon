@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Two people on different machines play a complete, cheat-resistant game of Battleship inside a cinematic 3D naval scene — and both halves (bulletproof multiplayer, hyper-realistic presentation) are equally non-negotiable.
-**Current focus:** Phase 4 — 3D Ocean Scene (in progress, plan 6 of 7 complete)
+**Current focus:** Phase 4 — 3D Ocean Scene (complete). Ready to start Phase 5.
 
 ## Current Position
 
-Phase: 4 of 7 (3D Ocean Scene) — In progress
-Plan: 6 of 7 in current phase — Complete
-Status: Plan 04-06 complete; ready to execute 04-07 (Placement — final Phase 4 plan)
-Last activity: 2026-07-05 — Completed 04-06-PLAN.md (Post-Game 3D reveal: `GameSceneAdapter` gained a `mode?: "interactive" | "reveal"` prop — reveal mode disables all `HoloGrid` hover/click via a new `interactive` prop and always renders the fleet regardless of camera view; `PostGameScreen` now shows both fleets via two reveal-mode adapters instead of the deleted `FleetBoard.tsx`; `BattleScreen`'s side-panel fleet reveal was migrated to the same adapter since FleetBoard's other consumer couldn't be left dangling. Every screen except Placement now renders its board via the 3D scene). Checkpoint self-verified per yolo config: a Node socket.io-client script drove two real sessions through create/join/ready/place/fire to a real gameover against the live dev server (mirroring server/test/helpers.ts's playToVictory), then headless Playwright resumed one session via sessionStorage to render the actual Post-Game screen — both reveal boards showed correct hit/miss/sunk markers matching the real shot history, zero console errors, rematch flow intact. Two bugs found and fixed during self-verification: an ocean shader two-tone banding seam (removed the deep/shallow height mix) and an awkwardly-cropped fleet camera framing in the smaller reveal boards (CameraRig's fleet view repositioned). Logged ISS-001 (BattleScreen now runs two simultaneous live R3F Canvases) to ISSUES.md for Phase 6.
+Phase: 4 of 7 (3D Ocean Scene) — Complete
+Plan: 7 of 7 in current phase — Complete
+Status: Plan 04-07 complete — Phase 4 exit criterion met (every screen renders exclusively through the 3D scene, no 2D board or dev harness remains). Ready to plan/start Phase 5.
+Last activity: 2026-07-06 — Completed 04-07-PLAN.md (Placement 3D integration, final Phase 4 plan). The plan's opening `checkpoint:decision` (continuous-drag vs. select-then-place interaction) was self-resolved per yolo config as **select-then-place**: a new `PlacementSceneAdapter.tsx` composes `SceneRoot`/`FleetShips`/`HoloGrid` in fleet view with a dock UI (pick the active ship, click a grid cell to place it, Rotate control/R-key to flip orientation), porting `PlacementBoard.tsx`'s `isLegalInDraft` bounds/overlap check verbatim rather than re-deriving it. `PlacementScreen.tsx` swaps to the new adapter with zero changes to draft state/`generateRandomFleet`/`validateFleetPlacement`/`placeFleet` emit. `PlacementBoard.tsx`, `dev/SceneSandbox.tsx`, and `main.tsx`'s `?dev=scene` branch are deleted — no 2D board or isolated dev harness remains anywhere in the client. Checkpoint self-verified per yolo config: a two-browser headless Playwright run created a room, readied into placement, manually selected+placed+rotated a full 5-ship fleet for one player (grid cells targeted by projecting exact camera-space screen coordinates from the real `CameraRig` fleet-view config onto the live canvas), used "Randomize fleet" for the other player, confirmed both fleets were server-accepted (both reached the battle screen), and fired one live shot through the targeting-view canvas as a 04-05 regression check — zero console errors, screenshots confirmed correct non-overlapping ship placement including the rotated ship.
 
-Progress: ███████░░░ ~67% (16/24 plans complete across all phases; Phase 4 tracked at 7 plans total per 04-07-PLAN.md already on disk)
+Progress: ████████░░ ~71% (17/24 plans complete across all phases; Phase 4 complete at 7/7 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: ~32 min
-- Total execution time: ~8.2 hours
+- Total plans completed: 16
+- Average duration: ~34 min
+- Total execution time: ~9.4 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: ███████░░░ ~67% (16/24 plans complete across all p
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-multiplayer-server | 3 | 67 min | 22 min |
 | 03-playable-2d-client | 3 | ~98 min | ~33 min |
-| 04-3d-ocean-scene | 6 | ~337 min | ~56 min |
+| 04-3d-ocean-scene | 7 | ~407 min | ~58 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (~95 min incl. 2 checkpoint fix iterations), 04-03 (~50 min, checkpoint approved first pass), 04-04 (~35 min, checkpoint self-verified first pass), 04-05 (~55 min, checkpoint self-verified with 2 in-flight bug fixes found via screenshots/live playtest), 04-06 (~72 min, checkpoint self-verified via a scripted socket.io playthrough + Playwright session resume, with 2 in-flight visual bug fixes found)
-- Trend: integration-heavy plans run ~25-55 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots (and, for 04-05/04-06, a full live-server playtest) before the human checkpoint catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop. 04-06 also established a faster self-verification path for read-only/reveal-only plans: a scripted socket.io-client playthrough to gameover plus a single Playwright session resume, instead of driving live 3D firing through canvas raycasts.
+- Last 5 plans: 04-03 (~50 min, checkpoint approved first pass), 04-04 (~35 min, checkpoint self-verified first pass), 04-05 (~55 min, checkpoint self-verified with 2 in-flight bug fixes found via screenshots/live playtest), 04-06 (~72 min, checkpoint self-verified via a scripted socket.io playthrough + Playwright session resume, with 2 in-flight visual bug fixes found), 04-07 (~70 min, checkpoint:decision self-resolved plus checkpoint:human-verify self-verified via a two-browser Playwright run with exact camera-projected canvas clicks, zero bugs found)
+- Trend: integration-heavy plans run ~25-55 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots (and, for 04-05/04-06/04-07, a full live-server playtest) before the human checkpoint catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop. 04-07 established a pattern for verifying 3D click-driven interactions (not just reveal/read-only views): compute the exact camera-space screen projection of a target world position from the real `CameraRig` view config (position/lookAt/fov) in a small Node/three.js helper, then click the live canvas at that pixel — avoids guessing screen coordinates by trial-and-error screenshotting.
 
 ## Accumulated Context
 
@@ -95,6 +95,9 @@ Recent decisions affecting current work:
 - **Deleting a shared component requires migrating every consumer in the same commit (04-06):** `FleetBoard.tsx` had two consumers (`PostGameScreen` and `BattleScreen`'s side panel); both were migrated to `GameSceneAdapter mode="reveal"` together even though the plan's file list only named `PostGameScreen.tsx`, since deleting the file with a dangling import elsewhere would break the build.
 - **Two independent Canvases for side-by-side reveal boards, not one shared Canvas (04-06):** `PostGameScreen`'s two `GameSceneAdapter` instances each mount their own `SceneRoot`/`Canvas`. Acceptable for a static, non-time-pressured screen; ISS-001 flags that `BattleScreen`'s equivalent (interactive main canvas + reveal side canvas, both running continuously during live play) is a real per-frame cost worth measuring in Phase 6.
 - **Fast self-verification path for read-only/non-firing plans (04-06):** rather than driving live 3D firing through canvas raycasts, a Node `socket.io-client` script plays a full game to gameover against the live dev server (mirroring `server/test/helpers.ts`'s `playToVictory`/fixed fleets), then a single headless Playwright browser resumes one session via `sessionStorage` to render the real screen. Reuse this pattern for any future plan whose diff is confined to a read-only/reveal view.
+- **`PlacementSceneAdapter` uses select-then-place, not continuous 3D drag (04-07):** the plan's opening checkpoint:decision was self-resolved per yolo config. A dock UI marks one ship "active"; clicking a `HoloGrid` cell places it at the current orientation; a Rotate control/R-key flips orientation (for a not-yet-placed ship, flips the pending orientation used on the next placement click; for an already-placed ship, rotates in place gated by the same legality check). This reuses `HoloGrid`'s existing click-to-select plumbing instead of adding per-frame raycasting/drag machinery — any future placement-adjacent 3D interaction should default to click-based selection over continuous drag for the same reason.
+- **Draft-time legality is ported verbatim, never re-derived, when a component is rebuilt (04-07):** `PlacementSceneAdapter.tsx`'s `isLegalInDraft` (bounds + no-overlap against the rest of the draft) is a direct copy of the retired `PlacementBoard.tsx`'s function — when retiring a 2D component in favor of a 3D one, port validation/derivation logic byte-for-byte rather than reimplementing it from the spec.
+- **Exact camera-projected clicks for verifying 3D click interactions (04-07):** to self-verify a plan whose diff involves real pointer clicks into the R3F canvas (not just a read-only reveal), compute the target world position's exact screen-space projection using the real `CameraRig` view config (position/lookAt/fov) via a small Node/three.js `PerspectiveCamera().project()` helper, then click the live canvas at that pixel. Far more reliable than trial-and-error screenshot-guessing pixel coordinates; reuse for any future plan needing scripted 3D pointer interaction (e.g. Phase 5 targeting/animation work).
 
 ### Deferred Issues
 
@@ -110,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-05
-Stopped at: Completed 04-06-PLAN.md (SUMMARY created) — Phase 4 plan 6 of 7 complete, ready to execute 04-07 (Placement, final Phase 4 plan)
+Last session: 2026-07-06
+Stopped at: Completed 04-07-PLAN.md (SUMMARY created) — Phase 4 complete (7/7 plans). Ready to discuss/plan Phase 5.
 Resume file: None
