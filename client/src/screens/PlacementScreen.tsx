@@ -1,5 +1,6 @@
-// Placement screen — owns the local fleet draft, composes PlacementBoard,
-// and submits the final FleetPlacement to the authoritative server.
+// Placement screen — owns the local fleet draft, composes
+// PlacementSceneAdapter (the 3D select-then-place board), and submits the
+// final FleetPlacement to the authoritative server.
 //
 // The draft is LOCAL state; the only placement data that reaches the
 // store/server is the final `placeFleet` emit. Once the server accepts,
@@ -19,8 +20,9 @@ import {
   type ShipClassId,
   type ShipPlacement,
 } from "@steel-horizon/shared";
-import PlacementBoard from "../components/PlacementBoard";
+import { PlacementSceneAdapter } from "../scene/PlacementSceneAdapter";
 import { useGameStore } from "../store";
+import "./battle.css";
 import "./placement.css";
 
 const ERROR_MESSAGES: Partial<Record<ErrorCode, string>> = {
@@ -82,7 +84,7 @@ export default function PlacementScreen() {
         </div>
       )}
 
-      <PlacementBoard draft={board} onChange={setDraft} disabled={submitted} />
+      <PlacementSceneAdapter draft={board} onChange={setDraft} disabled={submitted} />
 
       {submitted ? (
         <p className="placement-status">
@@ -117,8 +119,8 @@ export default function PlacementScreen() {
             </button>
           </div>
           <p className="placement-hint">
-            Drag ships onto the grid · press R while dragging to rotate ·
-            right-click a placed ship to rotate it
+            Select a ship from the dock, then click a cell on the grid to
+            place it · press R or use Rotate to change orientation
           </p>
           <p className="placement-status">
             {snapshot.opponent !== null
