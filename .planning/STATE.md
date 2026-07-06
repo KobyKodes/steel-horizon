@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 
 ## Current Position
 
-Phase: 4 of 7 (3D Ocean Scene) — Complete
-Plan: 7 of 7 in current phase — Complete
-Status: Plan 04-07 complete — Phase 4 exit criterion met (every screen renders exclusively through the 3D scene, no 2D board or dev harness remains). Ready to plan/start Phase 5.
-Last activity: 2026-07-06 — Completed 04-07-PLAN.md (Placement 3D integration, final Phase 4 plan) plus a 4-item user UAT feedback round. A new `PlacementSceneAdapter.tsx` composes `SceneRoot`/`FleetShips`/`HoloGrid` in fleet view with continuous drag-and-drop mirroring the 2D board exactly (USER decision at UAT, overriding the initially self-resolved select-then-place): pointerdown on a dock ship or a placed ship's grid cell lifts it, HoloGrid's per-cell hover events feed the drag (no manual raycasting), a green/red instanced ghost previews `isLegalInDraft` legality (ported verbatim from `PlacementBoard.tsx`), R rotates mid-drag, right-click rotates a placed ship in place. `PlacementScreen.tsx` swaps to the new adapter with zero changes to draft state/`generateRandomFleet`/`validateFleetPlacement`/`placeFleet` emit. `PlacementBoard.tsx`, `dev/SceneSandbox.tsx`, and `main.tsx`'s `?dev=scene` branch are deleted — no 2D board or isolated dev harness remains anywhere in the client. The UAT round also fixed a real cascade bug (styles.css's generic `.screen { max-width: 26rem }` beat battle.css's equal-specificity `.battle-screen` rule due to bundle import order, so the whole battle screen had rendered in a 26rem column — fixed via `.screen.battle-screen` specificity, canvases raised to 56rem main / 30rem reveal / 64rem placement) and reworked both camera views to be overhead and vertically centered (targeting moved from the low water-level angle per user request to see the enemy grid from above; lookAt z values solved numerically for symmetric grid framing). Everything self-verified via two-browser headless Playwright runs using exact camera-projected canvas coordinates: full drag placement with both rotation paths, re-drag of a placed ship, randomize, server acceptance, and a live fire through the new overhead targeting view — zero console errors, 60 FPS.
+Phase: 5 of 7 (Cinematics & Audio) — In progress
+Plan: 1 of 6 in current phase
+Status: Plan 05-01 complete — CameraRig extended with shellFocus (dynamic shell-follow) and triggerCameraShake (hand-rolled decaying shake), no regression to existing fleet/targeting damped transitions. Ready for 05-02 (particle burst).
+Last activity: 2026-07-06 — Completed 05-01-PLAN.md. `CameraRig` (client/src/scene/camera/CameraRig.tsx) gained an optional `shellFocus?: ViewConfig | null` prop that damps camera position/lookAt toward a live, caller-supplied target every frame instead of a named view's static config — always damps, never snaps, even on the frame it first appears, since 05-03 will recompute it continuously as a shell flies. Also added `triggerCameraShake(intensity)`, a module-level exported function backing a decaying shake intensity applied as a small X/Y-only additive `camera.position` offset AFTER `camera.lookAt()` each frame — deliberately not drei's `<CameraShake>`, which 05-RESEARCH.md confirmed fights `CameraRig`'s lookAt-driven rotation by overwriting `camera.rotation` from a stale snapshot. Overlapping shake triggers take the max intensity rather than stacking. Verified via a standalone numeric simulation of the exact damp/shake math (full decay in ~3.5s, <0.001-unit residual drift) plus confirming `SceneRoot.tsx` is CameraRig's only consumer and passes no `shellFocus`, so existing fleet/targeting behavior is provably byte-for-byte unchanged.
 
-Progress: ████████░░ ~71% (17/24 plans complete across all phases; Phase 4 complete at 7/7 plans)
+Progress: ███████░░░ ~67% (18/27 plans complete across all phases; Phase 5 now 6 plans total (expanded from a 3-plan estimate), 1/6 complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: ~34 min
-- Total execution time: ~9.4 hours
+- Total execution time: ~10.1 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: ████████░░ ~71% (17/24 plans complete across all p
 | 02-multiplayer-server | 3 | 67 min | 22 min |
 | 03-playable-2d-client | 3 | ~98 min | ~33 min |
 | 04-3d-ocean-scene | 7 | ~407 min | ~58 min |
+| 05-cinematics-and-audio | 1 | ~45 min | ~45 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-03 (~50 min, checkpoint approved first pass), 04-04 (~35 min, checkpoint self-verified first pass), 04-05 (~55 min, checkpoint self-verified with 2 in-flight bug fixes found via screenshots/live playtest), 04-06 (~72 min, checkpoint self-verified via a scripted socket.io playthrough + Playwright session resume, with 2 in-flight visual bug fixes found), 04-07 (~70 min, checkpoint:decision self-resolved plus checkpoint:human-verify self-verified via a two-browser Playwright run with exact camera-projected canvas clicks, zero bugs found)
-- Trend: integration-heavy plans run ~25-55 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots (and, for 04-05/04-06/04-07, a full live-server playtest) before the human checkpoint catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop. 04-07 established a pattern for verifying 3D click-driven interactions (not just reveal/read-only views): compute the exact camera-space screen projection of a target world position from the real `CameraRig` view config (position/lookAt/fov) in a small Node/three.js helper, then click the live canvas at that pixel — avoids guessing screen coordinates by trial-and-error screenshotting.
+- Last 5 plans: 04-05 (~55 min, checkpoint self-verified with 2 in-flight bug fixes found via screenshots/live playtest), 04-06 (~72 min, checkpoint self-verified via a scripted socket.io playthrough + Playwright session resume, with 2 in-flight visual bug fixes found), 04-07 (~70 min, checkpoint:decision self-resolved plus checkpoint:human-verify self-verified via a two-browser Playwright run with exact camera-projected canvas clicks, zero bugs found), 05-01 (~45 min, fully autonomous no-checkpoint plan — pure math/logic change to `CameraRig` with no new consumer wiring, self-verified via a standalone numeric simulation of the damp/shake math rather than a live 3D render since nothing calls the new shellFocus/triggerCameraShake APIs yet)
+- Trend: integration-heavy plans run ~25-55 min; 3D visual work runs longer when rendering bugs surface, but self-verifying with headless Playwright screenshots (and, for 04-05/04-06/04-07, a full live-server playtest) before the human checkpoint catches those bugs earlier and keeps the checkpoint itself a fast approval rather than a fix-iteration loop. 04-07 established a pattern for verifying 3D click-driven interactions (not just reveal/read-only views): compute the exact camera-space screen projection of a target world position from the real `CameraRig` view config (position/lookAt/fov) in a small Node/three.js helper, then click the live canvas at that pixel — avoids guessing screen coordinates by trial-and-error screenshotting. 05-01 shows a lighter-weight pattern for foundational, no-consumer-yet plans: a standalone Node simulation of the exact numeric logic (not the full R3F render) is sufficient self-verification when the new code path has zero live callers.
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - **Exact camera-projected clicks for verifying 3D click interactions (04-07):** to self-verify a plan whose diff involves real pointer clicks into the R3F canvas (not just a read-only reveal), compute the target world position's exact screen-space projection using the real `CameraRig` view config (position/lookAt/fov) via a small Node/three.js `PerspectiveCamera().project()` helper, then click the live canvas at that pixel. Far more reliable than trial-and-error screenshot-guessing pixel coordinates; reuse for any future plan needing scripted 3D pointer interaction (e.g. Phase 5 targeting/animation work).
 - **Screen-level CSS overrides of `styles.css` globals need higher, not just later, specificity (04-07):** `main.tsx` imports `App` (and transitively every screen's CSS) BEFORE `styles.css`, so an equal-specificity screen rule like `.battle-screen { max-width: 64rem }` silently lost to `styles.css`'s generic `.screen { max-width: 26rem }` — the whole battle screen had been rendering in a 26rem column since 04-05, undetected until a user UAT report ("everything is too small"). Fixed via `.screen.battle-screen` (two classes = higher specificity, wins regardless of import order). Extends 03-03's "CSS class names must be unique across screen stylesheets" lesson: screen-level container rules must also out-specify `styles.css`'s generic `.screen` rule, not just be declared after it.
 - **Both `CameraRig` views are overhead and vertically centered, `lookAt` solved numerically (04-07, UAT):** targeting moved from a low water-level angle to an overhead framing like fleet view (user request: view the enemy grid from above, same as your own fleet); both views' `lookAt` z components are solved so the grid's near/far world edges project to symmetric NDC y (~±0.77), centering the grid in every consumer canvas rather than leaving it low in frame as the original 04-04 framing had.
+- **`shellFocus` is a per-frame prop override on `CameraRig`, not a third `CameraView` (05-01):** `VIEWS` stays exactly `{ fleet, targeting }`; a static named-view config can't represent a moving shell position, so 05-03 will recompute `shellFocus`'s position/lookAt every frame and pass it in directly. `shellFocus` always damps (never snaps), even on the frame it first appears, since it's expected to update continuously once active.
+- **Screen shake is hand-rolled inside `CameraRig`'s own `useFrame`, never drei's `<CameraShake>` (05-01):** 05-RESEARCH.md confirmed `<CameraShake>` overwrites `camera.rotation` from a one-time snapshot every frame, fighting `CameraRig`'s continuous `camera.lookAt()`-driven rotation. `triggerCameraShake(intensity)` is a module-level exported function (plain mutable variable, not a ref/imperative handle) backing a decaying intensity that's applied as a small X/Y-only (never Z, never rotation) additive `camera.position` offset immediately after `lookAt()` each frame. Overlapping triggers take the max intensity, not additive stacking. Any future camera-owning component should keep this "one component owns camera.position/rotation per frame" discipline rather than mounting sibling effects that also touch the camera.
 
 ### Deferred Issues
 
@@ -117,5 +120,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-06
-Stopped at: Completed 04-07-PLAN.md (SUMMARY created) — Phase 4 complete (7/7 plans). Ready to discuss/plan Phase 5.
+Stopped at: Completed 05-01-PLAN.md (SUMMARY created) — Phase 5 in progress (1/6 plans). Ready for 05-02-PLAN.md (particle burst).
 Resume file: None

@@ -82,12 +82,15 @@ Plans:
 **Depends on**: Phase 4
 **Research**: Likely (particle and sequencing techniques)
 **Research topics**: R3F particle systems (fire/smoke/water column), shell-arc animation with camera choreography, interruptible/skippable animation sequencing, lightweight self-contained audio (WebAudio-generated vs tiny embedded samples)
-**Plans**: 3 plans
+**Plans**: 6 plans (expanded from initial 3-plan estimate during 05-RESEARCH.md/planning — camera primitives, particles, firing sequence, sinking, HUD, and audio each split into their own focused plan)
 
 Plans:
-- [ ] 05-01: Firing sequence — camera push-in, shell arc + smoke trail, splash/explosion particles, screen shake, skippable ≤2.5s timeline
-- [ ] 05-02: Sinking & HUD — list/flood/slide-under with bubbles and debris, fleet-status silhouettes, shot log, connection status
-- [ ] 05-03: Audio & feel — fire/splash/explosion/klaxon/ambient loop, persisted mute toggle, hover/disabled-state polish, animated state changes
+- [x] 05-01: Camera primitives — CameraRig gains a dynamic shell-follow focus and a hand-rolled screen shake, with no regression to existing fleet/targeting damped transitions (completed 2026-07-06)
+- [ ] 05-02: Particle burst — one reusable `Points`-based component covering splash/explosion/debris, resolving the gritty-naval-vs-holographic aesthetic tension
+- [ ] 05-03: Firing sequence — shell projectile (parabolic arc + smoke trail) wired into the real Battle screen: camera follow, impact particle burst + shake, held-back hit/miss/sunk marker, ≤2.5s and skippable
+- [ ] 05-04: Sinking sequence — dramatic list/flood/slide-under layered additively on FleetShips' existing wave bob, triggered once per newly-sunk ship
+- [ ] 05-05: Fleet-status HUD — naval-command silhouette indicators replacing the plain text fleet-status list
+- [ ] 05-06: Audio & mute — self-contained WebAudio SFX (fire/splash/explosion/klaxon/ambient loop) plus a persisted mute toggle
 
 ### Phase 6: Resilience & Edge Cases
 **Goal**: The game survives hostile and unlucky conditions — 45s turn timer with AFK escalation, 90s placement timer with auto-place, disconnect mid-animation, double-join, spam clicks — plus the reduced-effects toggle holding 60fps, verified by full games in two browser windows.
