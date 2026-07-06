@@ -23,8 +23,13 @@ interface ViewConfig {
 
 const VIEWS: Record<CameraView, ViewConfig> = {
   fleet: {
-    position: [0, 65, 26],
-    lookAt: [-1, 1, -8],
+    // Tightened in 04-07 (user feedback: grid/ships read too small). Close
+    // enough that the 10x10 grid (x/z ~[-19, 19] at altitude 1.8) fills
+    // most of the frame while all four corners stay inside every consumer
+    // (placement, battle fleet view, the smaller side/post-game reveal
+    // boards) — verified via headless screenshots of each.
+    position: [0, 48, 22],
+    lookAt: [0, 0, -5],
   },
   targeting: {
     position: [0, 20, 52],

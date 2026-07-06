@@ -1,9 +1,15 @@
 /* Battle + post-game styles (plan 03-03). Plain 2D utilitarian — Phase 4/5
    replaces the visuals entirely. */
 
-.battle-screen,
-.postgame-screen {
-  max-width: 64rem;
+/* .screen.battle-screen (not bare .battle-screen): styles.css's generic
+   `.screen { max-width: 26rem }` is injected AFTER this stylesheet in the
+   bundle (main.tsx imports App — and transitively every screen's CSS —
+   before styles.css), so an equal-specificity selector here silently loses
+   the cascade and the battle screen renders in a 26rem column. The extra
+   class wins on specificity regardless of import order. */
+.screen.battle-screen,
+.screen.postgame-screen {
+  max-width: 96rem;
   justify-content: flex-start;
 }
 
@@ -78,11 +84,22 @@
 .game-scene {
   position: relative;
   width: 100%;
-  max-width: 40rem;
+  max-width: 56rem;
   aspect-ratio: 4 / 3;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #26374d;
+}
+
+/* Give both battle panels room to actually reach their scenes' max
+   widths instead of shrinking to their text content. */
+.battle-main {
+  flex: 1 1 40rem;
+  max-width: 56rem;
+}
+
+.battle-side {
+  flex: 0 1 30rem;
 }
 
 /* Smaller secondary/reveal boards (04-06): the battle side panel's
@@ -90,7 +107,7 @@
    side-by-side reveal boards. */
 .battle-side .game-scene,
 .postgame-boards .game-scene {
-  max-width: 20rem;
+  max-width: 30rem;
 }
 
 .battle-side h3,
