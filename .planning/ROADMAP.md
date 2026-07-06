@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Monorepo scaffold + shared game rules engine with thorough unit tests (completed 2026-07-03)
 - [x] **Phase 2: Multiplayer Server** - Authoritative Socket.IO server: rooms, matchmaking, full game loop, reconnect (completed 2026-07-04)
 - [x] **Phase 3: Playable 2D Client** - Complete flow (lobby → placement → battle → post-game) on a plain 2D board (completed 2026-07-04)
-- [ ] **Phase 4: 3D Ocean Scene** - Animated water, procedural ships, holographic grid, camera system
+- [x] **Phase 4: 3D Ocean Scene** - Animated water, procedural ships, holographic grid, camera system (completed 2026-07-06)
 - [ ] **Phase 5: Cinematics & Audio** - Firing sequences, particles, sinking animations, HUD polish, sound
 - [ ] **Phase 6: Resilience & Edge Cases** - Turn timers, disconnect handling, reduced-effects mode, final QA
 - [ ] **Phase 7: Deployment** - Live on Render free tier with graceful cold-start and README
@@ -74,8 +74,8 @@ Plans:
 - [x] 04-03: Holographic grid & interaction — glowing grid overlay, hover readout, cell targeting, placement in 3D (completed 2026-07-05)
 - [x] 04-04: Camera system — fleet view / targeting view rig with damp-based animated transitions, isolated in the dev sandbox (completed 2026-07-05)
 - [x] 04-05: Battle screen integration — wire ocean/ships/grid/camera into the real Battle screen via a `GameSceneAdapter`, retiring the 2D `TargetingBoard` (completed 2026-07-05)
-- [ ] 04-06: Post-game integration — read-only reveal mode on `GameSceneAdapter`, retiring the 2D `FleetBoard`
-- [ ] 04-07: Placement integration — 3D placement interaction on the holographic grid, retiring the 2D `PlacementBoard` and the dev sandbox; completes "2D board retired" across every screen
+- [x] 04-06: Post-game integration — read-only reveal mode on `GameSceneAdapter`, retiring the 2D `FleetBoard` (completed 2026-07-05)
+- [x] 04-07: Placement integration — 3D placement interaction on the holographic grid, retiring the 2D `PlacementBoard` and the dev sandbox; completes "2D board retired" across every screen (completed 2026-07-06)
 
 ### Phase 5: Cinematics & Audio
 **Goal**: Every shot is a cinematic beat — camera push-in, shell arc with smoke trail, splash or explosion with screen shake, listing/sinking ships with bubbles and debris, each ≤2.5s and skippable — plus the naval-command HUD (fleet silhouettes, shot log, timers) and self-contained audio with persisted mute.
