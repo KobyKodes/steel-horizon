@@ -16,7 +16,9 @@ import { Vector3, MathUtils } from "three";
 // x/z=[-18, 18]) sits.
 export type CameraView = "fleet" | "targeting";
 
-interface ViewConfig {
+// Exported so 05-03's GameSceneAdapter (via SceneRoot) can type its
+// per-frame shellFocus tracker's output without redefining this shape.
+export interface ViewConfig {
   position: [number, number, number];
   lookAt: [number, number, number];
 }

@@ -3,7 +3,7 @@ import { PerformanceMonitor, Stats } from "@react-three/drei";
 import { useState, type ReactNode } from "react";
 import { Ocean } from "./Ocean";
 import { SkyDome } from "./SkyDome";
-import { CameraRig, type CameraView } from "./camera/CameraRig";
+import { CameraRig, type CameraView, type ViewConfig } from "./camera/CameraRig";
 
 // Root of the 3D scene: everything later Phase 4 plans (grid, ships,
 // camera rig) mounts inside this <Canvas>. Ocean + SkyDome are the shared
@@ -16,9 +16,12 @@ import { CameraRig, type CameraView } from "./camera/CameraRig";
 // prop — SceneRoot no longer hardcodes a static camera position/lookAt.
 export function SceneRoot({
   view,
+  shellFocus,
   children,
 }: {
   view: CameraView;
+  /** 05-03: live shell-follow target, forwarded straight through to CameraRig. */
+  shellFocus?: ViewConfig | null;
   children?: ReactNode;
 }) {
   const [dpr, setDpr] = useState(1.5);
@@ -30,7 +33,7 @@ export function SceneRoot({
         onIncline={() => setDpr(1.5)}
       />
       {import.meta.env.DEV && <Stats />}
-      <CameraRig view={view} />
+      <CameraRig view={view} shellFocus={shellFocus} />
       <SkyDome />
       <Ocean />
       {children}
