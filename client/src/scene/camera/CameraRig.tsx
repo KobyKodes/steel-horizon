@@ -52,22 +52,34 @@ const DAMP_SMOOTH_TIME = 0.22;
 
 export interface CameraRigProps {
   view: CameraView;
+  /**
+   * Optional live-updating focus target, e.g. a shell in flight (05-03).
+   * When set, the camera damps toward this position/lookAt every frame
+   * instead of the named `view`'s static config. This is NOT a third
+   * `CameraView` — a static VIEWS entry can't represent a moving target;
+   * the caller recomputes shellFocus every frame while it's active.
+   * Always damps, never snaps, even on the frame it first becomes non-null.
+   */
+  shellFocus?: ViewConfig | null;
 }
 
 /** Smoothly transitions the R3F default camera between named view configs. */
-export function CameraRig({ view }: CameraRigProps) {
+export function CameraRig({ view, shellFocus }: CameraRigProps) {
   const { camera } = useThree();
   const lookAtTarget = useRef(new Vector3(...VIEWS.targeting.lookAt));
   const initialized = useRef(false);
 
   useFrame((_state, delta) => {
-    const config = VIEWS[view];
+    const config = shellFocus ?? VIEWS[view];
 
     if (!initialized.current) {
-      // Snap to the initial view on first frame rather than damping in
-      // from an arbitrary starting camera position.
-      camera.position.set(...config.position);
-      lookAtTarget.current.set(...config.lookAt);
+      // Snap to the initial named view on first frame rather than damping
+      // in from an arbitrary starting camera position. Always snaps to
+      // VIEWS[view] (never shellFocus) — shellFocus is a per-frame chase
+      // target expected to update continuously once active, so it should
+      // only ever be damped toward, never snapped to.
+      camera.position.set(...VIEWS[view].position);
+      lookAtTarget.current.set(...VIEWS[view].lookAt);
       initialized.current = true;
     } else {
       camera.position.x = MathUtils.damp(
