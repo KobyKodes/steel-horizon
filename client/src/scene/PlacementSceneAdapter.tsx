@@ -1,20 +1,25 @@
 // PlacementSceneAdapter — the game-facing placement UI over the same
 // game-state-agnostic 3D primitives (SceneRoot/CameraRig, HoloGrid,
 // FleetShips) that GameSceneAdapter composes for the battle/post-game
-// screens. Placement's interaction shape (select a ship, then place it —
-// see the plan's checkpoint decision) is different enough from
-// GameSceneAdapter's fire/reveal modes to warrant its own component rather
-// than a third mode bolted onto it.
+// screens.
+//
+// Interaction: continuous pointer-drag, mirroring the 2D PlacementBoard
+// exactly (user-requested — placement should feel like the 2D drag-to-place
+// did). pointerdown on a dock ship or a placed ship's grid cell lifts it;
+// while dragging, HoloGrid's per-cell R3F hover events track the hovered
+// cell and a green/red ghost previews legality; pointerup drops (illegal
+// drops snap back). R rotates mid-drag; right-click rotates a placed ship
+// in place. All draft-time legality (bounds + no-overlap-with-other-ships)
+// is ported verbatim from the 2D PlacementBoard's `isLegalInDraft`.
 //
 // Controlled contract, identical to the retired PlacementBoard: a
 // `draft: Map<ShipClassId, ShipPlacement>` plus `onChange`, and an optional
-// `disabled` for the locked post-submission view. All draft-time legality
-// (bounds + no-overlap-with-other-ships) is ported verbatim from
-// PlacementBoard.tsx's `isLegalInDraft` — nothing is reimplemented, only
-// re-presented in 3D. The camera stays in "fleet" view throughout; there is
-// no targeting-view toggle for placement.
+// `disabled` for the locked post-submission view. The camera stays in
+// "fleet" view throughout — no targeting-view toggle for placement.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
+import { Instance, Instances } from "@react-three/drei";
 import {
   FLEET,
   SHIP_LENGTHS,
@@ -27,7 +32,8 @@ import {
 } from "@steel-horizon/shared";
 import { SceneRoot } from "./SceneRoot";
 import { FleetShips } from "./ships/FleetShips";
-import { HoloGrid } from "./grid/HoloGrid";
+import { HoloGrid, GRID_ALTITUDE } from "./grid/HoloGrid";
+import { cellToWorld } from "./grid/gridCoords";
 
 export type FleetDraft = ReadonlyMap<ShipClassId, ShipPlacement>;
 
@@ -49,8 +55,8 @@ function flip(orientation: Orientation): Orientation {
 
 /**
  * Draft-time legality for a single ship: all cells in bounds and no
- * collision with OTHER placed ships. Ported verbatim from
- * PlacementBoard.tsx — do not reimplement, only re-present in 3D.
+ * collision with OTHER placed ships. Ported verbatim from the 2D
+ * PlacementBoard — do not reimplement, only re-present in 3D.
  */
 function isLegalInDraft(candidate: ShipPlacement, draft: FleetDraft): boolean {
   const cells = cellsForPlacement(candidate);
@@ -64,9 +70,49 @@ function isLegalInDraft(candidate: ShipPlacement, draft: FleetDraft): boolean {
   return cells.every((cell) => !occupied.has(cellKey(cell)));
 }
 
-/** First unplaced ship in canonical FLEET order, or null if the draft is full. */
-function firstUnplaced(draft: FleetDraft): ShipClassId | null {
-  return FLEET.find((ship) => !draft.has(ship)) ?? null;
+interface DragState {
+  ship: ShipClassId;
+  orientation: Orientation;
+  hover: Coordinate | null;
+}
+
+// Ghost preview colors: match the 2D board's green/red legality signal,
+// tuned bright for the additive-blended hologram look.
+const GHOST_LEGAL = new THREE.Color("#5aff8a");
+const GHOST_ILLEGAL = new THREE.Color("#ff4d5e");
+const GHOST_QUAD_SIZE = 3.4;
+const MAX_SHIP_LENGTH = Math.max(...FLEET.map((ship) => SHIP_LENGTHS[ship]));
+
+/** Green/red ghost cells for the in-flight drag, floating just above the grid. */
+function GhostCells({ cells, legal }: { cells: Coordinate[]; legal: boolean }) {
+  return (
+    <group position={[0, GRID_ALTITUDE + 0.05, 0]} rotation-x={-Math.PI / 2}>
+      <Instances limit={MAX_SHIP_LENGTH} renderOrder={3}>
+        <planeGeometry args={[GHOST_QUAD_SIZE, GHOST_QUAD_SIZE]} />
+        <meshBasicMaterial
+          transparent
+          opacity={0.85}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+        />
+        {cells.map((cell) => {
+          // Same local-coordinate trick as HoloGrid: the group is rotated
+          // -PI/2 about X, so local +y maps to world -z.
+          const [x, z] = cellToWorld(cell);
+          return (
+            <Instance
+              key={cellKey(cell)}
+              position={[x, -z, 0]}
+              color={legal ? GHOST_LEGAL : GHOST_ILLEGAL}
+              raycast={() => null}
+            />
+          );
+        })}
+      </Instances>
+    </group>
+  );
 }
 
 export interface PlacementSceneAdapterProps {
@@ -81,15 +127,19 @@ export function PlacementSceneAdapter({
   onChange,
   disabled = false,
 }: PlacementSceneAdapterProps) {
-  const [activeShip, setActiveShip] = useState<ShipClassId | null>(() =>
-    firstUnplaced(draft),
-  );
-  // Orientation used for the NEXT placement of a not-yet-placed active ship.
-  // Once a ship is placed, its orientation lives in `draft` itself.
-  const [pendingOrientation, setPendingOrientation] =
-    useState<Orientation>("horizontal");
+  const [drag, setDrag] = useState<DragState | null>(null);
   const [flashShip, setFlashShip] = useState<ShipClassId | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Refs mirror the latest props/state so the window-level drag listeners
+  // (registered once per drag) never see stale closures — same pattern the
+  // 2D PlacementBoard used.
+  const dragRef = useRef(drag);
+  dragRef.current = drag;
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(
     () => () => {
@@ -98,118 +148,162 @@ export function PlacementSceneAdapter({
     [],
   );
 
-  // Re-seed a null selection (e.g. after "Clear") with the next unplaced
-  // ship whenever the draft changes out from under us — Randomize/Clear
-  // replace the whole draft in PlacementScreen. A non-null selection is
-  // always kept as-is (valid whether placed or still unplaced).
-  useEffect(() => {
-    if (disabled || activeShip !== null) return;
-    setActiveShip(firstUnplaced(draft));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, disabled]);
-
   function flash(ship: ShipClassId): void {
     if (flashTimer.current !== null) clearTimeout(flashTimer.current);
     setFlashShip(ship);
     flashTimer.current = setTimeout(() => setFlashShip(null), 450);
   }
 
-  function selectShip(ship: ShipClassId): void {
+  function startDrag(ship: ShipClassId): void {
     if (disabled) return;
-    setActiveShip(ship);
-    setPendingOrientation(draft.get(ship)?.orientation ?? "horizontal");
+    setDrag({
+      ship,
+      orientation: draft.get(ship)?.orientation ?? "horizontal",
+      hover: null,
+    });
   }
 
-  function rotateActive(): void {
-    if (disabled || activeShip === null) return;
-    const placement = draft.get(activeShip);
-    if (placement === undefined) {
-      setPendingOrientation((o) => flip(o));
-      return;
-    }
+  function rotatePlaced(ship: ShipClassId): void {
+    if (disabled) return;
+    const placement = draft.get(ship);
+    if (placement === undefined) return;
     const rotated: ShipPlacement = {
       ...placement,
       orientation: flip(placement.orientation),
     };
     if (isLegalInDraft(rotated, draft)) {
       const next = new Map(draft);
-      next.set(activeShip, rotated);
+      next.set(ship, rotated);
       onChange(next);
     } else {
-      flash(activeShip);
+      flash(ship);
     }
   }
 
-  function handleSelectCell(coord: Coordinate): void {
-    if (disabled || activeShip === null) return;
-    const orientation = draft.get(activeShip)?.orientation ?? pendingOrientation;
-    const candidate: ShipPlacement = {
-      ship: activeShip,
-      origin: coord,
-      orientation,
-    };
-    if (!isLegalInDraft(candidate, draft)) {
-      flash(activeShip);
-      return;
-    }
-    const next = new Map(draft);
-    next.set(activeShip, candidate);
-    onChange(next);
-
-    const remaining = FLEET.find(
-      (ship) => ship !== activeShip && !next.has(ship),
-    );
-    setActiveShip(remaining ?? null);
-    setPendingOrientation("horizontal");
-  }
-
-  // R key rotates the active ship, mirroring PlacementBoard's keybinding.
-  useEffect(() => {
+  // Grid pointerdown: primary button lifts the placed ship occupying that
+  // cell (if any); secondary button rotates it in place — mirroring the 2D
+  // board's pointerdown-lift and right-click-rotate.
+  function handleGridPointerDown(coord: Coordinate, button: number): void {
     if (disabled) return;
+    const key = cellKey(coord);
+    let owner: ShipClassId | null = null;
+    for (const [ship, placement] of draft) {
+      if (cellsForPlacement(placement).some((c) => cellKey(c) === key)) {
+        owner = ship;
+        break;
+      }
+    }
+    if (owner === null) return;
+    if (button === 0) startDrag(owner);
+    else if (button === 2) rotatePlaced(owner);
+  }
+
+  // Window-level listeners live for the duration of one drag: pointerup
+  // drops (legal hover commits, otherwise snap back), R rotates mid-drag.
+  // HoloGrid's own hover events feed `drag.hover` — no manual raycasting.
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging) return;
+
+    const onUp = () => {
+      const d = dragRef.current;
+      if (d !== null && d.hover !== null) {
+        const candidate: ShipPlacement = {
+          ship: d.ship,
+          origin: d.hover,
+          orientation: d.orientation,
+        };
+        if (isLegalInDraft(candidate, draftRef.current)) {
+          const next = new Map(draftRef.current);
+          next.set(d.ship, candidate);
+          onChangeRef.current(next);
+        }
+      }
+      // Illegal or off-grid drop: no onChange — the ship snaps back.
+      setDrag(null);
+    };
+
+    const onCancel = () => setDrag(null);
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
-        rotateActive();
+        setDrag((d) => (d === null ? null : { ...d, orientation: flip(d.orientation) }));
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disabled, activeShip, draft, pendingOrientation]);
 
-  const placements = Array.from(draft.values());
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [dragging]);
+
+  // Ghost preview cells for the in-flight drag (in-bounds subset, exactly
+  // like the 2D board rendered its ghost).
+  const ghost = useMemo(() => {
+    if (drag === null || drag.hover === null) return null;
+    const candidate: ShipPlacement = {
+      ship: drag.ship,
+      origin: drag.hover,
+      orientation: drag.orientation,
+    };
+    return {
+      cells: cellsForPlacement(candidate).filter(inBounds),
+      legal: isLegalInDraft(candidate, draft),
+    };
+  }, [drag, draft]);
+
+  // The dragged ship lifts off the water while in flight; everything else
+  // stays rendered at its real position.
+  const placements = Array.from(draft.values()).filter(
+    (placement) => placement.ship !== drag?.ship,
+  );
+
+  const unplaced = FLEET.filter((ship) => !draft.has(ship));
 
   return (
-    <div className={`placement-scene${disabled ? " is-disabled" : ""}`}>
+    <div
+      className={`placement-scene${disabled ? " is-disabled" : ""}${dragging ? " is-dragging" : ""}`}
+      onContextMenu={(e) => e.preventDefault()}
+    >
       <div className="game-scene">
         <SceneRoot view="fleet">
           {placements.length > 0 && <FleetShips placements={placements} />}
           <HoloGrid
             interactive={!disabled}
-            onSelectCell={disabled ? undefined : handleSelectCell}
+            onHoverCell={
+              dragging
+                ? (coord) =>
+                    setDrag((d) => (d === null ? null : { ...d, hover: coord }))
+                : undefined
+            }
+            onPointerDownCell={disabled ? undefined : handleGridPointerDown}
           />
+          {ghost !== null && (
+            <GhostCells cells={ghost.cells} legal={ghost.legal} />
+          )}
         </SceneRoot>
       </div>
 
       {!disabled && (
         <div className="dock">
           <h2>Dock</h2>
-          {FLEET.map((ship) => {
-            const placement = draft.get(ship);
-            const isActive = activeShip === ship;
-            const orientation =
-              placement?.orientation ??
-              (isActive ? pendingOrientation : "horizontal");
-            let className = "dock-ship";
-            if (isActive) className += " active";
-            if (placement !== undefined) className += " placed";
-            if (flashShip === ship) className += " flash-illegal";
-            return (
-              <button
+          {unplaced.length === 0 ? (
+            <p className="dock-empty">All ships deployed</p>
+          ) : (
+            unplaced.map((ship) => (
+              <div
                 key={ship}
-                type="button"
-                className={className}
-                onClick={() => selectShip(ship)}
+                className={`dock-ship${drag?.ship === ship ? " lifting" : ""}${flashShip === ship ? " flash-illegal" : ""}`}
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.preventDefault();
+                  startDrag(ship);
+                }}
               >
                 <span className="dock-ship-name">
                   {SHIP_NAMES[ship]} &middot; {SHIP_LENGTHS[ship]}
@@ -219,21 +313,9 @@ export function PlacementSceneAdapter({
                     <i key={i} />
                   ))}
                 </span>
-                <span className="dock-ship-status">
-                  {placement !== undefined ? "placed" : "unplaced"} &middot;{" "}
-                  {orientation}
-                </span>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            className="rotate-button"
-            disabled={activeShip === null}
-            onClick={rotateActive}
-          >
-            Rotate{activeShip ? ` (${SHIP_NAMES[activeShip]})` : ""}
-          </button>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

@@ -1,12 +1,12 @@
 /* Placement screen. The 3D board itself (`.game-scene`) is styled by
    battle.css, shared with every other GameSceneAdapter/PlacementSceneAdapter
-   consumer. This file owns only placement-specific layout: the scene +
-   dock composition and the screen chrome (controls, status, hint). Owned
-   by plan 03-02; the 2D drag-to-place board rules were retired in 04-07 in
-   favor of the 3D select-then-place interaction. */
+   consumer; placement enlarges it below since it is this screen's sole
+   focus. This file owns only placement-specific layout: the scene + dock
+   composition and the screen chrome (controls, status, hint). Owned by
+   plan 03-02; reworked in 04-07 for the 3D drag-to-place interaction. */
 
 .screen.placement {
-  max-width: 60rem;
+  max-width: 90rem;
   justify-content: flex-start;
   padding-top: 1.5rem;
 }
@@ -20,6 +20,17 @@
   justify-content: center;
   width: 100%;
   flex-wrap: wrap;
+}
+
+.placement-scene.is-dragging {
+  cursor: grabbing;
+}
+
+/* Placement is a single-board screen: let its scene run larger than the
+   battle screen's shared default. */
+.placement-scene .game-scene {
+  max-width: 64rem;
+  flex: 1 1 40rem;
 }
 
 /* --- Dock --- */
@@ -47,17 +58,18 @@
   background: #1d2836;
   border: 1px solid #3a4a5e;
   border-radius: 6px;
-  text-align: left;
-  width: 100%;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
-.dock-ship.placed {
-  border-color: #4a7bb5;
+.dock-ship.lifting {
+  opacity: 0.35;
 }
 
-.dock-ship.active {
-  border-color: #ffb45e;
-  box-shadow: 0 0 0 1px #ffb45e;
+.placement-scene.is-disabled .dock-ship {
+  cursor: default;
 }
 
 .dock-ship.flash-illegal {
@@ -92,15 +104,10 @@
   border: 1px solid #4a7bb5;
 }
 
-.dock-ship-status {
-  font-size: 0.7rem;
+.dock-empty {
+  margin: 0;
   color: #8fa0b5;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.rotate-button {
-  margin-top: 0.25rem;
+  font-style: italic;
 }
 
 /* --- Screen chrome (controls, status) --- */

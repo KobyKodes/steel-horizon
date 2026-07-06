@@ -85,6 +85,13 @@ export interface HoloGridProps {
   /** Fires when a cell is clicked; the selection persists until another click. */
   onSelectCell?: (coord: Coordinate) => void;
   /**
+   * Fires on pointerdown over a cell, with the native button number
+   * (0 = primary, 2 = secondary). Lets callers implement press-based
+   * interactions (04-07's drag-to-place lift / right-click rotate) without
+   * HoloGrid knowing anything about them.
+   */
+  onPointerDownCell?: (coord: Coordinate, button: number) => void;
+  /**
    * Recorded shot outcome per cell, keyed `` `${col},${row}` ``. Cells with
    * an entry render a shot marker layered above the base cell and stop
    * emitting hover/select callbacks — HoloGrid stays otherwise
@@ -102,6 +109,7 @@ export interface HoloGridProps {
 export function HoloGrid({
   onHoverCell,
   onSelectCell,
+  onPointerDownCell,
   cellStates,
   interactive = true,
 }: HoloGridProps) {
@@ -174,12 +182,27 @@ export function HoloGrid({
                     }
               }
               onClick={
-                disabled
+                // The amber "selected" highlight only makes sense for
+                // click-to-select consumers; press-based (drag) consumers
+                // pass onPointerDownCell instead and must not accumulate a
+                // stale selected cell from the click that ends a drag.
+                disabled || onSelectCell === undefined
                   ? undefined
                   : (event) => {
                       event.stopPropagation();
                       setSelected(key);
-                      onSelectCell?.({ col: cell.col, row: cell.row });
+                      onSelectCell({ col: cell.col, row: cell.row });
+                    }
+              }
+              onPointerDown={
+                disabled || onPointerDownCell === undefined
+                  ? undefined
+                  : (event) => {
+                      event.stopPropagation();
+                      onPointerDownCell(
+                        { col: cell.col, row: cell.row },
+                        event.button,
+                      );
                     }
               }
             />
