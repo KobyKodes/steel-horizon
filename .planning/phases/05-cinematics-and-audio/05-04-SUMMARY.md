@@ -54,7 +54,7 @@ completed: 2026-07-18
 - **Duration:** ~70 min
 - **Started:** 2026-07-18
 - **Completed:** 2026-07-18
-- **Tasks:** 2 automated tasks + 1 checkpoint (paused for user verification)
+- **Tasks:** 3/3 complete — checkpoint approved by the user 2026-07-18 ("confirmed sinking animation"), plus three approved-at-checkpoint extensions (see below)
 - **Files modified:** 3 (1 created, 2 modified)
 
 ## Accomplishments
@@ -68,7 +68,13 @@ completed: 2026-07-18
 1. **Task 1: Build the additive sinking transform** - `dc67a69` (feat)
 2. **Task 2: Trigger sinking + debris/bubble burst from real game state** - `d4e4d2c` (feat)
 
-_Task 3 (checkpoint:human-verify) is pending user verification — see below._
+**Checkpoint resolution + extensions (2026-07-18):** an earlier user report ("nothing sinks") exposed that no 3D hull ever rendered for the OPPONENT's fleet, so a sunk enemy ship had nothing to animate — fixed in `5877803` by reconstructing the sunk ship's placement client-side from `sunkShip`/`sunkShipCells` (via shared `placementFromCells`) and rendering it through the same FleetShips sinking path, fog-of-war-safe (only ever exists once sunk) and no-replay on reconnect. The user then confirmed the sinking animation and requested three extensions, all built and verified live:
+
+4. **Per-cell floating wreckage** — `4b52489`: once a ship finishes sinking (or loads already-sunk), each cell it occupied keeps a deterministic cluster of charred flotsam (`Wreckage.tsx`) bobbing at `gerstnerHeight`, replacing render-nothing.
+5. **Yellow hit / red sunk cell markers** — `3fa5362`: `HoloGrid`'s hit color is now warning-yellow (`#ffd21f`), flipping to red (`#ff2e3f`) when the ship's cells are confirmed sunk; damage escalates yellow -> red so a red cell always means a kill. (Consciously amends 04-03's amber-exclusivity note per user direction.)
+6. **Comic-book result callouts** — `3fa5362`: `ResultCallout.tsx` + `resultCallout.css`, an arcade/comic DOM overlay popping "HIT!"/"SUNK!"/"MISS!" over the scene at shell impact (or instantly on skip). SUNK gets a starburst + biggest pop, MISS deflates and sinks; colors match the grid's damage language; reduced-motion respected.
+
+All three verified via live socket-driven playtests + headless Playwright screenshots (defender-side incoming HIT callout mid-cinematic, yellow marker on the targeting grid, wreckage on both own-fleet and enemy historical paths), zero console errors.
 
 ## Files Created/Modified
 - `client/src/scene/ships/SinkingShip.tsx` — `useSinkingTransform(startedAt, clockTime)`: pure ease-in-cubic list/drop calculation, no React hooks internally despite the naming.
@@ -96,8 +102,8 @@ Following this project's established pattern of self-verifying with headless too
 
 ## Next Phase Readiness
 
-Tasks 1–2 are complete, committed, and self-verified. **Task 3 is a `checkpoint:human-verify` gate — this plan is paused awaiting user verification per the plan's own instructions.** See the checkpoint message for exactly what to check; the one item not independently self-verified (a live browser watching a brand-new sink event, cinematic + animation + debris burst all in sequence) is the most valuable thing for the user's own playtest to confirm.
+All tasks plus the checkpoint-driven fix and extensions are complete, committed, and verified. **Plan closed 2026-07-18 with user checkpoint approval.** 05-05 (fleet-status HUD) can build on the escalating yellow->red damage language and the comic-callout HUD layer established here.
 
 ---
 *Phase: 05-cinematics-and-audio*
-*Completed: 2026-07-18 (Tasks 1-2; Task 3 checkpoint pending)*
+*Completed: 2026-07-18 (checkpoint approved)*
