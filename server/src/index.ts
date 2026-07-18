@@ -3,7 +3,9 @@
 // PORT (default 3001), matching the pre-Socket.IO `npm run dev` behavior.
 
 import http from "node:http";
-import { pathToFileURL } from "node:url";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import express from "express";
 import { GRID_SIZE } from "@steel-horizon/shared";
 import {
@@ -24,6 +26,24 @@ export function createServer(deps: SocketServerDeps = {}): ServerHandles {
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", gridSize: GRID_SIZE });
   });
+
+  // Production static serving (07-01): when the built client exists
+  // (`npm run build` at the repo root), this one service serves it — the
+  // client connects to Socket.IO same-origin, so no CORS/proxy is needed.
+  // In dev the dist dir is absent and Vite serves the client instead;
+  // everything before this line (health, socket.io) is unaffected.
+  const clientDist = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../client/dist",
+  );
+  if (existsSync(clientDist)) {
+    app.use(express.static(clientDist));
+    // Single-page app: any non-API GET falls back to index.html (the app
+    // routes purely off the server snapshot, so every path is the shell).
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(clientDist, "index.html"));
+    });
+  }
 
   const httpServer = http.createServer(app);
   const io = createSocketServer(httpServer, deps);

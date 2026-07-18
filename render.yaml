@@ -1,0 +1,12 @@
+# Render Blueprint: one free-tier Node web service serving both the built
+# client (static) and Socket.IO from the same origin. Free instances spin
+# down after ~15 idle minutes; the first visit after that takes up to a
+# minute to wake (cold-start UX is Phase 7's 07-02).
+services:
+  - type: web
+    name: steel-horizon
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
