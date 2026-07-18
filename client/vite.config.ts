@@ -4,6 +4,9 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
+    // Any *.ngrok-free.dev tunnel may reach the dev server (subdomains
+    // rotate per ngrok session, so allow the whole suffix).
+    allowedHosts: [".ngrok-free.dev"],
     proxy: {
       "/health": "http://localhost:3001",
       "/socket.io": {
