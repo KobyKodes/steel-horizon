@@ -4,4 +4,5 @@ export * from "./board.js";
 export * from "./fleet.js";
 export * from "./protocol.js";
 export * from "./placement.js";
+export * from "./scoring.js";
 export * from "./shots.js";

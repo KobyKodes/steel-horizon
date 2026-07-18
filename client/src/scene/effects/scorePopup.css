@@ -1,0 +1,142 @@
+/* Arcade score popup. Overlays the .game-scene panel (position:relative +
+   overflow:hidden), offset right of center so it never collides with the
+   ResultCallout word. Class names all prefixed `score-popup` per the 03-03
+   unique-class-name rule.
+
+   Motion identity: LAUNCH + TUMBLE (scoring moves; callouts pop in place).
+   The multiplier chip climbs the game's own damage ramp — hit-yellow while
+   warm (x2–x3), tracer-orange when hot (x4–x6), kill-red when critical
+   (x7+) — so the chain speaks the same escalation language as the grid
+   cells. */
+
+.score-popup {
+  position: absolute;
+  top: 16%;
+  left: 60%;
+  z-index: 11;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1;
+  animation: score-popup-drift 0.6s ease-in 1.35s both;
+}
+
+.score-popup-points {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+  letter-spacing: 0.03em;
+  color: #f4f7ff;
+  -webkit-text-stroke: 2px #10131a;
+  paint-order: stroke fill;
+  text-shadow:
+    3px 3px 0 #10131a,
+    5px 5px 0 rgba(16, 19, 26, 0.35);
+  animation: score-popup-launch 0.5s cubic-bezier(0.2, 1.5, 0.35, 1) both;
+}
+
+/* Multiplier chip — colored by the chain's damage-ramp tier. */
+.score-popup-mult {
+  font-size: 0.55em;
+  padding: 0.1em 0.3em 0.08em;
+  border: 3px solid #10131a;
+  border-radius: 0.2em;
+  background: #10131a;
+  transform: rotate(6deg);
+}
+
+.score-popup--warm .score-popup-mult {
+  color: #ffd21f;
+}
+.score-popup--hot .score-popup-mult {
+  color: #ff7a1a;
+}
+.score-popup--critical .score-popup-mult {
+  color: #ff2e3f;
+}
+
+/* Bonus tags slam in under the digits, alternating tilt like slapped-on
+   stickers. */
+.score-popup-bonus {
+  font-size: clamp(0.95rem, 2.2vw, 1.4rem);
+  letter-spacing: 0.06em;
+  padding: 0.22em 0.5em 0.18em;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-3deg);
+  animation: score-popup-stamp 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.score-popup-bonus:nth-child(odd) {
+  transform: rotate(2deg);
+}
+
+/* Perfect kill is the flex — inverted, kill-red. */
+.score-popup-bonus--perfect-kill {
+  background: #ff2e3f;
+  color: #fff;
+}
+
+.score-popup-bonus--first-blood {
+  background: #ff7a1a;
+}
+
+/* Launch: kicked up from below, overshooting with a counter-tumble. */
+@keyframes score-popup-launch {
+  0% {
+    opacity: 0;
+    transform: translateY(3.2rem) rotate(-16deg) scale(0.3);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-0.5rem) rotate(4deg) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(-2deg) scale(1);
+  }
+}
+
+@keyframes score-popup-stamp {
+  from {
+    opacity: 0;
+    scale: 2.2;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* Exit: keeps rising and tumbling away — spent casing, not a deflate. */
+@keyframes score-popup-drift {
+  to {
+    opacity: 0;
+    transform: translateY(-3.5rem) rotate(5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-popup {
+    animation: score-popup-fade 0.4s ease 1.5s both;
+  }
+  .score-popup-points,
+  .score-popup-bonus {
+    animation: score-popup-stamp 0.01s both !important;
+  }
+}
+
+@keyframes score-popup-fade {
+  to {
+    opacity: 0;
+  }
+}

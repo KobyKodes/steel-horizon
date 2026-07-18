@@ -59,6 +59,27 @@ describe("full game over sockets", () => {
     // rows 0-4) come up first — Bob wins.
     expect(snapB.winner).toBe("you");
     expect(snapA.winner).toBe("opponent");
+
+    // Arcade scoring: gameover snapshots carry both final breakdowns and
+    // the freshly-submitted global leaderboard (both players placed on the
+    // test server's empty in-memory board).
+    for (const snap of [snapA, snapB]) {
+      expect(snap.finalScores).not.toBeNull();
+      expect(snap.leaderboard).toHaveLength(2);
+      expect(snap.yourLeaderboardRank).not.toBeNull();
+    }
+    const winnerFinal = snapB.finalScores!.you;
+    expect(winnerFinal.victoryBonus).toBe(500);
+    expect(winnerFinal.shipsSunk).toBe(5);
+    expect(winnerFinal.total).toBe(
+      winnerFinal.battlePoints +
+        winnerFinal.victoryBonus +
+        winnerFinal.accuracyBonus +
+        winnerFinal.flawlessBonus,
+    );
+    // The winner's total dwarfs the loser's; they top the 2-entry board.
+    expect(snapB.yourLeaderboardRank).toBe(0);
+    expect(snapB.leaderboard![0]!.score).toBe(winnerFinal.total);
   });
 
   it("rematches into a clean placement phase and the reset game is live", async () => {
@@ -91,6 +112,13 @@ describe("full game over sockets", () => {
         youRequested: false,
         opponentRequested: false,
       });
+      // Scores reset with the fresh game; leaderboard hides until gameover.
+      expect(snap.scores).toEqual({
+        you: { points: 0, streak: 0, multiplier: 1, maxMultiplier: 1 },
+        opponent: { points: 0, streak: 0, multiplier: 1, maxMultiplier: 1 },
+      });
+      expect(snap.finalScores).toBeNull();
+      expect(snap.leaderboard).toBeNull();
     }
 
     // Place again and play a few turns to prove the reset game is live.
@@ -124,7 +152,18 @@ describe("full game over sockets", () => {
     expect(afterA.currentTurn).toBe("you");
     expect(afterA.shotsAgainstYou).toHaveLength(1);
     expect(afterB.yourShots).toEqual([
-      { target: { col: 0, row: 0 }, result: "hit" },
+      {
+        target: { col: 0, row: 0 },
+        result: "hit",
+        // First non-miss of the rematch game: base 100 + first blood 150.
+        score: {
+          points: 250,
+          streak: 1,
+          multiplier: 1,
+          total: 250,
+          bonuses: [{ bonus: "first-blood", points: 150 }],
+        },
+      },
     ]);
   });
 
@@ -213,7 +252,11 @@ describe("full game over sockets", () => {
       pd,
     ]);
     expect(finalC.yourShots).toEqual([
-      { target: { col: 0, row: 9 }, result: "miss" },
+      {
+        target: { col: 0, row: 9 },
+        result: "miss",
+        score: { points: 0, streak: 0, multiplier: 1, total: 0, bonuses: [] },
+      },
     ]);
     expect(finalC.shotsAgainstYou).toHaveLength(1);
     expect(finalC.currentTurn).toBe("you");

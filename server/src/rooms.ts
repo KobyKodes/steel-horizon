@@ -2,7 +2,7 @@
 // code — Socket.IO rooms are only a broadcast mechanism, never the source
 // of truth. Store is a Map behind a narrow interface (Redis-swappable).
 
-import type { RoomPhase } from "@steel-horizon/shared";
+import type { HighScoreEntry, RoomPhase } from "@steel-horizon/shared";
 import type { Game } from "./game/engine.js";
 
 export interface RoomPlayer {
@@ -19,6 +19,15 @@ export interface Room {
   phase: RoomPhase;
   /** The authoritative engine state; null while the room is in the lobby. */
   game: Game | null;
+  /**
+   * Leaderboard state for THIS game's gameover, written by socket.ts when
+   * the game ends (scores submitted exactly once per game) and reset on
+   * rematch. `leaderboard` is the post-submission global top list;
+   * `leaderboardRanks` is each player's 0-based rank if they placed.
+   */
+  scoresSubmitted: boolean;
+  leaderboard: HighScoreEntry[] | null;
+  leaderboardRanks: Record<string, number | null>;
 }
 
 export interface RoomStore {

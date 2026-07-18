@@ -22,6 +22,14 @@ const ALICE = "session-alice";
 const BOB = "session-bob";
 const STRANGER = "session-stranger";
 
+/** A fresh player's arcade score. */
+const EMPTY_SCORE = { points: 0, streak: 0, multiplier: 1, maxMultiplier: 1 };
+
+/** The ScoreEvent a miss produces when the shooter has `total` banked. */
+function missEvent(total = 0) {
+  return { points: 0, streak: 0, multiplier: 1, total, bonuses: [] };
+}
+
 /** Legal fleet packed into rows 0–4, all horizontal from col 0. */
 const FLEET_A: FleetPlacement = [
   { ship: "carrier", origin: { col: 0, row: 0 }, orientation: "horizontal" },
@@ -84,8 +92,16 @@ describe("createGame", () => {
     expect(game.phase).toBe("placement");
     expect(game.currentPlayer).toBeNull();
     expect(game.winner).toBeNull();
-    expect(game.players[ALICE]).toEqual({ fleet: null, shots: [] });
-    expect(game.players[BOB]).toEqual({ fleet: null, shots: [] });
+    expect(game.players[ALICE]).toEqual({
+      fleet: null,
+      shots: [],
+      score: EMPTY_SCORE,
+    });
+    expect(game.players[BOB]).toEqual({
+      fleet: null,
+      shots: [],
+      score: EMPTY_SCORE,
+    });
   });
 });
 
@@ -135,8 +151,9 @@ describe("fire", () => {
     const result = fire(game, ALICE, { col: 0, row: 9 });
     expect(result).toEqual({
       ok: true,
-      record: { target: { col: 0, row: 9 }, result: "miss" },
+      record: { target: { col: 0, row: 9 }, result: "miss", score: missEvent() },
       gameOver: false,
+      score: missEvent(),
     });
     expect(game.players[ALICE]!.shots).toHaveLength(1);
     expect(game.currentPlayer).toBe(BOB);
@@ -145,10 +162,19 @@ describe("fire", () => {
   it("resolves a hit and STILL alternates the turn (no extra turn on hit)", () => {
     const game = makeBattle();
     const result = fire(game, ALICE, { col: 5, row: 5 });
+    // First non-miss of the match: base 100 + first blood 150.
+    const hitEvent = {
+      points: 250,
+      streak: 1,
+      multiplier: 1,
+      total: 250,
+      bonuses: [{ bonus: "first-blood", points: 150 }],
+    };
     expect(result).toEqual({
       ok: true,
-      record: { target: { col: 5, row: 5 }, result: "hit" },
+      record: { target: { col: 5, row: 5 }, result: "hit", score: hitEvent },
       gameOver: false,
+      score: hitEvent,
     });
     expect(game.currentPlayer).toBe(BOB);
   });
@@ -158,6 +184,18 @@ describe("fire", () => {
     expect(fire(game, ALICE, { col: 5, row: 9 }).ok).toBe(true); // destroyer 1/2
     expect(fire(game, BOB, { col: 9, row: 9 }).ok).toBe(true); // miss
     const result = fire(game, ALICE, { col: 6, row: 9 }); // destroyer 2/2
+    // Streak 2 at x1: base 100 + sink 250 + perfect kill 250 (both shots
+    // landed on the destroyer), on top of the 250 banked by first blood.
+    const sunkEvent = {
+      points: 600,
+      streak: 2,
+      multiplier: 1,
+      total: 850,
+      bonuses: [
+        { bonus: "sink", points: 250 },
+        { bonus: "perfect-kill", points: 250 },
+      ],
+    };
     expect(result).toEqual({
       ok: true,
       record: {
@@ -168,8 +206,10 @@ describe("fire", () => {
           { col: 5, row: 9 },
           { col: 6, row: 9 },
         ],
+        score: sunkEvent,
       },
       gameOver: false,
+      score: sunkEvent,
     });
     expect(game.currentPlayer).toBe(BOB);
   });
@@ -232,8 +272,9 @@ describe("fire", () => {
         const missTarget = { col: i % 10, row: 5 + Math.floor(i / 10) };
         expect(fire(game, BOB, missTarget)).toEqual({
           ok: true,
-          record: { target: missTarget, result: "miss" },
+          record: { target: missTarget, result: "miss", score: missEvent() },
           gameOver: false,
+          score: missEvent(),
         });
       } else {
         expect(result.gameOver).toBe(true);
@@ -290,8 +331,16 @@ describe("requestRematch", () => {
     expect(fresh.currentPlayer).toBeNull();
     expect(fresh.winner).toBeNull();
     expect(fresh.winReason).toBeNull();
-    expect(fresh.players[ALICE]).toEqual({ fleet: null, shots: [] });
-    expect(fresh.players[BOB]).toEqual({ fleet: null, shots: [] });
+    expect(fresh.players[ALICE]).toEqual({
+      fleet: null,
+      shots: [],
+      score: EMPTY_SCORE,
+    });
+    expect(fresh.players[BOB]).toEqual({
+      fleet: null,
+      shots: [],
+      score: EMPTY_SCORE,
+    });
     expect(fresh.rematchRequests.size).toBe(0);
   });
 

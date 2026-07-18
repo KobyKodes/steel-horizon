@@ -9,12 +9,18 @@
 // deterministic coin flips.
 
 import {
+  applyShot,
+  finalizeScore,
+  initialScoreState,
   isFleetDestroyed,
   resolveShot,
   validateFleetPlacement,
   type Coordinate,
   type ErrorCode,
   type FleetPlacement,
+  type ScoreEvent,
+  type ScoreState,
+  type ScoreSummary,
   type ShotRecord,
 } from "@steel-horizon/shared";
 
@@ -27,6 +33,8 @@ export interface PlayerGameState {
   fleet: FleetPlacement | null;
   /** Shots FIRED by this player, appended after each accepted resolution. */
   shots: ShotRecord[];
+  /** Live arcade score, folded forward by fire() via the shared rules. */
+  score: ScoreState;
 }
 
 export interface Game {
@@ -38,6 +46,8 @@ export interface Game {
   currentPlayer: string | null;
   winner: string | null;
   winReason: WinReason | null;
+  /** Per-player end-of-game breakdowns; set once, when the game ends. */
+  finalScores: Record<string, ScoreSummary> | null;
   rematchRequests: Set<string>;
   /** Injected randomness for coin flips (tests override). */
   rng: () => number;
@@ -50,7 +60,7 @@ export type PlaceFleetResult =
   | Rejection;
 
 export type FireResult =
-  | { ok: true; record: ShotRecord; gameOver: boolean }
+  | { ok: true; record: ShotRecord; gameOver: boolean; score: ScoreEvent }
   | Rejection;
 
 export type RematchResult =
@@ -67,13 +77,14 @@ export function createGame(
   return {
     playerIds,
     players: {
-      [playerIds[0]]: { fleet: null, shots: [] },
-      [playerIds[1]]: { fleet: null, shots: [] },
+      [playerIds[0]]: { fleet: null, shots: [], score: initialScoreState() },
+      [playerIds[1]]: { fleet: null, shots: [], score: initialScoreState() },
     },
     phase: "placement",
     currentPlayer: null,
     winner: null,
     winReason: null,
+    finalScores: null,
     rematchRequests: new Set(),
     rng,
   };
@@ -158,6 +169,28 @@ export function fire(
     return { ok: false, code: resolution.error };
   }
 
+  // Arcade scoring rides the same resolution. First blood = no non-miss
+  // shot yet by EITHER player; priorTargets feed perfect-kill detection.
+  const scored = applyShot(
+    game.players[playerId]!.score,
+    resolution.result === "sunk"
+      ? {
+          result: "sunk",
+          sunkShip: resolution.ship,
+          sunkShipCells: resolution.cells,
+        }
+      : { result: resolution.result },
+    {
+      firstHitOfMatch:
+        resolution.result !== "miss" &&
+        game.playerIds.every((id) =>
+          game.players[id]!.shots.every((shot) => shot.result === "miss"),
+        ),
+      priorTargets: previousTargets,
+    },
+  );
+  game.players[playerId]!.score = scored.state;
+
   const record: ShotRecord =
     resolution.result === "sunk"
       ? {
@@ -165,8 +198,9 @@ export function fire(
           result: "sunk",
           sunkShip: resolution.ship,
           sunkShipCells: resolution.cells,
+          score: scored.event,
         }
-      : { target, result: resolution.result };
+      : { target, result: resolution.result, score: scored.event };
   shooter.shots.push(record);
 
   const destroyed = isFleetDestroyed(
@@ -178,11 +212,34 @@ export function fire(
     game.currentPlayer = null;
     game.winner = playerId;
     game.winReason = "all-ships-sunk";
-    return { ok: true, record, gameOver: true };
+    finalizeGameScores(game);
+    return { ok: true, record, gameOver: true, score: scored.event };
   }
 
   game.currentPlayer = opponentId;
-  return { ok: true, record, gameOver: false };
+  return { ok: true, record, gameOver: false, score: scored.event };
+}
+
+/**
+ * Compute both players' end-of-game breakdowns. Called exactly once, from
+ * whichever transition ends the game (destruction or forfeit). Flawless
+ * demands a real win — all enemy ships sunk while losing none of your own;
+ * forfeit wins never qualify.
+ */
+function finalizeGameScores(game: Game): void {
+  if (game.finalScores !== null) return;
+  const finals: Record<string, ScoreSummary> = {};
+  for (const playerId of game.playerIds) {
+    const player = game.players[playerId]!;
+    const opponent = game.players[opponentOf(game, playerId)]!;
+    const won = game.winner === playerId;
+    const lostNoShips = opponent.shots.every((shot) => shot.result !== "sunk");
+    finals[playerId] = finalizeScore(player.score, player.shots, {
+      won,
+      flawless: won && game.winReason === "all-ships-sunk" && lostNoShips,
+    });
+  }
+  game.finalScores = finals;
 }
 
 /**
@@ -222,5 +279,6 @@ export function forfeit(game: Game, playerId: string): ForfeitResult {
   game.currentPlayer = null;
   game.winner = opponentOf(game, playerId);
   game.winReason = "forfeit";
+  finalizeGameScores(game);
   return { ok: true };
 }

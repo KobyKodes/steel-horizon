@@ -35,6 +35,7 @@ import {
 } from "./effects/ShellProjectile";
 import { ParticleBurst, type BurstPreset } from "./effects/ParticleBurst";
 import { ResultCallout } from "./effects/ResultCallout";
+import { ScorePopup } from "./effects/ScorePopup";
 
 /**
  * The single source of truth mapping a shot outcome to its impact VFX.
@@ -193,6 +194,13 @@ export interface GameSceneAdapterProps {
   canFire?: boolean;
   /** Ignored in "reveal" mode. */
   onFire?: (target: Coordinate) => void;
+  /**
+   * Fired once per OUTGOING shot at the moment its result lands on screen
+   * (shell impact, or skip). Lets the parent advance HUD state — score
+   * odometer, combo meter — in sync with what the player has actually seen
+   * rather than with the (earlier) snapshot arrival.
+   */
+  onOutgoingResult?: (shot: ShotRecord) => void;
   /** Ships in `yourFleet` to play the sinking sequence for (SinkingShip.tsx). */
   sunkShips?: ShipClassId[];
 }
@@ -206,6 +214,7 @@ export function GameSceneAdapter({
   onIncomingActiveChange,
   canFire,
   onFire,
+  onOutgoingResult,
   sunkShips,
 }: GameSceneAdapterProps) {
   const isReveal = mode === "reveal";
@@ -243,6 +252,21 @@ export function GameSceneAdapter({
 
   function showCallout(result: ShotRecord["result"]) {
     setCallout({ result, key: performance.now() });
+  }
+
+  // Arcade score popup — shown with the callout, but only for OUTGOING
+  // shots (these are YOUR points) and only when the shot actually paid.
+  const [scorePopup, setScorePopup] = useState<{
+    score: NonNullable<ShotRecord["score"]>;
+    key: number;
+  } | null>(null);
+
+  /** The single "outcome landed on screen" beat for an outgoing shot. */
+  function revealOutgoingScore(shot: ShotRecord) {
+    if (shot.score && shot.score.points > 0) {
+      setScorePopup({ score: shot.score, key: performance.now() });
+    }
+    onOutgoingResult?.(shot);
   }
 
   // Newly-sunk-ship debris burst (05-04). `sunkShipsSeenRef` is seeded with
@@ -405,6 +429,7 @@ export function GameSceneAdapter({
     // shown yet — pop it now alongside the instantly-revealed marker.
     if (pending && sequenceStage === "flight") {
       showCallout(pending.shot.result);
+      if (pending.kind === "outgoing") revealOutgoingScore(pending.shot);
     }
     if (pending?.kind === "incoming") {
       setSettledIncoming((count) => count + 1);
@@ -430,6 +455,7 @@ export function GameSceneAdapter({
     });
     triggerCameraShake(shakeFor(pending.shot.result));
     showCallout(pending.shot.result);
+    if (pending.kind === "outgoing") revealOutgoingScore(pending.shot);
     setSequenceStage("impact");
   }
 
@@ -600,6 +626,15 @@ export function GameSceneAdapter({
           key={callout.key}
           result={callout.result}
           onDone={() => setCallout(null)}
+        />
+      )}
+      {scorePopup && (
+        <ScorePopup
+          // Prefixed: at impact this and the callout are minted in the same
+          // tick, and identical numeric keys on siblings collide.
+          key={`score-${scorePopup.key}`}
+          score={scorePopup.score}
+          onDone={() => setScorePopup(null)}
         />
       )}
     </div>

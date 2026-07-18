@@ -83,6 +83,24 @@ export function buildSnapshot(
     winReason: game?.winReason ?? null,
     revealedOpponentFleet:
       gameOver && opponentState !== undefined ? opponentState.fleet : null,
+    scores:
+      yourState !== undefined && opponentState !== undefined
+        ? { you: yourState.score, opponent: opponentState.score }
+        : null,
+    finalScores:
+      gameOver &&
+      opponent !== undefined &&
+      game?.finalScores?.[viewerSessionId] !== undefined &&
+      game.finalScores[opponent.sessionId] !== undefined
+        ? {
+            you: game.finalScores[viewerSessionId]!,
+            opponent: game.finalScores[opponent.sessionId]!,
+          }
+        : null,
+    leaderboard: gameOver ? room.leaderboard : null,
+    yourLeaderboardRank: gameOver
+      ? (room.leaderboardRanks[viewerSessionId] ?? null)
+      : null,
     rematch: {
       youRequested: game?.rematchRequests.has(viewerSessionId) ?? false,
       opponentRequested:

@@ -38,6 +38,7 @@ import {
 } from "./game/engine.js";
 import { buildSnapshot } from "./snapshot.js";
 import { resolveGraceMs } from "./config.js";
+import { InMemoryHighScoreStore, type HighScoreStore } from "./highscores.js";
 
 export interface SocketData {
   sessionId: string;
@@ -65,6 +66,8 @@ export interface SocketServerDeps {
   rng?: () => number;
   /** Disconnect grace before forfeit (ms); tests inject ~100–200ms. */
   graceMs?: number;
+  /** High-score persistence; index.ts injects the JSON-file store. */
+  highscores?: HighScoreStore;
 }
 
 const NAME_MAX_LENGTH = 20;
@@ -126,6 +129,7 @@ export function createSocketServer(
   const matchmaking = deps.matchmaking ?? new MatchmakingQueue();
   const rng = deps.rng ?? Math.random;
   const graceMs = resolveGraceMs(deps.graceMs);
+  const highscores = deps.highscores ?? new InMemoryHighScoreStore();
 
   /** Live socket per session, for per-viewer snapshot sends and pairing. */
   const socketsBySession = new Map<string, GameSocket>();
@@ -175,6 +179,35 @@ export function createSocketServer(
   /** Mirror the engine's phase onto the room after an accepted mutation. */
   function syncRoomPhase(room: Room): void {
     if (room.game !== null) room.phase = room.game.phase;
+  }
+
+  /**
+   * On gameover, submit both players' final scores to the global
+   * leaderboard exactly once and stash the resulting board + ranks on the
+   * room for buildSnapshot. Runs after EVERY game-ending transition
+   * (winning shot and forfeit alike); a second call is a no-op. Must run
+   * BEFORE sendRoomState so the gameover snapshots already carry the board.
+   */
+  function settleGameOver(room: Room): void {
+    const game = room.game;
+    if (game === null || game.phase !== "gameover") return;
+    if (game.finalScores === null || room.scoresSubmitted) return;
+
+    room.scoresSubmitted = true;
+    const date = new Date().toISOString();
+    for (const player of room.players) {
+      const summary = game.finalScores[player.sessionId];
+      if (summary === undefined) continue;
+      room.leaderboardRanks[player.sessionId] = highscores.submit({
+        name: player.name,
+        score: summary.total,
+        accuracy: summary.accuracy,
+        maxMultiplier: summary.maxMultiplier,
+        shipsSunk: summary.shipsSunk,
+        date,
+      });
+    }
+    room.leaderboard = highscores.top();
   }
 
   /** The room the session is seated in, if any. */
@@ -239,6 +272,7 @@ export function createSocketServer(
       const result = engineForfeit(room.game, sessionId);
       if (result.ok) {
         syncRoomPhase(room);
+        settleGameOver(room);
         sendRoomState(room);
       }
     } else if (room.game === null) {
@@ -266,6 +300,9 @@ export function createSocketServer(
       })),
       phase: "lobby",
       game: null,
+      scoresSubmitted: false,
+      leaderboard: null,
+      leaderboardRanks: {},
     };
     rooms.create(room);
 
@@ -459,6 +496,7 @@ export function createSocketServer(
         shooter: shooterName,
         target: result.record.target,
         result: result.record.result,
+        score: result.score,
         ...(result.record.sunkShip !== undefined
           ? {
               sunkShip: result.record.sunkShip,
@@ -467,8 +505,10 @@ export function createSocketServer(
           : {}),
       });
 
-      // On gameover these snapshots carry winner + revealedOpponentFleet.
+      // On gameover these snapshots carry winner + revealedOpponentFleet,
+      // plus final scores and the freshly-updated global leaderboard.
       syncRoomPhase(room);
+      settleGameOver(room);
       sendRoomState(room);
     });
 
@@ -488,8 +528,12 @@ export function createSocketServer(
 
       if (result.game !== null) {
         // Both accepted: swap in the fresh game and reset the lobby-era
-        // ready flags so snapshots read as a clean placement phase.
+        // ready flags so snapshots read as a clean placement phase. The
+        // leaderboard state resets too — the new game submits its own.
         room.game = result.game;
+        room.scoresSubmitted = false;
+        room.leaderboard = null;
+        room.leaderboardRanks = {};
         for (const player of room.players) player.ready = false;
       }
       syncRoomPhase(room);

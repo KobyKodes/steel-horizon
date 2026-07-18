@@ -182,13 +182,18 @@ describe("game loop over sockets", () => {
       shooter: "Alice",
       target: { col: 0, row: 9 },
       result: "miss",
+      score: { points: 0, streak: 0, multiplier: 1, total: 0, bonuses: [] },
     });
     expect(missForBob.result).toBe("miss");
     const [{ snapshot: afterMissA }, { snapshot: afterMissB }] =
       await Promise.all([aliceState, bobState]);
     expect(afterMissA.currentTurn).toBe("opponent");
     expect(afterMissA.yourShots).toEqual([
-      { target: { col: 0, row: 9 }, result: "miss" },
+      {
+        target: { col: 0, row: 9 },
+        result: "miss",
+        score: { points: 0, streak: 0, multiplier: 1, total: 0, bonuses: [] },
+      },
     ]);
     expect(afterMissB.currentTurn).toBe("you");
     expect(afterMissB.shotsAgainstYou).toHaveLength(1);
@@ -231,12 +236,25 @@ describe("game loop over sockets", () => {
       { col: 5, row: 9 },
       { col: 6, row: 9 },
     ];
+    // Streak 2 at x1: base 100 + sink 250 + perfect kill 250 (both shots
+    // landed on the destroyer), banked on the earlier first-blood 250.
+    const sunkScore = {
+      points: 600,
+      streak: 2,
+      multiplier: 1,
+      total: 850,
+      bonuses: [
+        { bonus: "sink", points: 250 },
+        { bonus: "perfect-kill", points: 250 },
+      ],
+    };
     expect(sunkForAlice).toEqual({
       shooter: "Alice",
       target: { col: 6, row: 9 },
       result: "sunk",
       sunkShip: "destroyer",
       sunkShipCells: destroyerCells,
+      score: sunkScore,
     });
     expect(sunkForBob.sunkShip).toBe("destroyer");
 
@@ -247,12 +265,23 @@ describe("game loop over sockets", () => {
     expect(
       afterSunkB.shotsAgainstYou.filter((s) => s.result !== "miss"),
     ).toEqual([
-      { target: { col: 5, row: 9 }, result: "hit" },
+      {
+        target: { col: 5, row: 9 },
+        result: "hit",
+        score: {
+          points: 250,
+          streak: 1,
+          multiplier: 1,
+          total: 250,
+          bonuses: [{ bonus: "first-blood", points: 150 }],
+        },
+      },
       {
         target: { col: 6, row: 9 },
         result: "sunk",
         sunkShip: "destroyer",
         sunkShipCells: destroyerCells,
+        score: sunkScore,
       },
     ]);
     expect(afterSunkB.phase).toBe("battle");

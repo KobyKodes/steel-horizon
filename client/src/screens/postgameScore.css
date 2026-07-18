@@ -1,0 +1,192 @@
+/* Post-game arcade score tally + leaderboard. Class names all prefixed
+   `pg-score` per the 03-03 unique-class-name rule. Rows STAMP in one by
+   one (comic rubber-stamp slam, cadence via animation-delay), the total
+   slams hardest, then the leaderboard slides up beneath. */
+
+.pg-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  margin: 0.75rem auto;
+  width: min(34rem, 92%);
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+.pg-score-tally {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pg-score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0.9rem;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  animation: pg-score-stamp 0.32s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.pg-score-row-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: #9fc3e8;
+}
+
+.pg-score-row-value {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #f4f7ff;
+  text-shadow: 2px 2px 0 #10131a;
+}
+
+/* The total hits hardest: hit-yellow, bigger, tilted like a slammed stamp. */
+.pg-score-row--total {
+  border-color: #ffd21f;
+  transform: rotate(-1deg);
+  animation: pg-score-stamp-total 0.4s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+.pg-score-row--total .pg-score-row-label {
+  color: #ffd21f;
+}
+
+.pg-score-row--total .pg-score-row-value {
+  font-size: 1.9rem;
+  color: #ffd21f;
+}
+
+/* --- Leaderboard ---------------------------------------------------- */
+
+.pg-score-board {
+  width: 100%;
+  padding: 0.8rem 1rem 1rem;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  animation: pg-score-risein 0.45s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+.pg-score-board h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  color: #9fc3e8;
+}
+
+.pg-score-board table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.pg-score-board th {
+  text-align: left;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: #5c6e85;
+  padding: 0.15rem 0.4rem;
+}
+
+.pg-score-board td {
+  padding: 0.22rem 0.4rem;
+  color: #f4f7ff;
+  border-top: 1px solid rgba(92, 110, 133, 0.25);
+}
+
+/* The viewer's fresh entry glows in hit-yellow. */
+.pg-score-you td {
+  color: #ffd21f;
+  background: rgba(255, 210, 31, 0.08);
+}
+
+.pg-score-you-tag {
+  margin-left: 0.45em;
+  padding: 0.05em 0.35em;
+  font-size: 0.65em;
+  color: #10131a;
+  background: #ffd21f;
+  border-radius: 0.2em;
+}
+
+/* "NEW HIGH SCORE!" — alarm-red flasher above the board. */
+.pg-score-newhigh {
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 900;
+  text-align: center;
+  color: #ff2e3f;
+  -webkit-text-stroke: 1px #10131a;
+  paint-order: stroke fill;
+  text-shadow: 2px 2px 0 #10131a;
+  animation: pg-score-flash 0.9s steps(2, jump-none) infinite;
+}
+
+@keyframes pg-score-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.7) rotate(-3deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes pg-score-stamp-total {
+  from {
+    opacity: 0;
+    transform: scale(2.2) rotate(3deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-1deg);
+  }
+}
+
+@keyframes pg-score-risein {
+  from {
+    opacity: 0;
+    transform: translateY(1.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pg-score-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-score-row,
+  .pg-score-row--total,
+  .pg-score-board {
+    animation: pg-score-fadein 0.01s both;
+  }
+  .pg-score-newhigh {
+    animation: none;
+  }
+}
+
+@keyframes pg-score-fadein {
+  to {
+    opacity: 1;
+  }
+}

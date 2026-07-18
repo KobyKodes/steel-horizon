@@ -1,0 +1,240 @@
+/* Battle-screen score HUD. Class names all prefixed `score-hud` per the
+   03-03 unique-class-name rule. The chain plate reuses the game's damage
+   ramp — #ffd21f (hit) at x2, #ff7a1a (tracer) at x4, #ff2e3f (kill) at
+   x8 — so the multiplier reads as escalation the player already knows. */
+
+.score-hud {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+.score-hud-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.8rem;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+}
+
+.score-hud-label {
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  color: #9fc3e8;
+}
+
+/* --- Odometer: rolling digit drums --------------------------------- */
+
+.score-hud-odometer {
+  display: inline-flex;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #f4f7ff;
+  text-shadow: 2px 2px 0 #10131a;
+}
+
+.score-hud-digit {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+}
+
+.score-hud-digit-strip {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.12);
+}
+
+.score-hud-digit-strip span {
+  display: block;
+  height: 1em;
+  text-align: center;
+  min-width: 0.62em;
+}
+
+/* --- Chain plate: the signature ------------------------------------ */
+
+.score-hud-chain-slot {
+  position: relative;
+  display: inline-flex;
+}
+
+.score-hud-chain {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
+  border: 3px solid #10131a;
+  border-radius: 0.3rem;
+  background: rgba(10, 14, 22, 0.85);
+  color: #5c6e85;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-2deg);
+  animation: score-hud-chain-bump 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+.score-hud-chain-mult {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  -webkit-text-stroke: 1px #10131a;
+  paint-order: stroke fill;
+}
+
+.score-hud-chain-word {
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+}
+
+/* Damage-ramp heat tiers (x2–x3 warm, x4–x6 hot, x7+ critical — the exact
+   multiplier climbs +1 per hit past x3, so styling bands it). x1 stays dim
+   steel — a cold barrel. */
+.score-hud-chain--warm {
+  color: #ffd21f;
+  border-color: #ffd21f;
+}
+.score-hud-chain--hot {
+  color: #ff7a1a;
+  border-color: #ff7a1a;
+  animation:
+    score-hud-chain-bump 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) both,
+    score-hud-chain-heat 1.4s ease-in-out 0.35s infinite;
+}
+.score-hud-chain--critical {
+  color: #ff2e3f;
+  border-color: #ff2e3f;
+  animation:
+    score-hud-chain-bump 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) both,
+    score-hud-chain-heat 0.8s ease-in-out 0.35s infinite;
+}
+
+/* Streak pips: progress through the current 3-hit rung. */
+.score-hud-pips {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.score-hud-pip {
+  width: 0.4rem;
+  height: 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.35;
+}
+
+.score-hud-pip--lit {
+  opacity: 1;
+  background: currentColor;
+}
+
+/* Ghost plate that cracks off and falls when a miss breaks the chain. */
+.score-hud-chain-shatter {
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+  animation: score-hud-shatter 0.8s cubic-bezier(0.5, -0.3, 0.8, 0.6) both;
+}
+
+@keyframes score-hud-chain-bump {
+  from {
+    scale: 1.5;
+    rotate: 4deg;
+  }
+  to {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+/* Overheat throb for x4 and x8. */
+@keyframes score-hud-chain-heat {
+  0%,
+  100% {
+    box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  }
+  50% {
+    box-shadow:
+      3px 3px 0 rgba(16, 19, 26, 0.55),
+      0 0 14px currentColor;
+  }
+}
+
+/* The broken chain: jolts, keels over, and drops out of frame. */
+@keyframes score-hud-shatter {
+  0% {
+    opacity: 1;
+    transform: rotate(-2deg) translate(0, 0);
+  }
+  15% {
+    transform: rotate(6deg) translate(-4px, 2px);
+  }
+  30% {
+    transform: rotate(-9deg) translate(3px, 4px);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(24deg) translate(6px, 3.2rem);
+  }
+}
+
+/* Screen-edge heat glow at x4+ — the whole room feels the chain. */
+.score-hud-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  animation: score-hud-glow-pulse 1.6s ease-in-out infinite;
+}
+
+.score-hud-glow--hot {
+  box-shadow: inset 0 0 6vmin 0.5vmin rgba(255, 122, 26, 0.35);
+}
+
+.score-hud-glow--critical {
+  box-shadow: inset 0 0 9vmin 1vmin rgba(255, 46, 63, 0.45);
+  animation-duration: 0.9s;
+}
+
+@keyframes score-hud-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-hud-chain,
+  .score-hud-chain--hot,
+  .score-hud-chain--critical {
+    animation: none;
+  }
+  .score-hud-chain-shatter {
+    animation: score-hud-shatter-fade 0.4s ease both;
+  }
+  .score-hud-glow {
+    animation: none;
+    opacity: 0.6;
+  }
+  .score-hud-digit-strip {
+    transition: none;
+  }
+}
+
+@keyframes score-hud-shatter-fade {
+  to {
+    opacity: 0;
+  }
+}

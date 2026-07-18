@@ -9,6 +9,12 @@
 
 import type { Coordinate } from "./board.js";
 import type { FleetPlacement, ShipClassId } from "./fleet.js";
+import type {
+  HighScoreEntry,
+  ScoreEvent,
+  ScoreState,
+  ScoreSummary,
+} from "./scoring.js";
 
 /** Lifecycle of a room, lobby through gameover. */
 export type RoomPhase = "lobby" | "placement" | "battle" | "gameover";
@@ -38,6 +44,12 @@ export interface ShotRecord {
    * the cells of other (possibly touching, still-alive) ships.
    */
   sunkShipCells?: Coordinate[];
+  /**
+   * What this shot was worth to the shooter (arcade scoring). Optional so
+   * pre-scoring records stay valid; always present on records the current
+   * server produces.
+   */
+  score?: ScoreEvent;
 }
 
 /**
@@ -70,6 +82,14 @@ export interface RoomSnapshot {
   winReason: "all-ships-sunk" | "forfeit" | null;
   revealedOpponentFleet: FleetPlacement | null;
   rematch: { youRequested: boolean; opponentRequested: boolean };
+  /** Live arcade scores; null until a game exists. */
+  scores: { you: ScoreState; opponent: ScoreState } | null;
+  /** Final score breakdowns; non-null only at phase === "gameover". */
+  finalScores: { you: ScoreSummary; opponent: ScoreSummary } | null;
+  /** Global top-20 leaderboard; non-null only at phase === "gameover". */
+  leaderboard: HighScoreEntry[] | null;
+  /** Viewer's 0-based rank on `leaderboard` if they placed this game. */
+  yourLeaderboardRank: number | null;
 }
 
 /**
@@ -103,6 +123,8 @@ export interface ServerToClientEvents {
     result: ShotOutcome;
     sunkShip?: ShipClassId;
     sunkShipCells?: Coordinate[];
+    /** The shooter's ScoreEvent for this shot (both viewers receive it). */
+    score?: ScoreEvent;
   }) => void;
   errorEvent: (payload: { code: ErrorCode; message: string }) => void;
 }

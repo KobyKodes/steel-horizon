@@ -13,6 +13,7 @@ import {
   type GameServer,
   type SocketServerDeps,
 } from "./socket.js";
+import { JsonHighScoreStore, resolveHighScorePath } from "./highscores.js";
 
 export interface ServerHandles {
   app: express.Express;
@@ -52,7 +53,11 @@ export function createServer(deps: SocketServerDeps = {}): ServerHandles {
 }
 
 export function start(port = Number(process.env.PORT) || 3001): http.Server {
-  const { httpServer } = createServer();
+  // Production gets the persistent JSON leaderboard; tests construct
+  // createServer() directly and default to the in-memory store.
+  const { httpServer } = createServer({
+    highscores: new JsonHighScoreStore(resolveHighScorePath()),
+  });
   httpServer.listen(port, () => {
     console.log(`[server] listening on http://localhost:${port}`);
   });

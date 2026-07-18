@@ -13,6 +13,7 @@ import { useGameStore } from "../store";
 import { GameSceneAdapter } from "../scene/GameSceneAdapter";
 import type { CameraView } from "../scene/camera/CameraRig";
 import ShotLog from "../components/ShotLog";
+import ScoreHud from "../components/ScoreHud";
 import "./battle.css";
 
 const SHIP_NAMES: Record<ShipClassId, string> = {
@@ -58,6 +59,16 @@ export default function BattleScreen() {
   // waters" and the manual view toggle is meaningless mid-cinematic.
   const [incomingCinematic, setIncomingCinematic] = useState(false);
 
+  // How many of YOUR shots have visibly resolved on screen. The snapshot
+  // (and its authoritative scores) arrives before the shell even launches,
+  // so the HUD replays score state from the last *settled* shot's
+  // ScoreEvent instead — the odometer rolls at impact, with the callout,
+  // not a second early. Seeded with the mount-time count so reconnects
+  // show the current score immediately without animating history.
+  const [scoredCount, setScoredCount] = useState(
+    () => useGameStore.getState().snapshot?.yourShots.length ?? 0,
+  );
+
   if (!snapshot) return null;
 
   const { you, opponent, yourShots, shotsAgainstYou, currentTurn } = snapshot;
@@ -78,6 +89,13 @@ export default function BattleScreen() {
     .filter(({ hits, length }) => hits === length)
     .map(({ ship }) => ship);
 
+  // HUD score state from the last settled shot's server-computed
+  // ScoreEvent (records without one — pre-scoring games — display as 0).
+  const lastScored = yourShots
+    .slice(0, scoredCount)
+    .reverse()
+    .find((shot) => shot.score)?.score;
+
   return (
     <div className="screen battle-screen">
       <div
@@ -88,6 +106,12 @@ export default function BattleScreen() {
       </div>
 
       <ErrorBanner />
+
+      <ScoreHud
+        points={lastScored?.total ?? 0}
+        streak={lastScored?.streak ?? 0}
+        multiplier={lastScored?.multiplier ?? 1}
+      />
 
       <div className="battle-layout">
         <section className="battle-main">
@@ -118,6 +142,7 @@ export default function BattleScreen() {
             onIncomingActiveChange={setIncomingCinematic}
             canFire={yourTurn}
             onFire={fire}
+            onOutgoingResult={() => setScoredCount((count) => count + 1)}
             sunkShips={yourSunkShips}
           />
           <div className="fleet-status">
