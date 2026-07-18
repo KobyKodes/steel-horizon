@@ -58,7 +58,7 @@ completed: 2026-07-06
 - **Duration:** ~70 min
 - **Started:** 2026-07-06
 - **Completed:** 2026-07-06
-- **Tasks:** 2 automated tasks complete; 1 checkpoint:human-verify task reached and awaiting user verification (plan not yet fully closed)
+- **Tasks:** 3/3 complete (2 automated + checkpoint approved 2026-07-18 with a defender-side incoming-cinematic expansion)
 - **Files modified:** 4 (1 created, 3 modified)
 
 ## Accomplishments
@@ -73,10 +73,11 @@ Each task was committed atomically:
 
 1. **Task 1: Build ShellProjectile (parabolic arc + smoke trail)** - `cc29bdc` (feat)
 2. **Task 2: Wire the full firing sequence into GameSceneAdapter and BattleScreen** - `63a161d` (feat)
+3. **Checkpoint expansion: defender-side incoming-shot cinematic** - `4921398` (feat)
 
 _Task 2's commit also includes the necessary CameraRig.tsx (export ViewConfig) and SceneRoot.tsx (forward shellFocus) changes — see Deviations below._
 
-**Plan metadata:** pending — plan not yet closed (see Next Phase Readiness / checkpoint status)
+**Checkpoint resolution:** at the plan's `checkpoint:human-verify`, the sequence was expanded so shots fired AT you also play a cinematic: `GameSceneAdapter` gained an optional `incomingShots` prop (plus `onIncomingActiveChange` for the parent's panel label) with an independent `settledIncoming` counter; a new incoming shot force-flips the main view to the fleet grid and plays the same shell-arc/impact sequence at the struck cell, reusing the shared `presetFor`/`shakeFor` mapping so shooter and defender never diverge. `BattleScreen.tsx` now passes `shotsAgainstYou` through. Approved by the user 2026-07-18.
 
 ## Files Created/Modified
 - `client/src/scene/effects/ShellProjectile.tsx` - New: eased parabolic shell arc + drei Trail smoke trail; exports `easeInOutQuad`/`parabolicPosition`.
@@ -129,8 +130,8 @@ All temporary verification scripts (Node socket.io-client setup scripts, a Node 
 
 ## Next Phase Readiness
 
-Both automated tasks (`ShellProjectile`, full `GameSceneAdapter` wiring) are complete, committed, and self-verified via a live playtest exercising miss, hit, skip, and reconnect-no-replay paths. **This plan is not yet closed**: its final task is `checkpoint:human-verify`, requiring the user to personally play a live two-browser game and confirm the cinematic feels right. See the checkpoint returned alongside this summary for exact verification steps. Once approved (or after any requested fixes), 05-04 (ship-sinking cinematic) can build on this plan's `ParticleBurst`/`triggerCameraShake`/sequencing patterns.
+Both automated tasks plus the checkpoint-driven defender-side expansion are complete, committed, and verified. **Plan closed 2026-07-18** with user approval at the `checkpoint:human-verify` task. 05-04 (ship-sinking cinematic) can build on this plan's `ParticleBurst`/`triggerCameraShake`/sequencing patterns.
 
 ---
 *Phase: 05-cinematics-and-audio*
-*Completed: 2026-07-06 (pending checkpoint approval)*
+*Completed: 2026-07-18 (checkpoint approved)*

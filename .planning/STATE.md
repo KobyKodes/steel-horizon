@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 ## Current Position
 
 Phase: 5 of 7 (Cinematics & Audio) — In progress
-Plan: 3 of 6 in current phase (Tasks 1-2 complete and self-verified; final checkpoint:human-verify task awaiting USER live-playtest approval)
-Status: 05-03's two automated tasks are done and committed: `ShellProjectile` (parabolic arc + smoke trail) and the full firing-sequence wiring into the real `GameSceneAdapter`/Battle screen (shell flight -> camera follow -> impact burst + shake -> settled marker, skippable). Self-verified via a live two-socket playtest exercising miss, hit, skip, and reconnect-no-replay paths — all correct, zero console errors. Plan is NOT yet closed: awaiting the USER's own live two-browser verification at the plan's final checkpoint.
-Last activity: 2026-07-06 — Completed 05-03 Tasks 1-2 (commits cc29bdc, 63a161d), created 05-03-SUMMARY.md, reached the plan's checkpoint:human-verify task and stopped per its `autonomous: false` marking. Awaiting USER response (see checkpoint returned to the orchestrator).
+Plan: 4 of 6 in current phase (05-03 closed with checkpoint approval; starting 05-04 sinking sequence)
+Status: 05-03 is complete and closed. At its checkpoint the firing cinematic was expanded with a defender-side incoming-shot sequence (commit 4921398): `GameSceneAdapter` gained optional `incomingShots`/`onIncomingActiveChange` props with an independent `settledIncoming` counter; a new incoming shot force-flips the main view to the fleet grid and plays the same shell-arc/impact cinematic, reusing the shared presetFor/shakeFor mapping. User approved 2026-07-18. Next: 05-04 (sinking sequence).
+Last activity: 2026-07-18 — Committed the defender-side expansion (4921398), closed 05-03 with user checkpoint approval, deleted the leftover `client/__tmp_setup.mjs` verification helper.
 
-Progress: ███████░░░ ~70% (19/27 plans complete across all phases; Phase 5 now 6 plans total, 2/6 fully complete, 05-03 automated tasks done pending checkpoint)
+Progress: ███████░░░ ~74% (20/27 plans complete across all phases; Phase 5: 3/6 complete)
 
 ## Performance Metrics
 
@@ -110,6 +110,7 @@ Recent decisions affecting current work:
 - **`CameraRig`'s `ViewConfig` is now exported, and `SceneRoot` forwards an optional `shellFocus` prop straight to `CameraRig` (05-03):** 05-01 added `shellFocus` to `CameraRig` itself but nothing threaded it any further; `GameSceneAdapter` sits outside the `<Canvas>` boundary in the React tree relative to `CameraRig`, so reaching `shellFocus` required `SceneRoot` to accept and forward it. This wasn't in 05-03's plan-stated file list but was structurally required — any future per-frame camera target (e.g. a sinking-ship follow cam) reuses this same forwarding path rather than adding a new one.
 - **A moving camera-follow target is driven by a sibling tracker component, not by expanding the moving object's own props (05-03):** `ShellProjectile`'s prop contract stayed exactly as specified (start/end/durationSeconds/arcHeight/onImpact, no onFrameUpdate). `GameSceneAdapter`'s `ShellFocusTracker` is a separate Canvas-child component that independently recomputes the shell's position every frame using `ShellProjectile`'s exported `easeInOutQuad`/`parabolicPosition` helpers (imported, never re-derived) and pushes the result up via a `setState` callback into `SceneRoot`'s `shellFocus` prop. Any future moving-camera-target feature should follow this same pattern: export the shared math, add a small sibling tracker, don't grow the animated object's own API.
 - **Firing-sequence state machine lives entirely inside `GameSceneAdapter`, never in `BattleScreen` (05-03):** `settledCount`/`pendingShot`/`sequenceStage`/`impactPosition`/`shellFocus` are all local to `GameSceneAdapter`; `BattleScreen.tsx` needed zero changes to support the full cinematic. `GameSceneAdapter` detects a newly-arrived shot by comparing `shots.length` against a `settledCount` initialized to `shots.length` at mount (so historical/reconnect shots never animate — only shots arriving strictly after mount do), withholds it from `cellStatesFrom` until a `ShellProjectile` flight + `ParticleBurst` impact sequence completes, and only then admits it to the settled list. Reveal-mode `GameSceneAdapter` instances (post-game, the battle screen's own fleet side-panel) never run this state machine at all — they always show every shot immediately.
+- **Defender-side incoming cinematic reuses the outgoing machinery via a second settled counter, never a second state machine (05-03, checkpoint expansion):** `GameSceneAdapter` takes optional `incomingShots` (shots fired AT you); `settledOutgoing`/`settledIncoming` independently gate the two append-only streams, a new incoming shot force-flips the main view to the fleet grid for its cinematic, and `presetFor`/`shakeFor` are the single shot-result→VFX mapping shared by both directions. Parent gets only an `onIncomingActiveChange(active)` flag for labeling; view-flipping stays internal to the adapter.
 - **Firing sequence timing budget (05-03):** shell flight is 0.9s (eased parabolic arc, launch point fixed at `[0, GRID_ALTITUDE+3, 24]` regardless of which ship fired — the firing ship's real position isn't tracked by this adapter), plus up to 0.8s for the impact `ParticleBurst`'s "explosion" preset (05-02) — ~1.7s worst case, comfortably under ROADMAP.md's 2.5s cap. Skip (Escape/Space or click/tap anywhere on `.game-scene`) immediately calls the same `settleSequence()` used at natural completion.
 
 ### Deferred Issues
@@ -126,6 +127,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-06
-Stopped at: 05-03-PLAN.md Tasks 1-2 complete and committed (cc29bdc, 63a161d), 05-03-SUMMARY.md created. Stopped at the plan's final `checkpoint:human-verify` task (plan marked `autonomous: false`) — awaiting USER's own live two-browser playtest approval before the plan's closing `docs(05-03): complete` commit can be made.
-Resume file: .planning/phases/05-cinematics-and-audio/05-03-PLAN.md (checkpoint task, final task in the file)
+Last session: 2026-07-18
+Stopped at: 05-03 closed (checkpoint approved, defender-side expansion committed as 4921398). 05-04 (sinking sequence) execution beginning.
+Resume file: .planning/phases/05-cinematics-and-audio/05-04-PLAN.md
