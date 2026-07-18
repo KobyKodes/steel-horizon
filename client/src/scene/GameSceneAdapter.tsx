@@ -30,7 +30,21 @@ import {
   easeInOutQuad,
   parabolicPosition,
 } from "./effects/ShellProjectile";
-import { ParticleBurst } from "./effects/ParticleBurst";
+import { ParticleBurst, type BurstPreset } from "./effects/ParticleBurst";
+
+/**
+ * The single source of truth mapping a shot outcome to its impact VFX.
+ * A hit OR a sunk always plays the gritty warm "explosion" burst with the
+ * bigger shake; only a miss plays the pale "splash" with the smaller shake.
+ * Used identically by the shooter's outgoing cinematic and the defender's
+ * incoming cinematic, so the two browsers can never diverge on preset.
+ */
+function presetFor(result: ShotRecord["result"]): BurstPreset {
+  return result === "miss" ? "splash" : "explosion";
+}
+function shakeFor(result: ShotRecord["result"]): number {
+  return result === "miss" ? SHAKE_INTENSITY.miss : SHAKE_INTENSITY.hit;
+}
 
 /** `` `${col},${row}` `` — matches TargetingBoard.tsx's cellKey convention. */
 function cellKey(coord: Coordinate): string {
@@ -93,6 +107,21 @@ const SHAKE_INTENSITY: Record<"hit" | "miss", number> = {
 
 type SequenceStage = "flight" | "impact" | null;
 
+// A cinematic can be driven by one of two shot streams:
+//  - "outgoing": a shot YOU fired, animating on the enemy-waters targeting
+//    grid (the shooter's experience).
+//  - "incoming": a shot fired AT you, animating on your own fleet grid (the
+//    defender's experience, 05-03 checkpoint expansion). The main view is
+//    forced to "fleet" for its duration so the defender watches the shell
+//    arc into their own fleet and see exactly where it struck.
+// Both reuse the identical ShellProjectile/ParticleBurst/CameraRig
+// primitives and the shared presetFor/shakeFor mapping — never duplicated.
+type PendingKind = "outgoing" | "incoming";
+interface PendingShot {
+  kind: PendingKind;
+  shot: ShotRecord;
+}
+
 /**
  * Drives `shellFocus` every frame while the shell is in flight, reusing
  * ShellProjectile's exact eased/parabolic math (imported, not re-derived)
@@ -141,6 +170,21 @@ export interface GameSceneAdapterProps {
   yourFleet: FleetPlacement | null;
   /** Shot history against this fleet's opponent, driving the grid's markers. */
   shots: ShotRecord[];
+  /**
+   * Shots fired AT you (`shotsAgainstYou`). Interactive main-panel only.
+   * When a NEW one arrives after mount, the main view flips to your own
+   * fleet grid and plays the incoming-shot cinematic at the struck cell
+   * (05-03 defender-side expansion). Omit for reveal instances / any board
+   * that should never run an incoming cinematic.
+   */
+  incomingShots?: ShotRecord[];
+  /**
+   * Fired whenever an incoming-shot cinematic starts (true) or ends
+   * (false), so the parent can relabel the panel ("Incoming fire!") while
+   * the view is force-flipped to the fleet grid. View-flipping itself stays
+   * internal to this adapter; the parent only needs the flag for its label.
+   */
+  onIncomingActiveChange?: (active: boolean) => void;
   /** Whether firing is currently allowed (your turn). Ignored in "reveal" mode. */
   canFire?: boolean;
   /** Ignored in "reveal" mode. */
@@ -154,6 +198,8 @@ export function GameSceneAdapter({
   mode = "interactive",
   yourFleet,
   shots,
+  incomingShots,
+  onIncomingActiveChange,
   canFire,
   onFire,
   sunkShips,
@@ -163,42 +209,79 @@ export function GameSceneAdapter({
   // Firing-sequence state — interactive mode only. Reveal mode always
   // shows every shot immediately (it's a read-only display of historical
   // and/or live-but-already-resolved shots against a board you're not
-  // actively firing on; it never owns a "pending" shot). `settledCount`
-  // tracks how many entries of the append-only `shots` array are shown on
-  // the grid; anything beyond it is either the one currently animating or
-  // not yet detected. Initialized to `shots.length` so shots already
-  // present at mount (initial load, reconnect) never animate — only shots
-  // that arrive AFTER mount do.
-  const [settledCount, setSettledCount] = useState(shots.length);
-  const [pendingShot, setPendingShot] = useState<ShotRecord | null>(null);
+  // actively firing on; it never owns a "pending" shot). Two independent
+  // settled counters gate the two append-only streams: `settledOutgoing`
+  // for `shots` (shown on the enemy-waters targeting grid) and
+  // `settledIncoming` for `incomingShots` (shown on your own fleet grid).
+  // Both initialize to their prop length at mount so shots already present
+  // (initial load, reconnect) never animate — only shots arriving AFTER
+  // mount do. This holds symmetrically for the defender's incoming stream.
+  const [settledOutgoing, setSettledOutgoing] = useState(shots.length);
+  const [settledIncoming, setSettledIncoming] = useState(
+    incomingShots?.length ?? 0,
+  );
+  const [pending, setPending] = useState<PendingShot | null>(null);
   const [sequenceStage, setSequenceStage] = useState<SequenceStage>(null);
   const [impactPosition, setImpactPosition] = useState<
     [number, number, number] | null
   >(null);
   const [shellFocus, setShellFocus] = useState<ViewConfig | null>(null);
 
+  // Only one cinematic runs at a time. Outgoing (your own shot) is preferred
+  // when both are newly available — turns alternate so this is rare, but if
+  // the opponent fires back while your outgoing shot is still animating, the
+  // incoming shot simply queues and starts the instant this effect re-runs
+  // after settle.
   useEffect(() => {
-    if (isReveal) return;
-    if (pendingShot) return;
-    if (shots.length > settledCount) {
-      const next = shots[settledCount];
+    if (isReveal || pending) return;
+    if (shots.length > settledOutgoing) {
+      const next = shots[settledOutgoing];
       if (next) {
-        setPendingShot(next);
+        setPending({ kind: "outgoing", shot: next });
+        setSequenceStage("flight");
+        return;
+      }
+    }
+    if (incomingShots && incomingShots.length > settledIncoming) {
+      const next = incomingShots[settledIncoming];
+      if (next) {
+        setPending({ kind: "incoming", shot: next });
         setSequenceStage("flight");
       }
     }
-  }, [isReveal, pendingShot, shots, settledCount]);
+  }, [
+    isReveal,
+    pending,
+    shots,
+    settledOutgoing,
+    incomingShots,
+    settledIncoming,
+  ]);
+
+  const incomingActive = pending?.kind === "incoming";
+
+  // Let the parent relabel its panel while the view is force-flipped to the
+  // fleet grid for an incoming cinematic. Fires on true->false too, so the
+  // label returns to normal exactly when the cinematic ends.
+  useEffect(() => {
+    if (isReveal) return;
+    onIncomingActiveChange?.(incomingActive);
+  }, [isReveal, incomingActive, onIncomingActiveChange]);
 
   function settleSequence() {
-    setSettledCount((count) => count + 1);
-    setPendingShot(null);
+    if (pending?.kind === "incoming") {
+      setSettledIncoming((count) => count + 1);
+    } else {
+      setSettledOutgoing((count) => count + 1);
+    }
+    setPending(null);
     setSequenceStage(null);
     setImpactPosition(null);
     setShellFocus(null);
   }
 
   function handleImpact(pos: [number, number, number]) {
-    if (!pendingShot) return;
+    if (!pending) return;
     setImpactPosition(pos);
     setShellFocus({
       position: [
@@ -208,8 +291,7 @@ export function GameSceneAdapter({
       ],
       lookAt: pos,
     });
-    const isHit = pendingShot.result !== "miss";
-    triggerCameraShake(isHit ? SHAKE_INTENSITY.hit : SHAKE_INTENSITY.miss);
+    triggerCameraShake(shakeFor(pending.shot.result));
     setSequenceStage("impact");
   }
 
@@ -218,7 +300,7 @@ export function GameSceneAdapter({
   // one). Click/tap-anywhere-on-the-scene skip is wired via the wrapping
   // div's onPointerDown below rather than a second listener here.
   useEffect(() => {
-    if (isReveal || !pendingShot) return;
+    if (isReveal || !pending) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" || event.key === " ") {
         event.preventDefault();
@@ -228,14 +310,32 @@ export function GameSceneAdapter({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReveal, pendingShot]);
+  }, [isReveal, pending]);
 
-  const settledShots = isReveal ? shots : shots.slice(0, settledCount);
-  const cellStates = cellStatesFrom(settledShots);
+  // During an incoming cinematic the main view is forced to the fleet grid
+  // so the defender watches the shell arc into their own fleet; otherwise
+  // it honors the caller's chosen `view`. Reverts automatically the instant
+  // the cinematic settles (pending -> null), returning the defender to
+  // their normal flow with no BattleScreen state change required.
+  const effectiveView: CameraView = incomingActive ? "fleet" : view;
 
-  const shellTarget: [number, number, number] | null = pendingShot
+  // Which shot stream feeds the grid markers depends on which board the
+  // camera is framing. Fleet framing shows the shots fired AT you on your
+  // own fleet; targeting framing shows the shots you fired on enemy waters.
+  // Each is gated by its own settled counter so the actively-animating shot
+  // stays hidden until its cinematic completes.
+  let cellStates: Map<string, CellState>;
+  if (isReveal) {
+    cellStates = cellStatesFrom(shots);
+  } else if (effectiveView === "fleet") {
+    cellStates = cellStatesFrom((incomingShots ?? []).slice(0, settledIncoming));
+  } else {
+    cellStates = cellStatesFrom(shots.slice(0, settledOutgoing));
+  }
+
+  const shellTarget: [number, number, number] | null = pending
     ? (() => {
-        const [x, z] = cellToWorld(pendingShot.target);
+        const [x, z] = cellToWorld(pending.shot.target);
         return [x, GRID_ALTITUDE, z];
       })()
     : null;
@@ -245,10 +345,10 @@ export function GameSceneAdapter({
       className="game-scene"
       onPointerDown={() => {
         // Click/tap anywhere on the scene skips an active sequence.
-        if (!isReveal && pendingShot) settleSequence();
+        if (!isReveal && pending) settleSequence();
       }}
     >
-      <SceneRoot view={view} shellFocus={shellFocus}>
+      <SceneRoot view={effectiveView} shellFocus={shellFocus}>
         {/* In interactive mode, ships only render in fleet view — the grid
             is shared physical space for both views (04-05 established one
             cellToWorld mapping for everything), but it stands for two
@@ -256,7 +356,7 @@ export function GameSceneAdapter({
             your ships must not appear while the grid is being read as the
             enemy's board. In reveal mode there's only ever one board being
             shown (this fleet + its shot history), so the ships always render. */}
-        {(isReveal || view === "fleet") && yourFleet && (
+        {(isReveal || effectiveView === "fleet") && yourFleet && (
           <FleetShips placements={yourFleet} sunkShips={sunkShips} />
         )}
         <HoloGrid
@@ -275,8 +375,11 @@ export function GameSceneAdapter({
                   // while a firing sequence is actively playing, so a shot
                   // can't be double-fired at the still-unmarked target
                   // cell mid-cinematic.
+                  // Never fire while framing your own fleet (manual toggle
+                  // or an incoming cinematic) — you only shoot enemy waters.
+                  if (effectiveView !== "targeting") return;
                   if (!canFire) return;
-                  if (pendingShot) return;
+                  if (pending) return;
                   if (cellStates.has(cellKey(target))) return;
                   onFire?.(target);
                 }
@@ -300,9 +403,9 @@ export function GameSceneAdapter({
             />
           </>
         )}
-        {sequenceStage === "impact" && impactPosition && pendingShot && (
+        {sequenceStage === "impact" && impactPosition && pending && (
           <ParticleBurst
-            preset={pendingShot.result === "miss" ? "splash" : "explosion"}
+            preset={presetFor(pending.shot.result)}
             origin={impactPosition}
             onComplete={settleSequence}
           />

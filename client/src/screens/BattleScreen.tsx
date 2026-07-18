@@ -52,6 +52,11 @@ export default function BattleScreen() {
   // when switching" — CameraRig damps between them, GameSceneAdapter just
   // forwards the choice.
   const [viewMode, setViewMode] = useState<CameraView>("targeting");
+  // True while an incoming-shot cinematic is playing on the main panel — the
+  // adapter force-flips the view to your own fleet grid for its duration
+  // (05-03 defender-side expansion), so the header must stop saying "Enemy
+  // waters" and the manual view toggle is meaningless mid-cinematic.
+  const [incomingCinematic, setIncomingCinematic] = useState(false);
 
   if (!snapshot) return null;
 
@@ -87,10 +92,17 @@ export default function BattleScreen() {
       <div className="battle-layout">
         <section className="battle-main">
           <div className="battle-main-header">
-            <h2>{viewMode === "targeting" ? "Enemy waters" : "Your fleet"}</h2>
+            <h2>
+              {incomingCinematic
+                ? "Incoming fire!"
+                : viewMode === "targeting"
+                  ? "Enemy waters"
+                  : "Your fleet"}
+            </h2>
             <button
               type="button"
               className="view-toggle"
+              disabled={incomingCinematic}
               onClick={() =>
                 setViewMode((v) => (v === "targeting" ? "fleet" : "targeting"))
               }
@@ -102,6 +114,8 @@ export default function BattleScreen() {
             view={viewMode}
             yourFleet={you.fleet}
             shots={yourShots}
+            incomingShots={shotsAgainstYou}
+            onIncomingActiveChange={setIncomingCinematic}
             canFire={yourTurn}
             onFire={fire}
             sunkShips={yourSunkShips}
