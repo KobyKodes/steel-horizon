@@ -20,9 +20,10 @@ import type {
   ShotRecord,
 } from "@steel-horizon/shared";
 import { SceneRoot } from "./SceneRoot";
-import { FleetShips } from "./ships/FleetShips";
+import { FleetShips, placementCenterWorld } from "./ships/FleetShips";
 import { HoloGrid, type CellState, GRID_ALTITUDE } from "./grid/HoloGrid";
 import { cellToWorld } from "./grid/gridCoords";
+import { gerstnerHeight } from "./waves";
 import type { CameraView, ViewConfig } from "./camera/CameraRig";
 import { triggerCameraShake } from "./camera/CameraRig";
 import {
@@ -227,6 +228,47 @@ export function GameSceneAdapter({
   >(null);
   const [shellFocus, setShellFocus] = useState<ViewConfig | null>(null);
 
+  // Newly-sunk-ship debris burst (05-04). `sunkShipsSeenRef` is seeded with
+  // whatever `sunkShips` looked like at mount, mirroring 05-03's "only
+  // animate NEW events, not historical state" rule: a reload showing a
+  // fleet that's already lost a ship must not replay its debris burst.
+  // Only a ship class present in `sunkShips` that WASN'T seen before spawns
+  // a burst. This is independent of — and layered alongside — the ship's
+  // own sinking animation, which self-triggers off the same `sunk` prop
+  // inside FleetShips/SinkingShip.tsx.
+  const sunkShipsSeenRef = useRef<Set<ShipClassId>>(new Set(sunkShips ?? []));
+  const [debrisBursts, setDebrisBursts] = useState<
+    { key: string; origin: [number, number, number] }[]
+  >([]);
+
+  useEffect(() => {
+    const seen = sunkShipsSeenRef.current;
+    const current = sunkShips ?? [];
+    const newlySunk = current.filter((shipClass) => !seen.has(shipClass));
+    sunkShipsSeenRef.current = new Set(current);
+
+    if (newlySunk.length === 0 || !yourFleet) return;
+
+    const newBursts = newlySunk.flatMap((shipClass) => {
+      // Compute the burst's world position via the SAME cellToWorld +
+      // placement-center logic FleetShips.tsx uses to position the ship
+      // itself, so the debris spawns exactly where the hull is.
+      const placement = yourFleet.find((p) => p.ship === shipClass);
+      if (!placement) return [];
+      const [x, z] = placementCenterWorld(placement);
+      const origin: [number, number, number] = [
+        x,
+        gerstnerHeight(x, z, performance.now() / 1000),
+        z,
+      ];
+      return [{ key: `${shipClass}-${performance.now()}-${Math.random()}`, origin }];
+    });
+
+    if (newBursts.length > 0) {
+      setDebrisBursts((bursts) => [...bursts, ...newBursts]);
+    }
+  }, [sunkShips, yourFleet]);
+
   // Only one cinematic runs at a time. Outgoing (your own shot) is preferred
   // when both are newly available — turns alternate so this is rare, but if
   // the opponent fires back while your outgoing shot is still animating, the
@@ -359,6 +401,19 @@ export function GameSceneAdapter({
         {(isReveal || effectiveView === "fleet") && yourFleet && (
           <FleetShips placements={yourFleet} sunkShips={sunkShips} />
         )}
+        {(isReveal || effectiveView === "fleet") &&
+          debrisBursts.map((burst) => (
+            <ParticleBurst
+              key={burst.key}
+              preset="debris"
+              origin={burst.origin}
+              onComplete={() =>
+                setDebrisBursts((bursts) =>
+                  bursts.filter((b) => b.key !== burst.key),
+                )
+              }
+            />
+          ))}
         <HoloGrid
           cellStates={cellStates}
           interactive={!isReveal}
