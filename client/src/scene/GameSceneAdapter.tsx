@@ -34,6 +34,7 @@ import {
   parabolicPosition,
 } from "./effects/ShellProjectile";
 import { ParticleBurst, type BurstPreset } from "./effects/ParticleBurst";
+import { ResultCallout } from "./effects/ResultCallout";
 
 /**
  * The single source of truth mapping a shot outcome to its impact VFX.
@@ -230,6 +231,20 @@ export function GameSceneAdapter({
   >(null);
   const [shellFocus, setShellFocus] = useState<ViewConfig | null>(null);
 
+  // Comic-book result word ("HIT!"/"SUNK!"/"MISS!") shown once per shot, at
+  // the moment the outcome lands on screen: normally at shell impact, or at
+  // skip if the player skips while the shell is still in flight (the result
+  // reveal IS the skip's payoff). Keyed so back-to-back identical results
+  // still remount and replay the pop animation.
+  const [callout, setCallout] = useState<{
+    result: ShotRecord["result"];
+    key: number;
+  } | null>(null);
+
+  function showCallout(result: ShotRecord["result"]) {
+    setCallout({ result, key: performance.now() });
+  }
+
   // Newly-sunk-ship debris burst (05-04). `sunkShipsSeenRef` is seeded with
   // whatever `sunkShips` looked like at mount, mirroring 05-03's "only
   // animate NEW events, not historical state" rule: a reload showing a
@@ -386,6 +401,11 @@ export function GameSceneAdapter({
   }, [isReveal, incomingActive, onIncomingActiveChange]);
 
   function settleSequence() {
+    // Skipped mid-flight: the impact never fired, so the callout hasn't
+    // shown yet — pop it now alongside the instantly-revealed marker.
+    if (pending && sequenceStage === "flight") {
+      showCallout(pending.shot.result);
+    }
     if (pending?.kind === "incoming") {
       setSettledIncoming((count) => count + 1);
     } else {
@@ -409,6 +429,7 @@ export function GameSceneAdapter({
       lookAt: pos,
     });
     triggerCameraShake(shakeFor(pending.shot.result));
+    showCallout(pending.shot.result);
     setSequenceStage("impact");
   }
 
@@ -574,6 +595,13 @@ export function GameSceneAdapter({
           />
         )}
       </SceneRoot>
+      {callout && (
+        <ResultCallout
+          key={callout.key}
+          result={callout.result}
+          onDone={() => setCallout(null)}
+        />
+      )}
     </div>
   );
 }

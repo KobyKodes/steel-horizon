@@ -1,0 +1,143 @@
+/* Comic-book shot-result callout. Overlays the .game-scene panel (which is
+   position:relative + overflow:hidden). Class names are all prefixed
+   `result-callout` per the 03-03 unique-class-name rule. */
+
+.result-callout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.result-callout-word {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  /* Thick comic outline + offset "misregistered print" shadow. */
+  -webkit-text-stroke: 3px #10131a;
+  paint-order: stroke fill;
+  text-shadow:
+    4px 4px 0 #10131a,
+    7px 7px 0 rgba(16, 19, 26, 0.35);
+}
+
+/* HIT — sharp pop in the grid's own warning yellow. */
+.result-callout--hit .result-callout-word {
+  font-size: clamp(3rem, 8vw, 6rem);
+  color: #ffd21f;
+  transform: rotate(-6deg);
+  animation:
+    result-callout-pop 0.28s cubic-bezier(0.18, 1.6, 0.4, 1) both,
+    result-callout-rise 0.7s ease-in 1.5s both;
+}
+
+/* SUNK — the kill. Loudest beat: biggest word, alarm red, starburst. */
+.result-callout--sunk .result-callout-word {
+  font-size: clamp(4rem, 11vw, 8rem);
+  color: #ff2e3f;
+  transform: rotate(-4deg);
+  animation:
+    result-callout-pop 0.34s cubic-bezier(0.18, 1.7, 0.4, 1) both,
+    result-callout-shudder 0.5s ease-out 0.34s,
+    result-callout-rise 0.7s ease-in 1.5s both;
+}
+
+/* MISS — a whiff. Smaller, dim steel-blue, deflates and sinks. */
+.result-callout--miss .result-callout-word {
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  color: #9fc3e8;
+  transform: rotate(5deg);
+  animation:
+    result-callout-flop 0.4s cubic-bezier(0.2, 1.2, 0.5, 1) both,
+    result-callout-sink 0.8s ease-in 1.4s both;
+}
+
+/* CSS starburst behind SUNK — a jagged 12-point comic explosion flash. */
+.result-callout-burst {
+  position: absolute;
+  width: min(70%, 26rem);
+  aspect-ratio: 1;
+  background: radial-gradient(circle, #ffd21f 0%, #ff7a1a 55%, #ff2e3f 100%);
+  clip-path: polygon(
+    50% 0%, 61% 32%, 93% 15%, 74% 43%, 100% 50%, 74% 57%,
+    93% 85%, 61% 68%, 50% 100%, 39% 68%, 7% 85%, 26% 57%,
+    0% 50%, 26% 43%, 7% 15%, 39% 32%
+  );
+  opacity: 0.9;
+  animation:
+    result-callout-burst-pop 0.34s cubic-bezier(0.18, 1.7, 0.4, 1) both,
+    result-callout-rise 0.7s ease-in 1.5s both;
+}
+
+@keyframes result-callout-pop {
+  from {
+    opacity: 0;
+    scale: 0.2;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes result-callout-burst-pop {
+  from {
+    opacity: 0;
+    scale: 0.1;
+    rotate: -20deg;
+  }
+  to {
+    opacity: 0.9;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+/* Brief impact tremble right after the SUNK pop lands. */
+@keyframes result-callout-shudder {
+  0%, 100% { translate: 0 0; }
+  20% { translate: -5px 3px; }
+  40% { translate: 4px -3px; }
+  60% { translate: -3px 2px; }
+  80% { translate: 2px -1px; }
+}
+
+/* MISS pops soft and slightly overshoots downward — deflated, not heroic. */
+@keyframes result-callout-flop {
+  from {
+    opacity: 0;
+    scale: 0.4;
+    translate: 0 -1.5rem;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes result-callout-rise {
+  to {
+    opacity: 0;
+    translate: 0 -3rem;
+  }
+}
+
+@keyframes result-callout-sink {
+  to {
+    opacity: 0;
+    translate: 0 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-callout-word,
+  .result-callout-burst {
+    animation: result-callout-pop 0.01s both, result-callout-rise 0.4s ease 1.6s both !important;
+  }
+}

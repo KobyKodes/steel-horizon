@@ -40,11 +40,14 @@ const COLOR_SELECTED = new THREE.Color("#ffb45e");
 /** Recorded shot outcome for a cell, keyed `` `${col},${row}` ``. */
 export type CellState = "hit" | "miss" | "sunk";
 
-// Shot-marker colors: dim marker for a miss, bright red for a hit, a
-// darker red for a sunk ship's cells.
+// Shot-marker colors: dim marker for a miss, warning-yellow for a ship
+// that's hit but still afloat, red once the ship is confirmed sunk (USER
+// direction 2026-07-18 — damage escalates yellow -> red, so a red cell
+// always means a kill; this consciously sits near the amber "selected"
+// accent but reads differently in context since selected is transient).
 const COLOR_MISS = new THREE.Color("#5c6e85");
-const COLOR_HIT = new THREE.Color("#ff4d5e");
-const COLOR_SUNK = new THREE.Color("#7a1018");
+const COLOR_HIT = new THREE.Color("#ffd21f");
+const COLOR_SUNK = new THREE.Color("#ff2e3f");
 const MARKER_COLORS: Record<CellState, THREE.Color> = {
   miss: COLOR_MISS,
   hit: COLOR_HIT,
