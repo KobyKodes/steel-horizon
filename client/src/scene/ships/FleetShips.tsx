@@ -1,11 +1,18 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import { SHIP_LENGTHS, type ShipClassId, type ShipPlacement } from "@steel-horizon/shared";
+import {
+  SHIP_LENGTHS,
+  cellsForPlacement,
+  type Coordinate,
+  type ShipClassId,
+  type ShipPlacement,
+} from "@steel-horizon/shared";
 import { ShipModel } from "./ShipHull";
 import { gerstnerHeight } from "../waves";
 import { cellToWorld } from "../grid/gridCoords";
 import { useSinkingTransform } from "./SinkingShip";
+import { ShipWreckage } from "./Wreckage";
 
 // Places a single ship and keeps its group's position/rotation locked to
 // the ocean surface every frame. Samples the EXACT gerstnerHeight()
@@ -43,6 +50,8 @@ interface FloatingShipProps {
    * (GameSceneAdapter) knows which case it is.
    */
   historical: boolean;
+  /** The placement's occupied cells — the sunk-wreckage field's footprint. */
+  cells: Coordinate[];
 }
 
 function FloatingShip({
@@ -51,15 +60,17 @@ function FloatingShip({
   rotationY,
   sunk,
   historical,
+  cells,
 }: FloatingShipProps) {
   const groupRef = useRef<Group>(null);
   const [x, z] = position;
 
-  // Frozen on first render (stable for this component's lifetime, per the
-  // `historical` prop contract above) — an already-sunk-before-mount ship
-  // must never play the sinking animation; it renders as already-submerged,
-  // i.e. not at all.
-  const wasSunkAtMountRef = useRef(historical);
+  // A fully-submerged ship leaves a persistent per-cell wreckage field in
+  // its place. Historical (sunk-before-mount) ships start wrecked — they
+  // skip the animation and load straight into their final state, which is
+  // now floating debris rather than nothing at all.
+  const [wrecked, setWrecked] = useState(historical);
+  const wreckedRef = useRef(historical);
 
   // Set exactly once, the first frame `sunk` is observed true post-mount —
   // this is the sinking sequence's start time, read against the scene
@@ -85,9 +96,13 @@ function FloatingShip({
     );
 
     if (submerged) {
-      // Fully under — stop computing wave transforms every frame for a
-      // mesh nobody can see.
+      // Fully under — swap the hull for the persistent wreckage field
+      // (setState guarded to fire exactly once; safe inside useFrame).
       group.visible = false;
+      if (!wreckedRef.current) {
+        wreckedRef.current = true;
+        setWrecked(true);
+      }
       return;
     }
     group.visible = true;
@@ -114,9 +129,9 @@ function FloatingShip({
       listAngle * listSignRef.current;
   });
 
-  // Already-sunk-at-mount: render nothing at all (no group, no useFrame
-  // work beyond the cheap `if (!group) return` no-op above).
-  if (wasSunkAtMountRef.current) return null;
+  // Wrecked (finished sinking, or already sunk before mount): the hull is
+  // gone — render the per-cell debris field in its place instead.
+  if (wrecked) return <ShipWreckage cells={cells} />;
 
   return (
     <group ref={groupRef} position={[x, 0, z]} rotation-y={rotationY}>
@@ -194,6 +209,7 @@ export function FleetShips({
             rotationY={rotationY}
             sunk={sunkSet.has(placement.ship)}
             historical={historicalSet.has(placement.ship)}
+            cells={cellsForPlacement(placement)}
           />
         );
       })}
