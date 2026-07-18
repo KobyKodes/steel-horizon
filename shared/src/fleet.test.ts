@@ -5,6 +5,7 @@ import {
   SHIP_LENGTHS,
   TOTAL_SHIP_CELLS,
   cellsForPlacement,
+  placementFromCells,
 } from "./fleet.js";
 
 describe("cellsForPlacement", () => {
@@ -30,6 +31,58 @@ describe("cellsForPlacement", () => {
       orientation: "vertical",
     });
     expect(cells).toEqual([labelToCoord("J9"), labelToCoord("J10")]);
+  });
+});
+
+describe("placementFromCells", () => {
+  it("reconstructs a horizontal carrier's placement from its cells", () => {
+    const placement = placementFromCells("carrier", [
+      labelToCoord("A1")!,
+      labelToCoord("B1")!,
+      labelToCoord("C1")!,
+      labelToCoord("D1")!,
+      labelToCoord("E1")!,
+    ]);
+    expect(placement).toEqual({
+      ship: "carrier",
+      origin: labelToCoord("A1"),
+      orientation: "horizontal",
+    });
+  });
+
+  it("reconstructs a vertical destroyer's placement from its cells", () => {
+    const placement = placementFromCells("destroyer", [
+      labelToCoord("J9")!,
+      labelToCoord("J10")!,
+    ]);
+    expect(placement).toEqual({
+      ship: "destroyer",
+      origin: labelToCoord("J9"),
+      orientation: "vertical",
+    });
+  });
+
+  it("is unaffected by cell order (server may not emit them sorted)", () => {
+    const placement = placementFromCells("submarine", [
+      labelToCoord("F5")!,
+      labelToCoord("D5")!,
+      labelToCoord("E5")!,
+    ]);
+    expect(placement).toEqual({
+      ship: "submarine",
+      origin: labelToCoord("D5"),
+      orientation: "horizontal",
+    });
+  });
+
+  it("round-trips with cellsForPlacement for every ship/orientation", () => {
+    for (const ship of FLEET) {
+      for (const orientation of ["horizontal", "vertical"] as const) {
+        const original = { ship, origin: { col: 2, row: 3 }, orientation };
+        const cells = cellsForPlacement(original);
+        expect(placementFromCells(ship, cells)).toEqual(original);
+      }
+    }
   });
 });
 

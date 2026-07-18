@@ -13,11 +13,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import type {
-  Coordinate,
-  FleetPlacement,
-  ShipClassId,
-  ShotRecord,
+import {
+  placementFromCells,
+  type Coordinate,
+  type FleetPlacement,
+  type ShipClassId,
+  type ShipPlacement,
+  type ShotRecord,
 } from "@steel-horizon/shared";
 import { SceneRoot } from "./SceneRoot";
 import { FleetShips, placementCenterWorld } from "./ships/FleetShips";
@@ -190,7 +192,7 @@ export interface GameSceneAdapterProps {
   canFire?: boolean;
   /** Ignored in "reveal" mode. */
   onFire?: (target: Coordinate) => void;
-  /** Ships in `yourFleet` to render with the damaged material tint. */
+  /** Ships in `yourFleet` to play the sinking sequence for (SinkingShip.tsx). */
   sunkShips?: ShipClassId[];
 }
 
@@ -241,6 +243,17 @@ export function GameSceneAdapter({
     { key: string; origin: [number, number, number] }[]
   >([]);
 
+  // Frozen forever at mount (contrast with `sunkShipsSeenRef` above, which
+  // DOES mutate to dedupe bursts) — the definitive "was this already sunk
+  // before this adapter ever existed" answer for the player's OWN fleet,
+  // fed to FleetShips' `historicalSunkShips` so a reconnect never replays
+  // the sinking animation. Every existing FloatingShip mounts at battle
+  // start, well before any sinking, so this coincides with (and replaces)
+  // the old locally-inferred "sunk on my own first render" heuristic.
+  const historicalSunkShipsRef = useRef<Set<ShipClassId>>(
+    new Set(sunkShips ?? []),
+  );
+
   useEffect(() => {
     const seen = sunkShipsSeenRef.current;
     const current = sunkShips ?? [];
@@ -268,6 +281,68 @@ export function GameSceneAdapter({
       setDebrisBursts((bursts) => [...bursts, ...newBursts]);
     }
   }, [sunkShips, yourFleet]);
+
+  // ENEMY ships sunk by YOUR outgoing shots (05-04, checkpoint fix). Before
+  // a ship is sunk, fog of war means we have no idea where it is — there's
+  // nothing to render. The instant a shot's `sunkShip`/`sunkShipCells` are
+  // populated, that ship's shape is permanently public (03-03 decision:
+  // safe to reveal in full), so its ShipPlacement can be reconstructed
+  // client-side with zero protocol changes via the shared
+  // `placementFromCells` (the exact inverse of `cellsForPlacement`).
+  //
+  // `mountShotsCountRef` is frozen at mount — any sinking shot already
+  // present in `shots` at that point is historical (reconnect/refresh,
+  // never replayed); only a sinking shot appended to `shots` AFTER mount
+  // is live and plays the sinking animation, exactly mirroring the
+  // yourFleet historical rule above. Recomputed from `shots` every render
+  // (cheap: at most 17 sinkable ships).
+  const mountShotsCountRef = useRef(shots.length);
+  const enemySunkPlacements: ShipPlacement[] = [];
+  const enemyHistoricalSunk: ShipClassId[] = [];
+  shots.forEach((shot, i) => {
+    if (shot.sunkShip && shot.sunkShipCells) {
+      enemySunkPlacements.push(
+        placementFromCells(shot.sunkShip, shot.sunkShipCells),
+      );
+      if (i < mountShotsCountRef.current) {
+        enemyHistoricalSunk.push(shot.sunkShip);
+      }
+    }
+  });
+
+  // Debris burst for newly-sunk ENEMY ships, mirroring the yourFleet burst
+  // effect above exactly (same dedupe-via-seen-set shape), keyed off ship
+  // class rather than a `sunkShips` prop since there isn't one for the
+  // enemy side — `enemySunkPlacements` IS the source of truth here.
+  const enemySunkSeenRef = useRef<Set<ShipClassId>>(
+    new Set(enemyHistoricalSunk),
+  );
+  const [enemyDebrisBursts, setEnemyDebrisBursts] = useState<
+    { key: string; origin: [number, number, number] }[]
+  >([]);
+
+  useEffect(() => {
+    const seen = enemySunkSeenRef.current;
+    const newlySunk = enemySunkPlacements.filter((p) => !seen.has(p.ship));
+    enemySunkSeenRef.current = new Set(enemySunkPlacements.map((p) => p.ship));
+
+    if (newlySunk.length === 0) return;
+
+    const newBursts = newlySunk.map((placement) => {
+      const [x, z] = placementCenterWorld(placement);
+      const origin: [number, number, number] = [
+        x,
+        gerstnerHeight(x, z, performance.now() / 1000),
+        z,
+      ];
+      return {
+        key: `${placement.ship}-${performance.now()}-${Math.random()}`,
+        origin,
+      };
+    });
+    setEnemyDebrisBursts((bursts) => [...bursts, ...newBursts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shots]);
 
   // Only one cinematic runs at a time. Outgoing (your own shot) is preferred
   // when both are newly available — turns alternate so this is rare, but if
@@ -399,7 +474,11 @@ export function GameSceneAdapter({
             enemy's board. In reveal mode there's only ever one board being
             shown (this fleet + its shot history), so the ships always render. */}
         {(isReveal || effectiveView === "fleet") && yourFleet && (
-          <FleetShips placements={yourFleet} sunkShips={sunkShips} />
+          <FleetShips
+            placements={yourFleet}
+            sunkShips={sunkShips}
+            historicalSunkShips={[...historicalSunkShipsRef.current]}
+          />
         )}
         {(isReveal || effectiveView === "fleet") &&
           debrisBursts.map((burst) => (
@@ -409,6 +488,35 @@ export function GameSceneAdapter({
               origin={burst.origin}
               onComplete={() =>
                 setDebrisBursts((bursts) =>
+                  bursts.filter((b) => b.key !== burst.key),
+                )
+              }
+            />
+          ))}
+        {/* Reconstructed ENEMY hulls — only the ones sunk by your own
+            outgoing shots, only while framing enemy waters (fog of war: an
+            unsunk enemy ship's position is never known, so it can never
+            render here). Reveal-mode instances that need real opponent
+            geometry already receive it via `yourFleet` directly (see
+            PostGameScreen) and never take this path. */}
+        {!isReveal &&
+          effectiveView === "targeting" &&
+          enemySunkPlacements.length > 0 && (
+            <FleetShips
+              placements={enemySunkPlacements}
+              sunkShips={enemySunkPlacements.map((p) => p.ship)}
+              historicalSunkShips={enemyHistoricalSunk}
+            />
+          )}
+        {!isReveal &&
+          effectiveView === "targeting" &&
+          enemyDebrisBursts.map((burst) => (
+            <ParticleBurst
+              key={burst.key}
+              preset="debris"
+              origin={burst.origin}
+              onComplete={() =>
+                setEnemyDebrisBursts((bursts) =>
                   bursts.filter((b) => b.key !== burst.key),
                 )
               }

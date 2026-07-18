@@ -57,3 +57,26 @@ export const TOTAL_SHIP_CELLS: number = FLEET.reduce(
   (sum, ship) => sum + SHIP_LENGTHS[ship],
   0,
 );
+
+/**
+ * Inverse of `cellsForPlacement`: reconstruct a `ShipPlacement` from a ship
+ * class and the full set of cells it occupies. Used by the client (05-04)
+ * to rebuild an ENEMY ship's placement client-side from `ShotRecord`'s
+ * `sunkShip`/`sunkShipCells` — the only opponent-fleet geometry ever
+ * revealed pre-gameover, and only for a ship that's already sunk (05-03's
+ * `sunkShipCells` doc comment: "once a ship is sunk its shape is
+ * permanently public"). Assumes `cells` is exactly the set produced by
+ * `cellsForPlacement` for some placement of `ship` (true by construction
+ * for `sunkShipCells`) — does not re-validate length/contiguity.
+ */
+export function placementFromCells(
+  ship: ShipClassId,
+  cells: Coordinate[],
+): ShipPlacement {
+  const minCol = Math.min(...cells.map((c) => c.col));
+  const minRow = Math.min(...cells.map((c) => c.row));
+  const orientation: Orientation = cells.every((c) => c.row === cells[0]!.row)
+    ? "horizontal"
+    : "vertical";
+  return { ship, origin: { col: minCol, row: minRow }, orientation };
+}

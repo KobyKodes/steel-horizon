@@ -27,6 +27,22 @@ interface FloatingShipProps {
   rotationY: number;
   /** True once this ship is fully destroyed — triggers the sinking sequence. */
   sunk: boolean;
+  /**
+   * True when `sunk` was already true before the OWNING ADAPTER ever
+   * mounted (reconnect/refresh) — skip the sinking animation entirely and
+   * render as already-submerged.
+   *
+   * This is deliberately a caller-supplied flag, NOT inferred from "is
+   * `sunk` already true on this component's own first render": for the
+   * player's own fleet, every `FloatingShip` mounts once at battle start
+   * (well before any sinking), so those two things happen to coincide. But
+   * an ENEMY ship's `FloatingShip` only starts existing once it's sunk at
+   * all (fog of war — its placement isn't reconstructable before then), so
+   * ITS own first render always has `sunk === true` whether that sinking
+   * was live just now or historical from before mount. Only the caller
+   * (GameSceneAdapter) knows which case it is.
+   */
+  historical: boolean;
 }
 
 function FloatingShip({
@@ -34,16 +50,16 @@ function FloatingShip({
   position,
   rotationY,
   sunk,
+  historical,
 }: FloatingShipProps) {
   const groupRef = useRef<Group>(null);
   const [x, z] = position;
 
-  // A ship that's ALREADY sunk on the very first render (page refresh,
-  // reconnect mid-game) must never play the sinking animation — it should
-  // render already-submerged, i.e. not at all. Only a live sunk===false ->
-  // sunk===true transition after mount plays the sequence. Captured once;
-  // this component instance never needs to "become" already-sunk-at-mount.
-  const wasSunkAtMountRef = useRef(sunk);
+  // Frozen on first render (stable for this component's lifetime, per the
+  // `historical` prop contract above) — an already-sunk-before-mount ship
+  // must never play the sinking animation; it renders as already-submerged,
+  // i.e. not at all.
+  const wasSunkAtMountRef = useRef(historical);
 
   // Set exactly once, the first frame `sunk` is observed true post-mount —
   // this is the sinking sequence's start time, read against the scene
@@ -140,11 +156,25 @@ export interface FleetShipsProps {
   placements: ShipPlacement[];
   /** Ships to play the dramatic sinking sequence for (see SinkingShip.tsx). */
   sunkShips?: ShipClassId[];
+  /**
+   * Ships in `sunkShips` that were ALREADY sunk before the owning adapter
+   * mounted — these skip the animation entirely (see `FloatingShip`'s
+   * `historical` prop doc for why this can't just be inferred locally).
+   * Ships omitted from this set default to "not historical", i.e. animate
+   * normally when/if `sunkShips` includes them — this preserves the
+   * original behavior for every existing caller that doesn't pass it.
+   */
+  historicalSunkShips?: ShipClassId[];
 }
 
 /** Renders a fleet's ships, each independently tracking the ocean surface. */
-export function FleetShips({ placements, sunkShips }: FleetShipsProps) {
+export function FleetShips({
+  placements,
+  sunkShips,
+  historicalSunkShips,
+}: FleetShipsProps) {
   const sunkSet = new Set(sunkShips ?? []);
+  const historicalSet = new Set(historicalSunkShips ?? []);
 
   return (
     <>
@@ -163,6 +193,7 @@ export function FleetShips({ placements, sunkShips }: FleetShipsProps) {
             position={[x, z]}
             rotationY={rotationY}
             sunk={sunkSet.has(placement.ship)}
+            historical={historicalSet.has(placement.ship)}
           />
         );
       })}
