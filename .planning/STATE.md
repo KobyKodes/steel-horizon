@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 ## Current Position
 
 Phase: 5 of 7 (Cinematics & Audio) — In progress
-Plan: 4 of 6 in current phase (05-03 closed with checkpoint approval; starting 05-04 sinking sequence)
-Status: 05-03 is complete and closed. At its checkpoint the firing cinematic was expanded with a defender-side incoming-shot sequence (commit 4921398): `GameSceneAdapter` gained optional `incomingShots`/`onIncomingActiveChange` props with an independent `settledIncoming` counter; a new incoming shot force-flips the main view to the fleet grid and plays the same shell-arc/impact cinematic, reusing the shared presetFor/shakeFor mapping. User approved 2026-07-18. Next: 05-04 (sinking sequence).
-Last activity: 2026-07-18 — Committed the defender-side expansion (4921398), closed 05-03 with user checkpoint approval, deleted the leftover `client/__tmp_setup.mjs` verification helper.
+Plan: 4 of 6 in current phase — **PAUSED at checkpoint:human-verify (Task 3)**
+Status: 05-04's two automated tasks are complete and committed (dc67a69, d4e4d2c): destroyed ships now play a dramatic ~5s ease-in-cubic list-and-submerge sequence, additive on top of the existing wave bob/pitch, plus a debris `ParticleBurst` at the sink point — replacing the old instant material-tint swap. Ships already sunk before mount (reconnect/refresh) skip the animation entirely and render as already-gone, per 05-03's no-replay rule. Self-verified via (1) a temporary bare-Canvas sandbox confirming the animation's shape/timing/disappearance, and (2) a real two-player socket.io playthrough + Playwright reconnect confirming zero errors and no replay against live server state. The one thing NOT independently self-verified — a live browser watching a brand-new sink event in real time (cinematic force-flip + animation + debris burst all in sequence) — is exactly what Task 3's checkpoint asks the user to confirm via live two-browser play. Waiting on user response to the checkpoint prompt.
+Last activity: 2026-07-18 — Committed both 05-04 automated tasks, wrote 05-04-SUMMARY.md, paused at the plan's checkpoint per its own instructions.
 
 Progress: ███████░░░ ~74% (20/27 plans complete across all phases; Phase 5: 3/6 complete)
 
