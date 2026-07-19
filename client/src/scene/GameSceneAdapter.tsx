@@ -29,6 +29,7 @@ import type { CameraView } from "./camera/CameraRig";
 import { triggerCameraShake } from "./camera/CameraRig";
 import { ShellProjectile } from "./effects/ShellProjectile";
 import { ParticleBurst, type BurstPreset } from "./effects/ParticleBurst";
+import { WreckFires } from "./effects/WreckFires";
 import { ResultCallout } from "./effects/ResultCallout";
 import { ScorePopup } from "./effects/ScorePopup";
 import { ChainShout, type ChainShoutTier } from "./effects/ChainShout";
@@ -488,6 +489,17 @@ export function GameSceneAdapter({
     cellStates = cellStatesFrom(shots.slice(0, settledOutgoing));
   }
 
+  // Every currently-visible sunk cell burns. Derived from the same
+  // cellStates map that drives the grid markers, so the fires obey the
+  // identical gating (settled counters, reveal mode, which board is
+  // framed) and light up exactly when the sunk marker lands.
+  const burningCells: Coordinate[] = [];
+  for (const [key, state] of cellStates) {
+    if (state !== "sunk") continue;
+    const [col, row] = key.split(",").map(Number);
+    burningCells.push({ col: col!, row: row! });
+  }
+
   const shellTarget: [number, number, number] | null = pending
     ? (() => {
         const [x, z] = cellToWorld(pending.shot.target);
@@ -560,6 +572,7 @@ export function GameSceneAdapter({
               }
             />
           ))}
+        <WreckFires cells={burningCells} />
         <HoloGrid
           cellStates={cellStates}
           interactive={!isReveal}
