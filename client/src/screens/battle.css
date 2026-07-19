@@ -126,11 +126,16 @@
   animation: battle-stamp 0.3s cubic-bezier(0.2, 1.7, 0.4, 1) both;
 }
 
+/* Board sections must NEVER scale-animate: R3F measures the canvas's
+   container via getBoundingClientRect at mount, which includes any live
+   transform — a scale stamp here makes the canvas 25% oversized (clipped
+   by the panel's overflow:hidden, cutting grid rows/columns) and it never
+   re-measures since the layout box hasn't changed. Fade-in only. */
 .battle-main,
 .battle-side {
   display: flex;
   flex-direction: column;
-  animation: battle-stamp 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  animation: battle-fade 0.35s ease both;
 }
 
 .battle-main {
@@ -439,6 +444,16 @@
   to {
     opacity: 1;
     scale: 1;
+  }
+}
+
+/* Transform-free entrance for anything wrapping a 3D canvas. */
+@keyframes battle-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

@@ -1,0 +1,504 @@
+<svg width="1600" height="1200" viewBox="0 0 1600 1200" xmlns="http://www.w3.org/2000/svg">
+  <!-- STEEL HORIZON — fleet backdrop. Comic/arcade cover art, no text.
+       Light source: high upper-left. Horizon y=700. Center-top kept dark/calm for UI. -->
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#05070b"/>
+      <stop offset="42%" stop-color="#0a0e16"/>
+      <stop offset="78%" stop-color="#12233a"/>
+      <stop offset="100%" stop-color="#1b3a5c"/>
+    </linearGradient>
+    <radialGradient id="horizonGlow" cx="50%" cy="100%" r="72%">
+      <stop offset="0%"  stop-color="#9fc3e8" stop-opacity="0.34"/>
+      <stop offset="34%" stop-color="#3f6a98" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#0a0e16" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#12283f"/>
+      <stop offset="30%" stop-color="#0c1a2b"/>
+      <stop offset="100%" stop-color="#05070b"/>
+    </linearGradient>
+    <linearGradient id="topShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#05070b" stop-opacity="0.85"/>
+      <stop offset="55%" stop-color="#05070b" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#05070b" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx="50%" cy="54%" r="72%">
+      <stop offset="0%"  stop-color="#05070b" stop-opacity="0"/>
+      <stop offset="62%" stop-color="#05070b" stop-opacity="0.10"/>
+      <stop offset="86%" stop-color="#05070b" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#05070b" stop-opacity="0.82"/>
+    </radialGradient>
+    <pattern id="dotsSky" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(4)">
+      <circle cx="9" cy="9" r="1.5" fill="#9fc3e8" fill-opacity="0.13"/>
+    </pattern>
+    <pattern id="dotsSea" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-6)">
+      <circle cx="7" cy="7" r="1.2" fill="#9fc3e8" fill-opacity="0.09"/>
+    </pattern>
+    <pattern id="dotsBold" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(12)">
+      <circle cx="13" cy="13" r="4.2" fill="#10131a" fill-opacity="0.55"/>
+    </pattern>
+    <pattern id="dotsFoam" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="2.4" fill="#f4f7ff" fill-opacity="0.14"/>
+    </pattern>
+    <clipPath id="frame">
+      <rect x="0" y="0" width="1600" height="1200"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+
+    <!-- ================= SKY ================= -->
+    <rect x="0" y="0" width="1600" height="704" fill="url(#skyGrad)"/>
+    <rect x="0" y="140" width="1600" height="564" fill="url(#dotsSky)"/>
+    <rect x="0" y="180" width="1600" height="524" fill="url(#horizonGlow)"/>
+
+    <!-- radar sunburst rays fanning up from the fleet -->
+    <g transform="translate(800,704)" stroke="#ffd21f" stroke-linecap="round" fill="none">
+      <g stroke-opacity="0.10" stroke-width="5">
+        <line x1="-140" y1="-30" x2="-760" y2="-190"/>
+        <line x1="-120" y1="-40" x2="-640" y2="-330"/>
+        <line x1="-90"  y1="-52" x2="-470" y2="-450"/>
+        <line x1="90"   y1="-52" x2="470"  y2="-450"/>
+        <line x1="120"  y1="-40" x2="640"  y2="-330"/>
+        <line x1="140"  y1="-30" x2="760"  y2="-190"/>
+      </g>
+      <g stroke-opacity="0.05" stroke-width="4">
+        <line x1="-50" y1="-60" x2="-240" y2="-540"/>
+        <line x1="50"  y1="-60" x2="240"  y2="-540"/>
+      </g>
+    </g>
+
+    <!-- radar rings, dashed, centered on the hero ship -->
+    <g transform="translate(800,704)" fill="none" stroke="#9fc3e8">
+      <circle r="190" stroke-opacity="0.22" stroke-width="2.5" stroke-dasharray="26 14"/>
+      <circle r="350" stroke-opacity="0.15" stroke-width="2.5" stroke-dasharray="40 20"/>
+      <circle r="540" stroke-opacity="0.09" stroke-width="2.5" stroke-dasharray="58 26"/>
+      <!-- range ticks on the middle ring -->
+      <g stroke-opacity="0.28" stroke-width="3">
+        <line x1="-350" y1="0" x2="-322" y2="0"/>
+        <line x1="350"  y1="0" x2="322"  y2="0"/>
+        <line x1="-247" y1="-247" x2="-228" y2="-228"/>
+        <line x1="247"  y1="-247" x2="228"  y2="-228"/>
+      </g>
+      <!-- radar sweep wedge -->
+      <path d="M0 0 L310 -418 A520 520 0 0 1 438 -280 Z" fill="#ffd21f" fill-opacity="0.045" stroke="none"/>
+      <line x1="0" y1="0" x2="310" y2="-418" stroke="#ffd21f" stroke-opacity="0.20" stroke-width="2.5"/>
+      <!-- blip -->
+      <circle cx="256" cy="-238" r="7" fill="#ffd21f" fill-opacity="0.75" stroke="none"/>
+      <circle cx="256" cy="-238" r="16" fill="none" stroke="#ffd21f" stroke-opacity="0.30" stroke-width="3"/>
+    </g>
+
+    <!-- comic clouds: layered scallops pushed to the edges, streaks near horizon -->
+    <g>
+      <!-- left cloud stack -->
+      <g transform="translate(30,330) rotate(-1.5)">
+        <path d="M0 96 q10 -44 58 -44 q10 -50 66 -46 q22 -44 78 -30 q48 -26 88 6 q52 -6 60 38 q40 4 34 40 q8 32 -30 38 l-330 8 q-40 -6 -24 -10 z"
+              fill="#10131a" fill-opacity="0.85"/>
+        <path d="M18 88 q8 -36 50 -38 q10 -42 58 -38 q20 -38 68 -26 q42 -22 76 6 q44 -4 52 32 q34 4 28 34 l-310 34 z"
+              fill="#5c6e85" fill-opacity="0.22"/>
+      </g>
+      <!-- right cloud stack -->
+      <g transform="translate(1200,270) rotate(1.8)">
+        <path d="M0 100 q8 -46 56 -46 q12 -52 70 -44 q24 -42 80 -26 q50 -24 88 10 q50 -4 56 40 q36 6 28 40 l-350 30 q-38 -2 -28 -4 z"
+              fill="#10131a" fill-opacity="0.85"/>
+        <path d="M22 92 q8 -38 48 -40 q12 -44 62 -36 q22 -36 70 -22 q44 -20 78 8 q42 -2 48 34 l-282 60 z"
+              fill="#5c6e85" fill-opacity="0.20"/>
+      </g>
+      <!-- flat streak clouds hugging the horizon -->
+      <g fill="#10131a" fill-opacity="0.6">
+        <path d="M100 618 q30 -20 110 -18 l360 6 q60 2 40 16 l-460 10 q-70 -2 -50 -14 z"/>
+        <path d="M1010 640 q26 -18 96 -16 l400 8 q52 2 34 14 l-480 8 q-66 -2 -50 -14 z"/>
+        <path d="M560 662 q22 -14 78 -12 l250 4 q44 2 30 12 l-320 8 q-54 -2 -38 -12 z" fill-opacity="0.45"/>
+      </g>
+    </g>
+
+    <!-- speed lines raking in from the top corners -->
+    <g stroke="#f4f7ff" stroke-linecap="round">
+      <g stroke-opacity="0.08" stroke-width="4">
+        <line x1="-20" y1="120" x2="330" y2="86"/>
+        <line x1="-20" y1="178" x2="390" y2="152"/>
+        <line x1="-20" y1="238" x2="310" y2="222"/>
+        <line x1="1620" y1="104" x2="1270" y2="76"/>
+        <line x1="1620" y1="164" x2="1210" y2="142"/>
+        <line x1="1620" y1="226" x2="1290" y2="212"/>
+      </g>
+      <g stroke-opacity="0.04" stroke-width="3">
+        <line x1="-20" y1="300" x2="250" y2="292"/>
+        <line x1="1620" y1="290" x2="1350" y2="284"/>
+      </g>
+    </g>
+
+    <!-- ================= SEA ================= -->
+    <rect x="0" y="700" width="1600" height="500" fill="url(#seaGrad)"/>
+    <rect x="0" y="700" width="1600" height="500" fill="url(#dotsSea)"/>
+
+    <!-- horizon ink line + hot rim -->
+    <line x1="0" y1="702" x2="1600" y2="702" stroke="#10131a" stroke-width="7"/>
+    <line x1="0" y1="698.5" x2="1600" y2="698.5" stroke="#ffd21f" stroke-width="2" stroke-opacity="0.55"/>
+    <line x1="0" y1="707" x2="1600" y2="707" stroke="#9fc3e8" stroke-width="1.5" stroke-opacity="0.35"/>
+
+    <!-- glitter path on the water under the radar center -->
+    <g stroke="#9fc3e8" stroke-linecap="round" stroke-opacity="0.30">
+      <line x1="742" y1="716" x2="864" y2="716" stroke-width="3"/>
+      <line x1="700" y1="728" x2="780" y2="728" stroke-width="3"/>
+      <line x1="826" y1="730" x2="910" y2="730" stroke-width="3"/>
+      <line x1="760" y1="742" x2="850" y2="742" stroke-width="3" stroke-opacity="0.18"/>
+    </g>
+
+    <!-- ============ HORIZON-LINE SILHOUETTES (far fleet) ============ -->
+    <!-- carrier, far left: long flat-top slab -->
+    <g transform="translate(150,700) scale(0.62)" opacity="0.8">
+      <path d="M-190 -26 L210 -26 L236 -18 L248 0 L-214 0 L-200 -14 Z"
+            fill="#10131a" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M-186 -26 L206 -26 L230 -19 L-194 -16 Z" fill="#f4f7ff" fill-opacity="0.30"/>
+      <rect x="70" y="-62" width="42" height="36" fill="#10131a"/>
+      <line x1="86" y1="-62" x2="86" y2="-94" stroke="#10131a" stroke-width="5"/>
+      <line x1="74" y1="-84" x2="100" y2="-84" stroke="#10131a" stroke-width="4"/>
+    </g>
+    <!-- cruiser, far right: leaner profile with two stacks -->
+    <g transform="translate(1425,700) scale(0.58) scale(-1,1)" opacity="0.8">
+      <path d="M-200 0 L-176 -22 L120 -24 L196 -16 L236 -4 L244 0 Z"
+            fill="#10131a" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M-172 -22 L116 -24 L188 -17 L-180 -14 Z" fill="#7ea8d4" fill-opacity="0.35"/>
+      <rect x="-70" y="-58" width="52" height="36" fill="#10131a"/>
+      <path d="M-8 -22 L-2 -62 L26 -62 L34 -22 Z" fill="#10131a"/>
+      <path d="M52 -22 L58 -54 L82 -54 L90 -22 Z" fill="#10131a"/>
+      <line x1="-48" y1="-58" x2="-48" y2="-100" stroke="#10131a" stroke-width="5"/>
+    </g>
+
+    <!-- shell splashes flanking the hero, rising off the horizon -->
+    <g transform="translate(470,704)">
+      <path d="M0 0 Q-26 -30 -20 -86 Q-16 -130 -34 -158 Q-8 -140 -2 -96 Q4 -132 -8 -178 Q18 -142 14 -92 Q26 -122 44 -134 Q30 -96 28 -52 Q40 -70 52 -74 Q40 -40 34 0 Z"
+            fill="#f4f7ff" fill-opacity="0.9" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M6 0 Q14 -46 24 -66 Q22 -30 30 0 Z" fill="#9fc3e8" fill-opacity="0.75"/>
+      <ellipse cx="8" cy="4" rx="66" ry="10" fill="#f4f7ff" fill-opacity="0.35"/>
+      <g fill="#f4f7ff">
+        <circle cx="-46" cy="-120" r="5"/>
+        <circle cx="52" cy="-104" r="4"/>
+        <circle cx="-16" cy="-196" r="4.5"/>
+      </g>
+    </g>
+    <g transform="translate(1145,704) scale(0.82) scale(-1,1)">
+      <path d="M0 0 Q-26 -30 -20 -86 Q-16 -130 -34 -158 Q-8 -140 -2 -96 Q4 -132 -8 -178 Q18 -142 14 -92 Q26 -122 44 -134 Q30 -96 28 -52 Q40 -70 52 -74 Q40 -40 34 0 Z"
+            fill="#f4f7ff" fill-opacity="0.85" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M6 0 Q14 -46 24 -66 Q22 -30 30 0 Z" fill="#9fc3e8" fill-opacity="0.7"/>
+      <ellipse cx="8" cy="4" rx="58" ry="9" fill="#f4f7ff" fill-opacity="0.32"/>
+    </g>
+
+    <!-- ================= HERO BATTLESHIP ================= -->
+    <!-- bow points right; waterline at local y=30; light from upper-left -->
+    <g transform="translate(788,796) rotate(-1.2)">
+      <!-- spreading wake -->
+      <path d="M-470 40 Q-240 66 0 68 Q250 66 500 38 Q270 92 0 94 Q-260 92 -470 40 Z"
+            fill="#9fc3e8" fill-opacity="0.12"/>
+      <path d="M-455 38 Q-230 58 0 60" fill="none" stroke="#9fc3e8" stroke-opacity="0.22" stroke-width="4" stroke-linecap="round"/>
+
+      <!-- HULL -->
+      <path d="M-424 -46
+               Q-190 -34 40 -38
+               Q260 -42 452 -70
+               L468 -64
+               Q448 -34 438 -4
+               Q432 16 424 28
+               L-398 34
+               Q-428 6 -424 -46 Z"
+            fill="#4d9de8" stroke="#10131a" stroke-width="8" stroke-linejoin="round"/>
+      <!-- lower-hull cel shadow -->
+      <path d="M-416 -6 Q0 6 434 -12 Q430 8 424 28 L-398 34 Q-414 14 -416 -6 Z" fill="#2f6ba8"/>
+      <!-- sheer highlight under the deck edge (light from upper-left) -->
+      <path d="M-416 -42 Q-190 -30 40 -34 Q200 -37 340 -50 Q180 -28 20 -25 Q-200 -21 -414 -32 Z"
+            fill="#8ec4f2" fill-opacity="0.9"/>
+      <!-- boot topping at the waterline -->
+      <path d="M-402 24 L420 18 L416 28 L-398 34 Z" fill="#10131a"/>
+      <!-- deck ink line -->
+      <path d="M-420 -44 Q-190 -32 40 -36 Q260 -40 450 -68" fill="none" stroke="#10131a" stroke-width="5"/>
+      <!-- portholes -->
+      <g fill="#10131a">
+        <circle cx="-330" cy="-8" r="5"/>
+        <circle cx="-270" cy="-6" r="5"/>
+        <circle cx="-210" cy="-5" r="5"/>
+        <circle cx="-150" cy="-4" r="5"/>
+        <circle cx="-90"  cy="-4" r="5"/>
+        <circle cx="220"  cy="-8" r="5"/>
+        <circle cx="280"  cy="-11" r="5"/>
+        <circle cx="340"  cy="-16" r="5"/>
+      </g>
+      <!-- anchor hawse -->
+      <circle cx="408" cy="-42" r="9" fill="#2f6ba8" stroke="#10131a" stroke-width="5"/>
+
+      <!-- AFT TURRET (X), trained left/back -->
+      <g stroke="#10131a" stroke-width="6" stroke-linejoin="round">
+        <rect x="-346" y="-52" width="86" height="16" fill="#2f6ba8"/>
+        <path d="M-352 -52 L-256 -52 L-266 -84 Q-302 -96 -340 -84 Z" fill="#7ea8d4"/>
+        <path d="M-300 -85 Q-278 -92 -266 -84 L-256 -52 L-290 -52 Z" fill="#5c6e85" stroke="none"/>
+        <line x1="-346" y1="-74" x2="-408" y2="-66" stroke-width="10" stroke-linecap="round"/>
+        <line x1="-344" y1="-64" x2="-404" y2="-60" stroke-width="10" stroke-linecap="round"/>
+      </g>
+
+      <!-- AFT DECKHOUSE + crane -->
+      <g stroke="#10131a" stroke-width="6" stroke-linejoin="round">
+        <rect x="-236" y="-104" width="92" height="68" fill="#7ea8d4"/>
+        <rect x="-236" y="-104" width="26" height="68" fill="#9fc3e8" stroke="none"/>
+        <rect x="-176" y="-104" width="32" height="68" fill="#5c6e85" stroke="none"/>
+        <rect x="-236" y="-104" width="92" height="68" fill="none"/>
+        <rect x="-218" y="-134" width="52" height="30" fill="#9fc3e8"/>
+      </g>
+      <line x1="-196" y1="-134" x2="-196" y2="-192" stroke="#10131a" stroke-width="5"/>
+      <line x1="-196" y1="-186" x2="-148" y2="-150" stroke="#10131a" stroke-width="5"/>
+      <line x1="-196" y1="-166" x2="-160" y2="-150" stroke="#10131a" stroke-width="4"/>
+
+      <!-- FUNNEL, raked back, comic smoke -->
+      <g stroke="#10131a" stroke-width="6" stroke-linejoin="round">
+        <path d="M-120 -36 L-104 -148 L-38 -148 L-34 -36 Z" fill="#5c6e85"/>
+        <path d="M-120 -36 L-104 -148 L-84 -148 L-92 -36 Z" fill="#7f93aa" stroke="none"/>
+        <path d="M-120 -36 L-104 -148 L-38 -148 L-34 -36 Z" fill="none"/>
+        <path d="M-108 -148 L-34 -148 L-36 -162 L-106 -162 Z" fill="#10131a"/>
+      </g>
+      <g fill="#10131a" fill-opacity="0.55">
+        <path d="M-92 -178 q-28 -8 -30 -32 q-26 2 -30 -22 q30 -12 50 6 q26 -2 28 24 q10 16 -18 24 z"/>
+        <path d="M-152 -226 q-24 -6 -24 -26 q-22 0 -24 -18 q24 -10 40 4 q22 0 24 20 q8 14 -16 20 z" fill-opacity="0.4"/>
+        <path d="M-206 -264 q-18 -4 -18 -20 q-18 0 -18 -14 q18 -8 30 2 q18 0 18 16 q6 10 -12 16 z" fill-opacity="0.25"/>
+      </g>
+
+      <!-- PAGODA SUPERSTRUCTURE -->
+      <g stroke="#10131a" stroke-width="6" stroke-linejoin="round">
+        <rect x="-16" y="-128" width="150" height="92" fill="#7ea8d4"/>
+        <rect x="-16" y="-128" width="34" height="92" fill="#9fc3e8" stroke="none"/>
+        <rect x="102" y="-128" width="32" height="92" fill="#5c6e85" stroke="none"/>
+        <rect x="-16" y="-128" width="150" height="92" fill="none"/>
+        <rect x="6" y="-178" width="106" height="50" fill="#9fc3e8"/>
+        <rect x="84" y="-178" width="28" height="50" fill="#7ea8d4" stroke="none"/>
+        <rect x="6" y="-178" width="106" height="50" fill="none"/>
+        <rect x="22" y="-216" width="72" height="38" fill="#f4f7ff"/>
+      </g>
+      <!-- bridge windows -->
+      <g fill="#10131a">
+        <rect x="30" y="-206" width="15" height="11"/>
+        <rect x="51" y="-206" width="15" height="11"/>
+        <rect x="72" y="-206" width="15" height="11"/>
+      </g>
+      <!-- deck-level detail strakes -->
+      <line x1="-8" y1="-102" x2="126" y2="-102" stroke="#10131a" stroke-width="3.5"/>
+      <line x1="-8" y1="-66" x2="126" y2="-66" stroke="#10131a" stroke-width="3.5"/>
+      <!-- rangefinder wings -->
+      <rect x="-2" y="-192" width="22" height="10" fill="#5c6e85" stroke="#10131a" stroke-width="4"/>
+      <rect x="98" y="-192" width="22" height="10" fill="#5c6e85" stroke="#10131a" stroke-width="4"/>
+
+      <!-- MAST + RADAR + PENNANT -->
+      <g stroke="#10131a" stroke-width="5" fill="none">
+        <line x1="58" y1="-216" x2="58" y2="-296"/>
+        <line x1="26" y1="-262" x2="90" y2="-262"/>
+        <line x1="26" y1="-262" x2="58" y2="-238"/>
+        <line x1="90" y1="-262" x2="58" y2="-238"/>
+      </g>
+      <ellipse cx="58" cy="-298" rx="24" ry="8" fill="#ffd21f" stroke="#10131a" stroke-width="5"/>
+      <line x1="58" y1="-306" x2="58" y2="-330" stroke="#10131a" stroke-width="4"/>
+      <path d="M58 -330 L102 -318 L58 -306 Z" fill="#ffd21f" stroke="#10131a" stroke-width="4" stroke-linejoin="round"/>
+
+      <!-- FORWARD TURRETS: B superfiring over A, guns trained up-right -->
+      <!-- B turret on raised barbette -->
+      <g stroke="#10131a" stroke-width="6" stroke-linejoin="round">
+        <rect x="168" y="-76" width="96" height="34" fill="#2f6ba8"/>
+        <path d="M162 -76 L270 -76 L258 -110 Q216 -124 174 -110 Z" fill="#7ea8d4"/>
+        <path d="M222 -113 Q246 -119 258 -110 L270 -76 L232 -76 Z" fill="#5c6e85" stroke="none"/>
+        <path d="M162 -76 L270 -76 L258 -110 Q216 -124 174 -110 Z" fill="none"/>
+        <line x1="266" y1="-100" x2="344" y2="-118" stroke-width="11" stroke-linecap="round"/>
+        <line x1="268" y1="-88"  x2="348" y2="-100" stroke-width="11" stroke-linecap="round"/>
+      </g>
+      <!-- A turret on deck -->
+      <g stroke="#10131a" stroke-width="6" stroke-linejoin="round">
+        <rect x="272" y="-56" width="92" height="14" fill="#2f6ba8"/>
+        <path d="M266 -56 L372 -56 L360 -92 Q318 -106 278 -92 Z" fill="#7ea8d4"/>
+        <path d="M326 -95 Q350 -101 360 -92 L372 -56 L336 -56 Z" fill="#5c6e85" stroke="none"/>
+        <path d="M266 -56 L372 -56 L360 -92 Q318 -106 278 -92 Z" fill="none"/>
+        <line x1="368" y1="-82" x2="446" y2="-98" stroke-width="11" stroke-linecap="round"/>
+        <line x1="370" y1="-70" x2="450" y2="-82" stroke-width="11" stroke-linecap="round"/>
+      </g>
+
+      <!-- muzzle flash off A turret: comic starburst -->
+      <g transform="translate(470,-96) rotate(-10)">
+        <path d="M0 0 L34 -12 L18 8 L52 10 L20 22 L40 44 L8 30 L4 60 L-8 30 L-34 46 L-20 18 L-52 16 L-24 4 L-40 -18 L-10 -6 Z"
+              fill="#ffd21f" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M2 4 L20 0 L12 10 L26 14 L8 18 L12 30 L0 20 L-12 28 L-8 14 L-22 10 L-6 6 L-12 -6 Z"
+              fill="#f4f7ff"/>
+      </g>
+
+      <!-- BOW WAVE foam -->
+      <path d="M400 22 Q444 6 486 16 Q520 24 508 36 Q478 30 462 42 Q436 30 416 40 Q396 32 400 22 Z"
+            fill="#f4f7ff" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M414 24 Q446 14 476 20 Q456 26 448 34 Q430 26 414 24 Z" fill="#9fc3e8" fill-opacity="0.6"/>
+    </g>
+
+    <!-- ============ FOREGROUND WAVE ROW 1 ============ -->
+    <g>
+      <path d="M-80 892
+               a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0
+               a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0
+               a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0
+               L 1700 1040 L -80 1040 Z"
+            fill="#0c1a2b" stroke="#10131a" stroke-width="6"/>
+      <path d="M-80 892
+               a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0
+               a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0
+               a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0 a 90 34 0 0 1 180 0"
+            fill="none" stroke="#9fc3e8" stroke-width="3" stroke-opacity="0.35"/>
+      <!-- foam curls on crests -->
+      <g fill="#f4f7ff" stroke="#10131a" stroke-width="4" stroke-linejoin="round">
+        <path d="M118 868 q28 -22 58 -6 q-16 2 -22 12 q-14 -10 -36 -6 z"/>
+        <path d="M838 868 q28 -22 58 -6 q-16 2 -22 12 q-14 -10 -36 -6 z"/>
+        <path d="M1378 868 q28 -22 58 -6 q-16 2 -22 12 q-14 -10 -36 -6 z"/>
+      </g>
+    </g>
+
+    <!-- DESTROYER, foreground left, charging right -->
+    <g transform="translate(318,972) rotate(2)">
+      <!-- speed lines behind stern -->
+      <g stroke="#f4f7ff" stroke-opacity="0.22" stroke-width="5" stroke-linecap="round">
+        <line x1="-300" y1="-56" x2="-470" y2="-58"/>
+        <line x1="-296" y1="-24" x2="-520" y2="-24"/>
+        <line x1="-300" y1="8"  x2="-460" y2="12"/>
+      </g>
+      <!-- hull: lean, raked bow to the right -->
+      <path d="M-292 -30
+               Q-140 -22 40 -26
+               Q190 -30 306 -56
+               L318 -50
+               Q296 -20 288 6
+               L-266 14
+               Q-296 -6 -292 -30 Z"
+            fill="#ff5b66" stroke="#10131a" stroke-width="7" stroke-linejoin="round"/>
+      <path d="M-286 -6 Q0 2 294 -12 Q290 -2 288 6 L-266 14 Q-282 4 -286 -6 Z" fill="#c73742"/>
+      <path d="M-286 -27 Q-140 -19 40 -23 Q160 -26 250 -40 Q140 -16 20 -14 Q-140 -11 -284 -19 Z"
+            fill="#ff9aa1" fill-opacity="0.85"/>
+      <path d="M-278 -30 Q-140 -22 40 -26 Q190 -30 304 -54" fill="none" stroke="#10131a" stroke-width="4"/>
+      <!-- bridge block -->
+      <g stroke="#10131a" stroke-width="6" stroke-linejoin="round">
+        <rect x="-96" y="-96" width="88" height="70" fill="#f4f7ff"/>
+        <rect x="-32" y="-96" width="24" height="70" fill="#9fc3e8" stroke="none"/>
+        <rect x="-96" y="-96" width="88" height="70" fill="none"/>
+        <rect x="-80" y="-124" width="52" height="28" fill="#9fc3e8"/>
+      </g>
+      <g fill="#10131a">
+        <rect x="-84" y="-84" width="12" height="9"/>
+        <rect x="-66" y="-84" width="12" height="9"/>
+        <rect x="-48" y="-84" width="12" height="9"/>
+      </g>
+      <!-- raked funnel -->
+      <path d="M32 -26 L46 -88 L88 -88 L92 -26 Z" fill="#5c6e85" stroke="#10131a" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M44 -88 L90 -88 L88 -100 L46 -100 Z" fill="#10131a"/>
+      <!-- mast -->
+      <line x1="-54" y1="-124" x2="-54" y2="-172" stroke="#10131a" stroke-width="5"/>
+      <line x1="-72" y1="-156" x2="-36" y2="-156" stroke="#10131a" stroke-width="4"/>
+      <path d="M-54 -172 L-22 -163 L-54 -154 Z" fill="#ffd21f" stroke="#10131a" stroke-width="3.5" stroke-linejoin="round"/>
+      <!-- forward gun, yellow accent -->
+      <g stroke="#10131a" stroke-width="5" stroke-linejoin="round">
+        <path d="M138 -42 L206 -42 L198 -68 Q170 -78 146 -68 Z" fill="#ffd21f"/>
+        <line x1="202" y1="-58" x2="258" y2="-70" stroke-width="9" stroke-linecap="round"/>
+      </g>
+      <!-- depth-charge rack astern -->
+      <rect x="-262" y="-52" width="52" height="22" rx="4" fill="#5c6e85" stroke="#10131a" stroke-width="5"/>
+      <!-- bow spray -->
+      <path d="M282 0 Q330 -18 372 -4 Q400 6 384 16 Q356 8 336 20 Q310 8 292 16 Q276 8 282 0 Z"
+            fill="#f4f7ff" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M296 2 Q330 -8 356 -2 Q338 6 330 12 Q312 4 296 2 Z" fill="#9fc3e8" fill-opacity="0.6"/>
+      <!-- stern wash -->
+      <path d="M-290 6 Q-330 -4 -366 8 Q-330 20 -292 16 Z" fill="#9fc3e8" fill-opacity="0.4" stroke="#10131a" stroke-width="4" stroke-linejoin="round"/>
+    </g>
+
+    <!-- ============ FOREGROUND WAVE ROW 2 ============ -->
+    <g>
+      <path d="M-100 1032
+               a 120 44 0 0 1 240 0 a 120 44 0 0 1 240 0 a 120 44 0 0 1 240 0
+               a 120 44 0 0 1 240 0 a 120 44 0 0 1 240 0 a 120 44 0 0 1 240 0
+               a 120 44 0 0 1 240 0
+               L 1720 1210 L -100 1210 Z"
+            fill="#081120" stroke="#10131a" stroke-width="6"/>
+      <path d="M-100 1032
+               a 120 44 0 0 1 240 0 a 120 44 0 0 1 240 0 a 120 44 0 0 1 240 0
+               a 120 44 0 0 1 240 0 a 120 44 0 0 1 240 0 a 120 44 0 0 1 240 0
+               a 120 44 0 0 1 240 0"
+            fill="none" stroke="#9fc3e8" stroke-width="3" stroke-opacity="0.28"/>
+      <g fill="#f4f7ff" stroke="#10131a" stroke-width="4" stroke-linejoin="round">
+        <path d="M108 1002 q34 -26 70 -8 q-20 4 -26 16 q-18 -12 -44 -8 z"/>
+        <path d="M1284 1002 q34 -26 70 -8 q-20 4 -26 16 q-18 -12 -44 -8 z"/>
+      </g>
+    </g>
+
+    <!-- SUBMARINE, foreground right, surfacing toward center -->
+    <g transform="translate(1252,1058) rotate(-2.5)">
+      <!-- hull, bow pointing left -->
+      <path d="M-296 6 Q-282 -28 -204 -32 L188 -32 Q262 -30 284 -4 Q262 24 186 28 L-206 28 Q-284 24 -296 6 Z"
+            fill="#ffd21f" stroke="#10131a" stroke-width="7" stroke-linejoin="round"/>
+      <path d="M-288 8 Q-240 20 -200 20 L184 20 Q248 18 276 2 Q258 22 186 28 L-206 28 Q-280 22 -288 8 Z" fill="#e0ac00"/>
+      <path d="M-276 -8 Q-232 -24 -200 -26 L120 -26 Q60 -18 -60 -17 Q-200 -16 -276 -8 Z" fill="#ffe374" fill-opacity="0.9"/>
+      <!-- deck ridge -->
+      <line x1="-216" y1="-14" x2="196" y2="-14" stroke="#10131a" stroke-width="4"/>
+      <!-- limber holes -->
+      <g fill="#10131a">
+        <ellipse cx="-160" cy="0" rx="12" ry="4.5"/>
+        <ellipse cx="-104" cy="1" rx="12" ry="4.5"/>
+        <ellipse cx="-48"  cy="2" rx="12" ry="4.5"/>
+        <ellipse cx="120"  cy="1" rx="12" ry="4.5"/>
+        <ellipse cx="176"  cy="-1" rx="12" ry="4.5"/>
+      </g>
+      <!-- conning sail -->
+      <g stroke="#10131a" stroke-width="6" stroke-linejoin="round">
+        <path d="M-14 -32 L-6 -96 Q28 -106 60 -96 L70 -32 Z" fill="#10131a"/>
+      </g>
+      <path d="M-8 -60 L64 -60" stroke="#5c6e85" stroke-width="4"/>
+      <!-- periscopes -->
+      <line x1="14" y1="-100" x2="14" y2="-140" stroke="#10131a" stroke-width="6" stroke-linecap="round"/>
+      <path d="M14 -140 L34 -140" stroke="#10131a" stroke-width="6" stroke-linecap="round"/>
+      <line x1="42" y1="-98" x2="46" y2="-124" stroke="#10131a" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="47" cy="-128" r="5" fill="#ffd21f" stroke="#10131a" stroke-width="4"/>
+      <!-- bow plane -->
+      <path d="M-268 4 L-312 -4 L-312 10 L-268 14 Z" fill="#e0ac00" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+      <!-- bow wash + trailing water streaks -->
+      <path d="M-292 4 Q-338 -14 -378 0 Q-344 18 -298 18 Z"
+            fill="#f4f7ff" stroke="#10131a" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M-306 4 Q-336 -4 -356 2 Q-336 10 -308 12 Z" fill="#9fc3e8" fill-opacity="0.6"/>
+      <g stroke="#9fc3e8" stroke-opacity="0.4" stroke-width="4" stroke-linecap="round">
+        <line x1="292" y1="2" x2="368" y2="0"/>
+        <line x1="286" y1="16" x2="344" y2="18"/>
+      </g>
+      <!-- water sheeting off the deck -->
+      <path d="M-180 28 Q-150 44 -110 40 Q-140 30 -150 28 Z" fill="#9fc3e8" fill-opacity="0.5"/>
+    </g>
+
+    <!-- ============ FOREGROUND WAVE ROW 3 (nearest, darkest) ============ -->
+    <g>
+      <path d="M-120 1148
+               a 150 54 0 0 1 300 0 a 150 54 0 0 1 300 0 a 150 54 0 0 1 300 0
+               a 150 54 0 0 1 300 0 a 150 54 0 0 1 300 0 a 150 54 0 0 1 300 0
+               L 1780 1260 L -120 1260 Z"
+            fill="#05070b" stroke="#10131a" stroke-width="6"/>
+      <path d="M-120 1148
+               a 150 54 0 0 1 300 0 a 150 54 0 0 1 300 0 a 150 54 0 0 1 300 0
+               a 150 54 0 0 1 300 0 a 150 54 0 0 1 300 0 a 150 54 0 0 1 300 0"
+            fill="none" stroke="#9fc3e8" stroke-width="3" stroke-opacity="0.22"/>
+      <rect x="0" y="1120" width="1600" height="80" fill="url(#dotsFoam)" opacity="0.5"/>
+    </g>
+
+    <!-- comic hit starburst, upper right edge -->
+    <g transform="translate(1372,332) rotate(8)">
+      <path d="M0 -74 L16 -26 L64 -44 L34 -6 L82 8 L32 18 L52 62 L10 32 L-8 80 L-20 30 L-64 52 L-36 12 L-84 2 L-36 -12 L-58 -54 L-16 -30 Z"
+            fill="#ffd21f" stroke="#10131a" stroke-width="5" stroke-linejoin="round" fill-opacity="0.95"/>
+      <path d="M0 -34 L8 -12 L30 -20 L16 -2 L38 4 L14 8 L24 30 L4 15 L-4 37 L-9 14 L-30 24 L-17 5 L-39 1 L-17 -6 L-27 -25 L-8 -14 Z"
+            fill="#f4f7ff"/>
+    </g>
+    <!-- small echo burst, left -->
+    <g transform="translate(196,414) rotate(-11)" opacity="0.8">
+      <path d="M0 -40 L9 -14 L35 -24 L18 -3 L45 4 L17 10 L28 34 L5 17 L-4 43 L-11 16 L-35 28 L-20 6 L-46 1 L-20 -7 L-32 -29 L-9 -16 Z"
+            fill="#ffd21f" stroke="#10131a" stroke-width="4" stroke-linejoin="round"/>
+    </g>
+
+    <!-- bold halftone wedges anchoring the lower corners -->
+    <path d="M0 1200 L0 900 Q120 1010 340 1200 Z" fill="url(#dotsBold)"/>
+    <path d="M1600 1200 L1600 920 Q1490 1020 1280 1200 Z" fill="url(#dotsBold)"/>
+
+    <!-- legibility shade over the top third + edge vignette (last, above everything) -->
+    <rect x="0" y="0" width="1600" height="470" fill="url(#topShade)"/>
+    <rect x="0" y="0" width="1600" height="1200" fill="url(#vignette)"/>
+  </g>
+</svg>

@@ -1,0 +1,404 @@
+/* Lobby — the comic FIGHT CARD, in the shared arcade language (Impact
+   italic, hit-yellow #ffd21f, ink #10131a, radar-blue #9fc3e8, halftone
+   dots, stamped panels with hard offset shadows). Two player plates square
+   off around a starburst VS badge; the room code is the ticket stub. All
+   rules scoped under .lobby, class names prefixed lobby- (03-03 rule). */
+
+.screen.lobby {
+  position: relative;
+  isolation: isolate;
+  max-width: 34rem;
+  gap: 1.2rem;
+}
+
+.screen.lobby::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(
+    rgba(159, 195, 232, 0.1) 1px,
+    transparent 1.6px
+  );
+  background-size: 16px 16px;
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 40%, transparent 78%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 30%,
+    #000 40%,
+    transparent 78%
+  );
+}
+
+/* --- Masthead + ticket-stub room code --- */
+
+.lobby-masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  animation: lobby-stamp 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+.lobby h1 {
+  margin: 0;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.2rem, 7vw, 3rem);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #f4f7ff;
+  transform: rotate(-2deg);
+  text-shadow:
+    3px 3px 0 #10131a,
+    5px 5px 0 #ffd21f;
+}
+
+.lobby-code {
+  margin: 0;
+  padding: 0.25rem 0.9rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(1deg);
+}
+
+.lobby-code strong {
+  margin-left: 0.35rem;
+  font-size: 1.15rem;
+  letter-spacing: 0.2em;
+}
+
+/* --- Share link: stamped panel row --- */
+
+.lobby .share-link {
+  animation: lobby-stamp 0.3s 0.08s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.lobby .share-link input {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #9fc3e8;
+  background: #0a0e16;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
+
+.lobby .share-link input:focus {
+  outline: 2px solid #ffd21f;
+  outline-offset: 1px;
+}
+
+.lobby .share-link button {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #f4f7ff;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+  transition:
+    translate 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.lobby .share-link button:hover:not(:disabled) {
+  background: #16202e;
+  translate: -1px -1px;
+  box-shadow:
+    4px 4px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.35);
+}
+
+.lobby .share-link button:active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow:
+    1px 1px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
+
+.lobby .share-link button:focus-visible {
+  outline: 2px solid #ffd21f;
+  outline-offset: 2px;
+}
+
+/* --- The matchup: player plates around the VS starburst --- */
+
+.lobby-matchup {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 1.1rem;
+  width: 100%;
+  animation: lobby-stamp 0.35s 0.16s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.lobby-card {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.1rem 0.8rem 1rem;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
+
+.lobby-card:first-child {
+  transform: rotate(-1deg);
+}
+
+.lobby-card:last-child {
+  transform: rotate(1deg);
+}
+
+.lobby-card-you {
+  position: absolute;
+  top: -0.6rem;
+  left: 0.6rem;
+  padding: 0.1rem 0.5rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #10131a;
+  background: #9fc3e8;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  transform: rotate(-3deg);
+}
+
+.lobby-card-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #f4f7ff;
+  text-shadow: 2px 2px 0 #10131a;
+}
+
+/* Ready chip: dim steel until it stamps yellow. Re-stamps on flip. */
+.lobby-ready {
+  padding: 0.2rem 0.7rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #5c6e85;
+  background: transparent;
+  border: 2px solid #5c6e85;
+  border-radius: 0.3rem;
+  transform: rotate(-1.5deg);
+}
+
+.lobby-ready--yes {
+  color: #10131a;
+  background: #ffd21f;
+  border-color: #10131a;
+  box-shadow: 2px 2px 0 rgba(16, 19, 26, 0.55);
+  animation: lobby-stamp 0.3s cubic-bezier(0.2, 1.8, 0.4, 1) both;
+}
+
+/* Empty corner: dashed silhouette waiting for the challenger. */
+.lobby-card--empty {
+  background: transparent;
+  border-style: dashed;
+  border-color: #5c6e85;
+  box-shadow: none;
+}
+
+.lobby-card-mystery {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: #5c6e85;
+  text-shadow: 2px 2px 0 #10131a;
+}
+
+.lobby-card--empty .waiting {
+  margin: 0;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.7rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #ffd21f;
+  animation: lobby-blink 1.1s steps(2, jump-none) infinite;
+}
+
+/* VS badge: the starburst between the plates. */
+.lobby-vs {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: #10131a;
+  transform: rotate(8deg);
+  animation: lobby-stamp 0.4s 0.3s cubic-bezier(0.2, 1.8, 0.4, 1) both;
+}
+
+.lobby-vs::before,
+.lobby-vs::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: polygon(
+    50% 0%, 61% 32%, 93% 15%, 74% 43%, 100% 50%, 74% 57%,
+    93% 85%, 61% 68%, 50% 100%, 39% 68%, 7% 85%, 26% 57%,
+    0% 50%, 26% 43%, 7% 15%, 39% 32%
+  );
+  background: #ffd21f;
+}
+
+.lobby-vs::before {
+  background: #10131a;
+  transform: scale(1.14);
+}
+
+/* --- Ready up: the yellow INSERT COIN slab --- */
+
+.lobby-ready-button {
+  padding: 0.7rem 2.2rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 4px 4px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-1deg);
+  transition:
+    translate 0.12s ease,
+    box-shadow 0.12s ease;
+  animation: lobby-stamp 0.3s 0.24s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+.lobby-ready-button:hover:not(:disabled) {
+  background: #ffdc4d;
+  translate: -1px -1px;
+  box-shadow: 5px 5px 0 rgba(16, 19, 26, 0.55);
+}
+
+.lobby-ready-button:active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 rgba(16, 19, 26, 0.55);
+}
+
+.lobby-ready-button:focus-visible {
+  outline: 2px solid #f4f7ff;
+  outline-offset: 2px;
+}
+
+/* Already ready: the quiet unarm state — dark panel, blue text. */
+.lobby-ready-button--armed {
+  color: #9fc3e8;
+  background: rgba(10, 14, 22, 0.85);
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
+
+.lobby-ready-button--armed:hover:not(:disabled) {
+  background: #16202e;
+}
+
+/* --- Animations --- */
+
+@keyframes lobby-stamp {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes lobby-blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-masthead,
+  .lobby .share-link,
+  .lobby-matchup,
+  .lobby-vs,
+  .lobby-ready,
+  .lobby-ready--yes,
+  .lobby-ready-button,
+  .lobby-card--empty .waiting {
+    animation: none;
+  }
+}
+
+@media (max-width: 30rem) {
+  .lobby-matchup {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lobby-vs {
+    width: 3.4rem;
+    height: 3.4rem;
+    font-size: 1.1rem;
+    margin: -0.6rem auto;
+  }
+}

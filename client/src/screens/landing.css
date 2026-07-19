@@ -7,6 +7,21 @@
   position: relative;
   gap: 1.1rem;
   isolation: isolate;
+  background-color: #05070b;
+}
+
+/* Illustrated fleet cover art — comic-ink battleship/destroyer/submarine
+   silhouettes on a halftone sea, sits behind everything and under the
+   halftone-dot overlay below. */
+.landing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image: url("/fleet-backdrop.svg");
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
 }
 
 /* Halftone-dot backdrop, the comic print texture behind the whole cover. */
