@@ -90,6 +90,12 @@ export interface RoomSnapshot {
   leaderboard: HighScoreEntry[] | null;
   /** Viewer's 0-based rank on `leaderboard` if they placed this game. */
   yourLeaderboardRank: number | null;
+  /** Last-7-days top-20; non-null only at phase === "gameover". */
+  weeklyLeaderboard: HighScoreEntry[] | null;
+  /** Viewer's 0-based rank on `weeklyLeaderboard` if they placed. */
+  yourWeeklyRank: number | null;
+  /** Consecutive wins across this room's rematches. */
+  winStreak: { you: number; opponent: number };
 }
 
 /**
@@ -109,7 +115,8 @@ export interface ClientToServerEvents {
   quickMatch: (payload: { name: string }) => void;
   setReady: (payload: { ready: boolean }) => void;
   placeFleet: (payload: { fleet: FleetPlacement }) => void;
-  fire: (payload: { target: Coordinate }) => void;
+  /** `calledShot` stakes the shot: a hit pays double, a miss costs extra. */
+  fire: (payload: { target: Coordinate; calledShot?: boolean }) => void;
   requestRematch: () => void;
 }
 

@@ -14,6 +14,7 @@ import { GameSceneAdapter } from "../scene/GameSceneAdapter";
 import type { CameraView } from "../scene/camera/CameraRig";
 import ShotLog from "../components/ShotLog";
 import ScoreHud from "../components/ScoreHud";
+import "../components/callShot.css";
 import "./battle.css";
 
 const SHIP_NAMES: Record<ShipClassId, string> = {
@@ -69,6 +70,9 @@ export default function BattleScreen() {
     () => useGameStore.getState().snapshot?.yourShots.length ?? 0,
   );
 
+  // Call-your-shot stake: armed by the toggle, spent by the next shot.
+  const [shotCalled, setShotCalled] = useState(false);
+
   if (!snapshot) return null;
 
   const { you, opponent, yourShots, shotsAgainstYou, currentTurn } = snapshot;
@@ -113,6 +117,17 @@ export default function BattleScreen() {
         multiplier={lastScored?.multiplier ?? 1}
       />
 
+      <button
+        type="button"
+        className={shotCalled ? "call-shot call-shot--armed" : "call-shot"}
+        disabled={!yourTurn}
+        onClick={() => setShotCalled((armed) => !armed)}
+      >
+        {shotCalled
+          ? "Shot called — double or nothing!"
+          : "Call your shot (double or nothing)"}
+      </button>
+
       <div className="battle-layout">
         <section className="battle-main">
           <div className="battle-main-header">
@@ -141,7 +156,10 @@ export default function BattleScreen() {
             incomingShots={shotsAgainstYou}
             onIncomingActiveChange={setIncomingCinematic}
             canFire={yourTurn}
-            onFire={fire}
+            onFire={(target) => {
+              fire(target, shotCalled);
+              setShotCalled(false);
+            }}
             onOutgoingResult={() => setScoredCount((count) => count + 1)}
             sunkShips={yourSunkShips}
           />

@@ -36,6 +36,17 @@ import {
 import { ParticleBurst, type BurstPreset } from "./effects/ParticleBurst";
 import { ResultCallout } from "./effects/ResultCallout";
 import { ScorePopup } from "./effects/ScorePopup";
+import { ChainShout, type ChainShoutTier } from "./effects/ChainShout";
+import { chainHeat } from "../components/ScoreHud";
+import {
+  calledShotBust,
+  scoreTick,
+  sinkSlam,
+  tierUp,
+} from "../audio/arcadeSfx";
+
+/** Heat tier ordering for detecting upward crossings. */
+const HEAT_ORDER = { cold: 0, warm: 1, hot: 2, critical: 3 } as const;
 
 /**
  * The single source of truth mapping a shot outcome to its impact VFX.
@@ -255,16 +266,40 @@ export function GameSceneAdapter({
   }
 
   // Arcade score popup — shown with the callout, but only for OUTGOING
-  // shots (these are YOUR points) and only when the shot actually paid.
+  // shots (these are YOUR points) and only when the shot actually paid
+  // (or cost — a busted called shot pops its penalty).
   const [scorePopup, setScorePopup] = useState<{
     score: NonNullable<ShotRecord["score"]>;
     key: number;
   } | null>(null);
 
+  // Announcer shout when the chain crosses a heat tier upward.
+  const [chainShout, setChainShout] = useState<{
+    tier: ChainShoutTier;
+    key: number;
+  } | null>(null);
+  const lastOutgoingMultRef = useRef(1);
+
   /** The single "outcome landed on screen" beat for an outgoing shot. */
   function revealOutgoingScore(shot: ShotRecord) {
-    if (shot.score && shot.score.points > 0) {
-      setScorePopup({ score: shot.score, key: performance.now() });
+    const event = shot.score;
+    if (event) {
+      if (event.points !== 0) {
+        setScorePopup({ score: event, key: performance.now() });
+      }
+      // SFX: rising tick for points, slam for sinks, womp for a bust.
+      if (event.points > 0) scoreTick(event.multiplier);
+      if (event.points < 0) calledShotBust();
+      if (event.bonuses.some((award) => award.bonus === "sink")) sinkSlam();
+      // Tier crossing → announcer banner + riser.
+      const previous = HEAT_ORDER[chainHeat(lastOutgoingMultRef.current)];
+      const current = HEAT_ORDER[chainHeat(event.multiplier)];
+      if (current > previous) {
+        const tier = chainHeat(event.multiplier) as ChainShoutTier;
+        setChainShout({ tier, key: performance.now() });
+        tierUp(current);
+      }
+      lastOutgoingMultRef.current = event.multiplier;
     }
     onOutgoingResult?.(shot);
   }
@@ -635,6 +670,13 @@ export function GameSceneAdapter({
           key={`score-${scorePopup.key}`}
           score={scorePopup.score}
           onDone={() => setScorePopup(null)}
+        />
+      )}
+      {chainShout && (
+        <ChainShout
+          key={`shout-${chainShout.key}`}
+          tier={chainShout.tier}
+          onDone={() => setChainShout(null)}
         />
       )}
     </div>

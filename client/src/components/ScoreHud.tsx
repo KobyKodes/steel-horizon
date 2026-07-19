@@ -7,6 +7,7 @@
 // advance when a shot's cinematic has actually resolved on screen.
 
 import { useEffect, useRef, useState } from "react";
+import { chainBreak } from "../audio/arcadeSfx";
 import "./scoreHud.css";
 
 const DIGITS = "0123456789";
@@ -71,6 +72,7 @@ export default function ScoreHud({ points, streak, multiplier }: ScoreHudProps) 
       setBumpKey(performance.now());
     } else if (multiplier < previous && previous > 1) {
       setShatter({ mult: previous, key: performance.now() });
+      chainBreak();
     }
   }, [multiplier]);
 

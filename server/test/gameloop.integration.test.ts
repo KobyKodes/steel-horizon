@@ -236,14 +236,15 @@ describe("game loop over sockets", () => {
       { col: 5, row: 9 },
       { col: 6, row: 9 },
     ];
-    // Streak 2 at x1: base 100 + sink 250 + perfect kill 250 (both shots
-    // landed on the destroyer), banked on the earlier first-blood 250.
+    // Streak 2 at x1, fired instantly (quick draw): base 100 + quick draw
+    // 50 + sink 250 + perfect kill 250, banked on the earlier 300.
     const sunkScore = {
-      points: 600,
+      points: 650,
       streak: 2,
       multiplier: 1,
-      total: 850,
+      total: 950,
       bonuses: [
+        { bonus: "quick-draw", points: 50 },
         { bonus: "sink", points: 250 },
         { bonus: "perfect-kill", points: 250 },
       ],
@@ -269,11 +270,14 @@ describe("game loop over sockets", () => {
         target: { col: 5, row: 9 },
         result: "hit",
         score: {
-          points: 250,
+          points: 300,
           streak: 1,
           multiplier: 1,
-          total: 250,
-          bonuses: [{ bonus: "first-blood", points: 150 }],
+          total: 300,
+          bonuses: [
+            { bonus: "first-blood", points: 150 },
+            { bonus: "quick-draw", points: 50 },
+          ],
         },
       },
       {

@@ -6,38 +6,72 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { HighScoreEntry } from "@steel-horizon/shared";
 
-/** Leaderboard depth — only the top N survive. */
+/** Visible leaderboard depth (both all-time and weekly views). */
 export const HIGH_SCORE_LIMIT = 20;
 
-export interface HighScoreStore {
-  /** Current leaderboard, best first. */
-  top(): HighScoreEntry[];
-  /** Record an entry; returns its 0-based rank, or null if it didn't place. */
-  submit(entry: HighScoreEntry): number | null;
+/** Entries kept on disk — deeper than the view so the weekly board can
+    surface scores that don't crack the all-time top 20. */
+export const HIGH_SCORE_STORAGE_LIMIT = 100;
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+export interface SubmitResult {
+  /** 0-based rank on the all-time top-20, or null if unplaced. */
+  allTimeRank: number | null;
+  /** 0-based rank on the last-7-days top-20, or null if unplaced. */
+  weeklyRank: number | null;
 }
 
-/** Insert `entry` into a best-first list, truncated to the limit. */
+export interface HighScoreStore {
+  /** All-time top-20, best first. */
+  top(): HighScoreEntry[];
+  /** Last-7-days top-20, best first. */
+  topWeekly(nowMs?: number): HighScoreEntry[];
+  /** Record an entry; returns where it placed on each board. */
+  submit(entry: HighScoreEntry): SubmitResult;
+}
+
+/** Insert `entry` into a best-first list, truncated to storage depth. */
 function insertEntry(
   entries: HighScoreEntry[],
   entry: HighScoreEntry,
-): { entries: HighScoreEntry[]; rank: number | null } {
+): { entries: HighScoreEntry[]; result: SubmitResult } {
   const next = [...entries, entry].sort((a, b) => b.score - a.score);
-  next.length = Math.min(next.length, HIGH_SCORE_LIMIT);
-  const rank = next.indexOf(entry);
-  return { entries: next, rank: rank === -1 ? null : rank };
+  next.length = Math.min(next.length, HIGH_SCORE_STORAGE_LIMIT);
+  const allTime = next.indexOf(entry);
+  const weekly = weeklyView(next, Date.parse(entry.date)).indexOf(entry);
+  return {
+    entries: next,
+    result: {
+      allTimeRank: allTime >= 0 && allTime < HIGH_SCORE_LIMIT ? allTime : null,
+      weeklyRank: weekly >= 0 && weekly < HIGH_SCORE_LIMIT ? weekly : null,
+    },
+  };
+}
+
+/** Entries dated within the last 7 days of `nowMs`, still best first. */
+function weeklyView(entries: HighScoreEntry[], nowMs: number): HighScoreEntry[] {
+  return entries.filter((entry) => {
+    const at = Date.parse(entry.date);
+    return Number.isFinite(at) && nowMs - at <= WEEK_MS;
+  });
 }
 
 export class InMemoryHighScoreStore implements HighScoreStore {
   private entries: HighScoreEntry[] = [];
 
   top(): HighScoreEntry[] {
-    return this.entries;
+    return this.entries.slice(0, HIGH_SCORE_LIMIT);
   }
 
-  submit(entry: HighScoreEntry): number | null {
-    const result = insertEntry(this.entries, entry);
-    this.entries = result.entries;
-    return result.rank;
+  topWeekly(nowMs: number = Date.now()): HighScoreEntry[] {
+    return weeklyView(this.entries, nowMs).slice(0, HIGH_SCORE_LIMIT);
+  }
+
+  submit(entry: HighScoreEntry): SubmitResult {
+    const inserted = insertEntry(this.entries, entry);
+    this.entries = inserted.entries;
+    return inserted.result;
   }
 }
 
@@ -62,7 +96,7 @@ export class JsonHighScoreStore implements HighScoreStore {
     try {
       const parsed: unknown = JSON.parse(readFileSync(this.filePath, "utf8"));
       if (!Array.isArray(parsed)) return [];
-      return parsed.filter(isEntryShaped).slice(0, HIGH_SCORE_LIMIT);
+      return parsed.filter(isEntryShaped).slice(0, HIGH_SCORE_STORAGE_LIMIT);
     } catch {
       // Missing or unreadable file: start with an empty board.
       return [];
@@ -79,14 +113,18 @@ export class JsonHighScoreStore implements HighScoreStore {
   }
 
   top(): HighScoreEntry[] {
-    return this.entries;
+    return this.entries.slice(0, HIGH_SCORE_LIMIT);
   }
 
-  submit(entry: HighScoreEntry): number | null {
-    const result = insertEntry(this.entries, entry);
-    this.entries = result.entries;
+  topWeekly(nowMs: number = Date.now()): HighScoreEntry[] {
+    return weeklyView(this.entries, nowMs).slice(0, HIGH_SCORE_LIMIT);
+  }
+
+  submit(entry: HighScoreEntry): SubmitResult {
+    const inserted = insertEntry(this.entries, entry);
+    this.entries = inserted.entries;
     this.persist();
-    return result.rank;
+    return inserted.result;
   }
 }
 

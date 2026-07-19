@@ -40,7 +40,7 @@ interface GameStore {
   quickMatch: (name: string) => void;
   setReady: (ready: boolean) => void;
   placeFleet: (fleet: FleetPlacement) => void;
-  fire: (target: Coordinate) => void;
+  fire: (target: Coordinate, calledShot?: boolean) => void;
   requestRematch: () => void;
 }
 
@@ -74,7 +74,8 @@ export const useGameStore = create<GameStore>((set) => ({
 
   placeFleet: (fleet) => socket.emit("placeFleet", { fleet }),
 
-  fire: (target) => socket.emit("fire", { target }),
+  fire: (target, calledShot = false) =>
+    socket.emit("fire", { target, calledShot }),
 
   requestRematch: () => socket.emit("requestRematch"),
 }));

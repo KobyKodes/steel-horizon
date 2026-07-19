@@ -80,6 +80,25 @@ describe("full game over sockets", () => {
     // The winner's total dwarfs the loser's; they top the 2-entry board.
     expect(snapB.yourLeaderboardRank).toBe(0);
     expect(snapB.leaderboard![0]!.score).toBe(winnerFinal.total);
+
+    // Weekly board mirrors the all-time one for a fresh store, medals are
+    // present, and the rematch win streak starts counting.
+    expect(snapB.weeklyLeaderboard).toHaveLength(2);
+    expect(snapB.yourWeeklyRank).toBe(0);
+
+    // The public HTTP read (landing-page leaderboards) serves the same
+    // boards without any room membership.
+    const response = await fetch(`${server.baseUrl}/leaderboard`);
+    expect(response.ok).toBe(true);
+    const boards = (await response.json()) as {
+      allTime: unknown[];
+      weekly: unknown[];
+    };
+    expect(boards.allTime).toHaveLength(2);
+    expect(boards.weekly).toHaveLength(2);
+    expect(Array.isArray(winnerFinal.medals)).toBe(true);
+    expect(snapB.winStreak).toEqual({ you: 1, opponent: 0 });
+    expect(snapA.winStreak).toEqual({ you: 0, opponent: 1 });
   });
 
   it("rematches into a clean placement phase and the reset game is live", async () => {
@@ -155,13 +174,17 @@ describe("full game over sockets", () => {
       {
         target: { col: 0, row: 0 },
         result: "hit",
-        // First non-miss of the rematch game: base 100 + first blood 150.
+        // First non-miss of the rematch game, fired within the quick-draw
+        // window: base 100 + first blood 150 + quick draw 50.
         score: {
-          points: 250,
+          points: 300,
           streak: 1,
           multiplier: 1,
-          total: 250,
-          bonuses: [{ bonus: "first-blood", points: 150 }],
+          total: 300,
+          bonuses: [
+            { bonus: "first-blood", points: 150 },
+            { bonus: "quick-draw", points: 50 },
+          ],
         },
       },
     ]);

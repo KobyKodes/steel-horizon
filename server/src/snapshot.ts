@@ -99,8 +99,17 @@ export function buildSnapshot(
         : null,
     leaderboard: gameOver ? room.leaderboard : null,
     yourLeaderboardRank: gameOver
-      ? (room.leaderboardRanks[viewerSessionId] ?? null)
+      ? (room.leaderboardRanks[viewerSessionId]?.allTimeRank ?? null)
       : null,
+    weeklyLeaderboard: gameOver ? room.weeklyLeaderboard : null,
+    yourWeeklyRank: gameOver
+      ? (room.leaderboardRanks[viewerSessionId]?.weeklyRank ?? null)
+      : null,
+    winStreak: {
+      you: room.winStreaks[viewerSessionId] ?? 0,
+      opponent:
+        opponent === undefined ? 0 : (room.winStreaks[opponent.sessionId] ?? 0),
+    },
     rematch: {
       youRequested: game?.rematchRequests.has(viewerSessionId) ?? false,
       opponentRequested:

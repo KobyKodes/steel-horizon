@@ -1,0 +1,52 @@
+/* Call-your-shot toggle — the double-or-nothing stake. Class names all
+   prefixed `call-shot` per the 03-03 unique-class-name rule. Idle it's a
+   quiet holstered chip; armed it goes kill-red and throbs until the shot
+   flies. */
+
+.call-shot {
+  align-self: center;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+  color: #9fc3e8;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #5c6e85;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  cursor: pointer;
+  transform: rotate(-1deg);
+}
+
+.call-shot:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.call-shot--armed {
+  color: #fff;
+  background: #ff2e3f;
+  border-color: #10131a;
+  animation: call-shot-throb 0.7s ease-in-out infinite;
+}
+
+@keyframes call-shot-throb {
+  0%,
+  100% {
+    box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  }
+  50% {
+    box-shadow:
+      3px 3px 0 rgba(16, 19, 26, 0.55),
+      0 0 12px #ff2e3f;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .call-shot--armed {
+    animation: none;
+  }
+}

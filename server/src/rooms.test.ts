@@ -45,7 +45,9 @@ describe("InMemoryRoomStore", () => {
     game: null,
     scoresSubmitted: false,
     leaderboard: null,
+    weeklyLeaderboard: null,
     leaderboardRanks: {},
+    winStreaks: {},
   });
 
   it("create/get round-trips a room by code", () => {

@@ -206,8 +206,14 @@ export function createSocketServer(
         shipsSunk: summary.shipsSunk,
         date,
       });
+      // Rematch win streaks: winner climbs, loser resets.
+      room.winStreaks[player.sessionId] =
+        game.winner === player.sessionId
+          ? (room.winStreaks[player.sessionId] ?? 0) + 1
+          : 0;
     }
     room.leaderboard = highscores.top();
+    room.weeklyLeaderboard = highscores.topWeekly();
   }
 
   /** The room the session is seated in, if any. */
@@ -302,7 +308,9 @@ export function createSocketServer(
       game: null,
       scoresSubmitted: false,
       leaderboard: null,
+      weeklyLeaderboard: null,
       leaderboardRanks: {},
+      winStreaks: {},
     };
     rooms.create(room);
 
@@ -482,7 +490,9 @@ export function createSocketServer(
         return fail(socket, "OUT_OF_BOUNDS");
       }
 
-      const result = engineFire(room.game, sessionId, target);
+      const result = engineFire(room.game, sessionId, target, {
+        calledShot: payload?.calledShot === true,
+      });
       if (!result.ok) {
         return fail(socket, result.code);
       }
@@ -533,7 +543,9 @@ export function createSocketServer(
         room.game = result.game;
         room.scoresSubmitted = false;
         room.leaderboard = null;
+        room.weeklyLeaderboard = null;
         room.leaderboardRanks = {};
+        // winStreaks survive the rematch — that's the whole point of them.
         for (const player of room.players) player.ready = false;
       }
       syncRoomPhase(room);

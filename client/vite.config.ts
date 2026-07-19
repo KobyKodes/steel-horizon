@@ -9,6 +9,7 @@ export default defineConfig({
     allowedHosts: [".ngrok-free.dev"],
     proxy: {
       "/health": "http://localhost:3001",
+      "/leaderboard": "http://localhost:3001",
       "/socket.io": {
         target: "http://localhost:3001",
         ws: true,

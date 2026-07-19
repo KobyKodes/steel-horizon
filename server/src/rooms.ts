@@ -22,12 +22,18 @@ export interface Room {
   /**
    * Leaderboard state for THIS game's gameover, written by socket.ts when
    * the game ends (scores submitted exactly once per game) and reset on
-   * rematch. `leaderboard` is the post-submission global top list;
-   * `leaderboardRanks` is each player's 0-based rank if they placed.
+   * rematch. `leaderboard`/`weeklyLeaderboard` are the post-submission
+   * global top lists; `leaderboardRanks` is each player's placement.
    */
   scoresSubmitted: boolean;
   leaderboard: HighScoreEntry[] | null;
-  leaderboardRanks: Record<string, number | null>;
+  weeklyLeaderboard: HighScoreEntry[] | null;
+  leaderboardRanks: Record<
+    string,
+    { allTimeRank: number | null; weeklyRank: number | null }
+  >;
+  /** Consecutive wins per session across this room's rematches. */
+  winStreaks: Record<string, number>;
 }
 
 export interface RoomStore {

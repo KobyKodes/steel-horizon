@@ -13,6 +13,7 @@ import {
   finalizeScore,
   initialScoreState,
   isFleetDestroyed,
+  QUICK_DRAW_WINDOW_MS,
   resolveShot,
   validateFleetPlacement,
   type Coordinate,
@@ -51,6 +52,10 @@ export interface Game {
   rematchRequests: Set<string>;
   /** Injected randomness for coin flips (tests override). */
   rng: () => number;
+  /** Injected clock for quick-draw timing (tests override). */
+  now: () => number;
+  /** When the current turn began (ms clock); null outside battle. */
+  turnStartedAt: number | null;
 }
 
 export type Rejection = { ok: false; code: ErrorCode };
@@ -73,6 +78,7 @@ export type ForfeitResult = { ok: true } | Rejection;
 export function createGame(
   playerIds: [string, string],
   rng: () => number,
+  now: () => number = Date.now,
 ): Game {
   return {
     playerIds,
@@ -87,6 +93,8 @@ export function createGame(
     finalScores: null,
     rematchRequests: new Set(),
     rng,
+    now,
+    turnStartedAt: null,
   };
 }
 
@@ -130,6 +138,7 @@ export function placeFleet(
     game.phase = "battle";
     game.currentPlayer =
       game.rng() < 0.5 ? game.playerIds[0] : game.playerIds[1];
+    game.turnStartedAt = game.now();
   }
   return { ok: true, battleStarted: bothPlaced };
 }
@@ -143,6 +152,7 @@ export function fire(
   game: Game,
   playerId: string,
   target: Coordinate,
+  options: { calledShot?: boolean } = {},
 ): FireResult {
   if (!isParticipant(game, playerId)) {
     return { ok: false, code: "NOT_IN_ROOM" };
@@ -170,7 +180,15 @@ export function fire(
   }
 
   // Arcade scoring rides the same resolution. First blood = no non-miss
-  // shot yet by EITHER player; priorTargets feed perfect-kill detection.
+  // shot yet by EITHER player; priorTargets feed perfect-kill detection;
+  // quick draw times against the turn's start; comeback = trailing on
+  // ships lost when the shot was taken.
+  const shipsLost = game.players[opponentId]!.shots.filter(
+    (shot) => shot.result === "sunk",
+  ).length;
+  const shipsSunk = shooter.shots.filter(
+    (shot) => shot.result === "sunk",
+  ).length;
   const scored = applyShot(
     game.players[playerId]!.score,
     resolution.result === "sunk"
@@ -187,6 +205,11 @@ export function fire(
           game.players[id]!.shots.every((shot) => shot.result === "miss"),
         ),
       priorTargets: previousTargets,
+      quickDraw:
+        game.turnStartedAt !== null &&
+        game.now() - game.turnStartedAt <= QUICK_DRAW_WINDOW_MS,
+      calledShot: options.calledShot === true,
+      comeback: shipsLost > shipsSunk,
     },
   );
   game.players[playerId]!.score = scored.state;
@@ -210,6 +233,7 @@ export function fire(
   if (destroyed) {
     game.phase = "gameover";
     game.currentPlayer = null;
+    game.turnStartedAt = null;
     game.winner = playerId;
     game.winReason = "all-ships-sunk";
     finalizeGameScores(game);
@@ -217,6 +241,7 @@ export function fire(
   }
 
   game.currentPlayer = opponentId;
+  game.turnStartedAt = game.now();
   return { ok: true, record, gameOver: false, score: scored.event };
 }
 
@@ -257,7 +282,7 @@ export function requestRematch(game: Game, playerId: string): RematchResult {
 
   game.rematchRequests.add(playerId);
   if (game.playerIds.every((id) => game.rematchRequests.has(id))) {
-    return { ok: true, game: createGame(game.playerIds, game.rng) };
+    return { ok: true, game: createGame(game.playerIds, game.rng, game.now) };
   }
   return { ok: true, game: null };
 }
@@ -277,6 +302,7 @@ export function forfeit(game: Game, playerId: string): ForfeitResult {
 
   game.phase = "gameover";
   game.currentPlayer = null;
+  game.turnStartedAt = null;
   game.winner = opponentOf(game, playerId);
   game.winReason = "forfeit";
   finalizeGameScores(game);

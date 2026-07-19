@@ -90,6 +90,24 @@
   background: #ff7a1a;
 }
 
+.score-popup-bonus--comeback {
+  background: #58d68d;
+}
+
+.score-popup-bonus--called-shot {
+  background: #f4f7ff;
+}
+
+/* Busted called shot: the digits bleed red and the tag inverts. */
+.score-popup--penalty .score-popup-points {
+  color: #ff2e3f;
+}
+
+.score-popup--penalty .score-popup-bonus--called-shot {
+  background: #ff2e3f;
+  color: #fff;
+}
+
 /* Launch: kicked up from below, overshooting with a counter-tumble. */
 @keyframes score-popup-launch {
   0% {

@@ -4,12 +4,16 @@
 
 import {
   cellsForPlacement,
+  MEDAL_LABELS,
+  rankForScore,
   type FleetPlacement,
+  type HighScoreEntry,
   type ScoreSummary,
   type ShotRecord,
 } from "@steel-horizon/shared";
 import { useGameStore } from "../store";
 import { GameSceneAdapter } from "../scene/GameSceneAdapter";
+import LeaderboardPanel from "../components/LeaderboardPanel";
 import "./battle.css";
 import "./postgameScore.css";
 
@@ -62,18 +66,23 @@ function leave(): void {
 
 /**
  * Arcade score tally: the final breakdown stamps in line by line (battle
- * points, then each earned bonus, then the total), followed by the global
- * top-20 leaderboard with the viewer's fresh entry highlighted. Row
- * cadence is pure CSS animation-delay stepping — no timers.
+ * points, each earned bonus, the total, then rank + medals), followed by
+ * the global leaderboard — switchable between all-time and this week —
+ * with the viewer's fresh entry highlighted. Row cadence is pure CSS
+ * animation-delay stepping — no timers.
  */
 function ScoreTally({
   summary,
   leaderboard,
+  weeklyLeaderboard,
   yourRank,
+  yourWeeklyRank,
 }: {
   summary: ScoreSummary;
-  leaderboard: { name: string; score: number; accuracy: number; maxMultiplier: number }[] | null;
+  leaderboard: HighScoreEntry[] | null;
+  weeklyLeaderboard: HighScoreEntry[] | null;
   yourRank: number | null;
+  yourWeeklyRank: number | null;
 }) {
   const rows: { label: string; value: number }[] = [
     { label: "Battle points", value: summary.battlePoints },
@@ -88,7 +97,8 @@ function ScoreTally({
 
   const stepSeconds = 0.35;
   const totalDelay = rows.length * stepSeconds + 0.2;
-  const boardDelay = totalDelay + 0.6;
+  const rankDelay = totalDelay + 0.5;
+  const boardDelay = rankDelay + (summary.medals.length > 0 ? 0.6 : 0.3);
 
   return (
     <div className="pg-score">
@@ -114,51 +124,35 @@ function ScoreTally({
             {summary.total.toLocaleString()}
           </span>
         </div>
+        <div
+          className="pg-score-rank"
+          style={{ animationDelay: `${rankDelay}s` }}
+        >
+          Rank — {rankForScore(summary.total)}
+        </div>
+        {summary.medals.length > 0 && (
+          <div className="pg-score-medals">
+            {summary.medals.map((medal, i) => (
+              <span
+                key={medal}
+                className={`pg-score-medal pg-score-medal--${medal}`}
+                style={{ animationDelay: `${rankDelay + 0.25 + i * 0.15}s` }}
+              >
+                {MEDAL_LABELS[medal]}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {leaderboard && leaderboard.length > 0 && (
-        <div
-          className="pg-score-board"
-          style={{ animationDelay: `${boardDelay}s` }}
-        >
-          {yourRank !== null && (
-            <div className="pg-score-newhigh">
-              {yourRank === 0 ? "NEW HIGH SCORE!" : "YOU MADE THE BOARD!"}
-            </div>
-          )}
-          <h3>All-time top {leaderboard.length}</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Captain</th>
-                <th>Score</th>
-                <th>Acc</th>
-                <th>Chain</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((entry, i) => (
-                <tr
-                  key={`${entry.name}-${entry.score}-${i}`}
-                  className={i === yourRank ? "pg-score-you" : undefined}
-                >
-                  <td>{i + 1}</td>
-                  <td>
-                    {entry.name}
-                    {i === yourRank && (
-                      <span className="pg-score-you-tag">you</span>
-                    )}
-                  </td>
-                  <td>{entry.score.toLocaleString()}</td>
-                  <td>{entry.accuracy}%</td>
-                  <td>×{entry.maxMultiplier}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <LeaderboardPanel
+        allTime={leaderboard}
+        weekly={weeklyLeaderboard}
+        yourAllTimeRank={yourRank}
+        yourWeeklyRank={yourWeeklyRank}
+        showPlacement
+        delaySeconds={boardDelay}
+      />
     </div>
   );
 }
@@ -181,6 +175,9 @@ export default function PostGameScreen() {
     finalScores,
     leaderboard,
     yourLeaderboardRank,
+    weeklyLeaderboard,
+    yourWeeklyRank,
+    winStreak,
   } = snapshot;
 
   const victory = winner === "you";
@@ -191,6 +188,11 @@ export default function PostGameScreen() {
     <div className="screen postgame-screen">
       <div className={victory ? "result-banner victory" : "result-banner defeat"}>
         {victory ? "VICTORY" : "DEFEAT"}
+        {victory && winStreak.you >= 2 && (
+          <span className="pg-score-streak-tag">
+            {winStreak.you} wins in a row!
+          </span>
+        )}
         {winReason && (
           <span className="win-reason">
             {WIN_REASON_TEXT[winReason] ?? winReason}
@@ -225,7 +227,9 @@ export default function PostGameScreen() {
         <ScoreTally
           summary={finalScores.you}
           leaderboard={leaderboard}
+          weeklyLeaderboard={weeklyLeaderboard}
           yourRank={yourLeaderboardRank}
+          yourWeeklyRank={yourWeeklyRank}
         />
       )}
 

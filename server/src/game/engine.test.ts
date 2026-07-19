@@ -162,13 +162,17 @@ describe("fire", () => {
   it("resolves a hit and STILL alternates the turn (no extra turn on hit)", () => {
     const game = makeBattle();
     const result = fire(game, ALICE, { col: 5, row: 5 });
-    // First non-miss of the match: base 100 + first blood 150.
+    // First non-miss of the match, fired instantly: base 100 + first
+    // blood 150 + quick draw 50.
     const hitEvent = {
-      points: 250,
+      points: 300,
       streak: 1,
       multiplier: 1,
-      total: 250,
-      bonuses: [{ bonus: "first-blood", points: 150 }],
+      total: 300,
+      bonuses: [
+        { bonus: "first-blood", points: 150 },
+        { bonus: "quick-draw", points: 50 },
+      ],
     };
     expect(result).toEqual({
       ok: true,
@@ -184,14 +188,15 @@ describe("fire", () => {
     expect(fire(game, ALICE, { col: 5, row: 9 }).ok).toBe(true); // destroyer 1/2
     expect(fire(game, BOB, { col: 9, row: 9 }).ok).toBe(true); // miss
     const result = fire(game, ALICE, { col: 6, row: 9 }); // destroyer 2/2
-    // Streak 2 at x1: base 100 + sink 250 + perfect kill 250 (both shots
-    // landed on the destroyer), on top of the 250 banked by first blood.
+    // Streak 2 at x1, fired instantly: base 100 + quick draw 50 + sink
+    // 250 + perfect kill 250, on top of the 300 banked by the first hit.
     const sunkEvent = {
-      points: 600,
+      points: 650,
       streak: 2,
       multiplier: 1,
-      total: 850,
+      total: 950,
       bonuses: [
+        { bonus: "quick-draw", points: 50 },
         { bonus: "sink", points: 250 },
         { bonus: "perfect-kill", points: 250 },
       ],

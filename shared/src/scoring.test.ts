@@ -3,19 +3,30 @@ import type { Coordinate } from "./board.js";
 import {
   applyShot,
   BASE_HIT_POINTS,
+  CALLED_SHOT_PENALTY,
+  COMEBACK_BONUS,
   finalizeScore,
   FIRST_BLOOD_BONUS,
   FLAWLESS_BONUS,
   initialScoreState,
   isPerfectKill,
   multiplierForStreak,
+  QUICK_DRAW_BONUS,
+  rankForScore,
   SINK_BONUS_BY_LENGTH,
   VICTORY_BONUS,
+  type FinalShot,
   type ScoredShot,
   type ScoreState,
 } from "./scoring.js";
 
-const NO_BONUS_CONTEXT = { firstHitOfMatch: false, priorTargets: [] };
+const NO_BONUS_CONTEXT = {
+  firstHitOfMatch: false,
+  priorTargets: [],
+  quickDraw: false,
+  calledShot: false,
+  comeback: false,
+};
 
 function hitTimes(count: number, start = initialScoreState()) {
   let state = start;
@@ -97,12 +108,83 @@ describe("applyShot", () => {
     const { event } = applyShot(
       initialScoreState(),
       { result: "hit" },
-      { firstHitOfMatch: true, priorTargets: [] },
+      { ...NO_BONUS_CONTEXT, firstHitOfMatch: true },
     );
     expect(event.bonuses).toContainEqual({
       bonus: "first-blood",
       points: FIRST_BLOOD_BONUS,
     });
+  });
+
+  it("awards quick draw on hits fired inside the window", () => {
+    const { event } = applyShot(
+      initialScoreState(),
+      { result: "hit" },
+      { ...NO_BONUS_CONTEXT, quickDraw: true },
+    );
+    expect(event.bonuses).toContainEqual({
+      bonus: "quick-draw",
+      points: QUICK_DRAW_BONUS,
+    });
+    expect(event.points).toBe(BASE_HIT_POINTS + QUICK_DRAW_BONUS);
+  });
+
+  it("pays the comeback bonus only on a sink", () => {
+    const hit = applyShot(
+      initialScoreState(),
+      { result: "hit" },
+      { ...NO_BONUS_CONTEXT, comeback: true },
+    );
+    expect(hit.event.bonuses).toEqual([]);
+
+    const sunk = applyShot(
+      initialScoreState(),
+      { result: "sunk", sunkShip: "destroyer", sunkShipCells: [] },
+      { ...NO_BONUS_CONTEXT, comeback: true },
+    );
+    expect(sunk.event.bonuses).toContainEqual({
+      bonus: "comeback",
+      points: COMEBACK_BONUS,
+    });
+  });
+
+  it("doubles the whole shot on a called hit", () => {
+    const { event } = applyShot(
+      initialScoreState(),
+      { result: "hit" },
+      { ...NO_BONUS_CONTEXT, calledShot: true },
+    );
+    expect(event.bonuses).toContainEqual({
+      bonus: "called-shot",
+      points: BASE_HIT_POINTS,
+    });
+    expect(event.points).toBe(BASE_HIT_POINTS * 2);
+  });
+
+  it("a called miss costs the penalty on top of the chain reset", () => {
+    const banked: ScoreState = {
+      points: 1000,
+      streak: 4,
+      multiplier: 2,
+      maxMultiplier: 2,
+    };
+    const { state, event } = applyShot(
+      banked,
+      { result: "miss" },
+      { ...NO_BONUS_CONTEXT, calledShot: true },
+    );
+    expect(event.points).toBe(-CALLED_SHOT_PENALTY);
+    expect(state.points).toBe(1000 - CALLED_SHOT_PENALTY);
+    expect(state.streak).toBe(0);
+  });
+
+  it("a called miss never drives banked points below zero", () => {
+    const { state } = applyShot(
+      { points: 50, streak: 0, multiplier: 1, maxMultiplier: 1 },
+      { result: "miss" },
+      { ...NO_BONUS_CONTEXT, calledShot: true },
+    );
+    expect(state.points).toBe(0);
   });
 
   it("doubles the sink bonus on a perfect kill", () => {
@@ -113,7 +195,7 @@ describe("applyShot", () => {
     const { event } = applyShot(
       hitTimes(1).state,
       { result: "sunk", sunkShip: "destroyer", sunkShipCells: cells },
-      { firstHitOfMatch: false, priorTargets: [cells[0]!] },
+      { ...NO_BONUS_CONTEXT, priorTargets: [cells[0]!] },
     );
     const sink = SINK_BONUS_BY_LENGTH[2]!;
     expect(event.bonuses).toContainEqual({ bonus: "sink", points: sink });
@@ -184,5 +266,64 @@ describe("finalizeScore", () => {
     });
     expect(summary.accuracy).toBe(0);
     expect(summary.total).toBe(VICTORY_BONUS);
+    expect(summary.medals).toEqual([]);
+  });
+
+  it("awards medals from the recorded shot bonuses", () => {
+    const perfectKill: FinalShot = {
+      result: "sunk",
+      sunkShip: "destroyer",
+      score: {
+        points: 0,
+        streak: 1,
+        multiplier: 1,
+        total: 0,
+        bonuses: [
+          { bonus: "sink", points: 250 },
+          { bonus: "perfect-kill", points: 250 },
+        ],
+      },
+    };
+    const firstBlood: FinalShot = {
+      result: "hit",
+      score: {
+        points: 0,
+        streak: 1,
+        multiplier: 1,
+        total: 0,
+        bonuses: [{ bonus: "first-blood", points: 150 }],
+      },
+    };
+    // 10 shots, all hits (100% accuracy), 3 perfect kills, first blood,
+    // max multiplier at the critical tier, flawless win: every medal.
+    const shotList: FinalShot[] = [
+      firstBlood,
+      perfectKill,
+      perfectKill,
+      perfectKill,
+      ...Array.from({ length: 6 }, (): FinalShot => ({ result: "hit" })),
+    ];
+    const summary = finalizeScore(
+      { points: 5000, streak: 10, multiplier: 8, maxMultiplier: 8 },
+      shotList,
+      { won: true, flawless: true },
+    );
+    expect(summary.medals).toEqual([
+      "sharpshooter",
+      "executioner",
+      "untouchable",
+      "first-strike",
+      "chain-master",
+    ]);
+  });
+});
+
+describe("rankForScore", () => {
+  it("maps totals to the highest rung reached", () => {
+    expect(rankForScore(0)).toBe("Deck Swabber");
+    expect(rankForScore(3999)).toBe("Deck Swabber");
+    expect(rankForScore(4000)).toBe("Ensign");
+    expect(rankForScore(23000)).toBe("Captain");
+    expect(rankForScore(99999)).toBe("Fleet Admiral");
   });
 });

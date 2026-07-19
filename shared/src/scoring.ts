@@ -26,6 +26,16 @@ export const FLAWLESS_BONUS = 750;
 /** Accuracy bonus: accuracy% × this, so a perfect 100% pays 1000. */
 export const ACCURACY_BONUS_PER_PERCENT = 10;
 
+/** Quick draw: hit within this window of your turn starting. */
+export const QUICK_DRAW_BONUS = 50;
+export const QUICK_DRAW_WINDOW_MS = 5000;
+
+/** Comeback: a sink made while trailing on ships lost. */
+export const COMEBACK_BONUS = 300;
+
+/** Called shot: a hit pays double; a miss costs this on top of the reset. */
+export const CALLED_SHOT_PENALTY = 200;
+
 /** Live per-player score, carried in snapshots during battle. */
 export interface ScoreState {
   points: number;
@@ -36,7 +46,13 @@ export interface ScoreState {
   maxMultiplier: number;
 }
 
-export type ScoreBonusKind = "first-blood" | "sink" | "perfect-kill";
+export type ScoreBonusKind =
+  | "first-blood"
+  | "sink"
+  | "perfect-kill"
+  | "quick-draw"
+  | "comeback"
+  | "called-shot";
 
 export interface ScoreBonusAward {
   bonus: ScoreBonusKind;
@@ -67,7 +83,59 @@ export interface ScoreSummary {
   accuracy: number;
   maxMultiplier: number;
   shipsSunk: number;
+  /** Achievement medals earned this game (see MEDAL_LABELS). */
+  medals: MedalId[];
 }
+
+// --- Rank titles: what a final score makes you -------------------------
+
+export interface RankTitle {
+  minScore: number;
+  title: string;
+}
+
+/** Ascending by minScore; rankForScore picks the highest rung reached. */
+export const RANK_TITLES: RankTitle[] = [
+  { minScore: 0, title: "Deck Swabber" },
+  { minScore: 4000, title: "Ensign" },
+  { minScore: 8000, title: "Lieutenant" },
+  { minScore: 14000, title: "Commander" },
+  { minScore: 22000, title: "Captain" },
+  { minScore: 32000, title: "Commodore" },
+  { minScore: 42000, title: "Admiral" },
+  { minScore: 52000, title: "Fleet Admiral" },
+];
+
+export function rankForScore(score: number): string {
+  let rank = RANK_TITLES[0]!.title;
+  for (const rung of RANK_TITLES) {
+    if (score >= rung.minScore) rank = rung.title;
+  }
+  return rank;
+}
+
+// --- Medals: per-game achievements --------------------------------------
+
+export type MedalId =
+  | "sharpshooter"
+  | "executioner"
+  | "untouchable"
+  | "first-strike"
+  | "chain-master";
+
+export const MEDAL_LABELS: Record<MedalId, string> = {
+  sharpshooter: "Sharpshooter",
+  executioner: "Executioner",
+  untouchable: "Untouchable",
+  "first-strike": "First Strike",
+  "chain-master": "Chain Master",
+};
+
+export const SHARPSHOOTER_MIN_ACCURACY = 80;
+export const SHARPSHOOTER_MIN_SHOTS = 10;
+export const EXECUTIONER_PERFECT_KILLS = 3;
+/** Chain Master = reaching the critical heat tier (×7+). */
+export const CHAIN_MASTER_MULTIPLIER = 7;
 
 /** One row of the persisted all-players leaderboard. */
 export interface HighScoreEntry {
@@ -106,6 +174,12 @@ export interface ShotScoreContext {
   firstHitOfMatch: boolean;
   /** This shooter's previous targets, in firing order (for perfect kill). */
   priorTargets: Coordinate[];
+  /** Fired within QUICK_DRAW_WINDOW_MS of the turn starting. */
+  quickDraw: boolean;
+  /** Shooter declared this shot (double-or-nothing stake). */
+  calledShot: boolean;
+  /** Shooter is trailing on ships lost (comeback pay on a sink). */
+  comeback: boolean;
 }
 
 /**
@@ -139,15 +213,26 @@ export function applyShot(
   context: ShotScoreContext,
 ): { state: ScoreState; event: ScoreEvent } {
   if (shot.result === "miss") {
-    const next: ScoreState = { ...state, streak: 0, multiplier: 1 };
+    // A called miss is the "nothing" side of double-or-nothing: the chain
+    // reset PLUS a flat penalty (banked points never go below zero).
+    const penalty = context.calledShot ? CALLED_SHOT_PENALTY : 0;
+    const bonuses: ScoreBonusAward[] = context.calledShot
+      ? [{ bonus: "called-shot", points: -penalty }]
+      : [];
+    const next: ScoreState = {
+      ...state,
+      points: Math.max(0, state.points - penalty),
+      streak: 0,
+      multiplier: 1,
+    };
     return {
       state: next,
       event: {
-        points: 0,
+        points: next.points - state.points,
         streak: 0,
         multiplier: 1,
         total: next.points,
-        bonuses: [],
+        bonuses,
       },
     };
   }
@@ -160,6 +245,11 @@ export function applyShot(
   if (context.firstHitOfMatch) {
     bonuses.push({ bonus: "first-blood", points: FIRST_BLOOD_BONUS });
     points += FIRST_BLOOD_BONUS;
+  }
+
+  if (context.quickDraw) {
+    bonuses.push({ bonus: "quick-draw", points: QUICK_DRAW_BONUS });
+    points += QUICK_DRAW_BONUS;
   }
 
   if (
@@ -176,6 +266,16 @@ export function applyShot(
       bonuses.push({ bonus: "perfect-kill", points: sinkBonus });
       points += sinkBonus;
     }
+    if (context.comeback) {
+      bonuses.push({ bonus: "comeback", points: COMEBACK_BONUS });
+      points += COMEBACK_BONUS;
+    }
+  }
+
+  if (context.calledShot) {
+    // Called and landed: the whole shot pays double.
+    bonuses.push({ bonus: "called-shot", points });
+    points *= 2;
   }
 
   const next: ScoreState = {
@@ -196,14 +296,18 @@ export interface FinalizeContext {
   flawless: boolean;
 }
 
+/** A finished shot with its ScoreEvent attached (ShotRecord fits this). */
+export type FinalShot = ScoredShot & { score?: ScoreEvent };
+
 /**
  * Fold end-of-game bonuses into a final summary. `shots` is the player's
  * full shot history (accuracy + ships sunk are derived from it, matching
- * the PostGame screen's client-side stats).
+ * the PostGame screen's client-side stats); medals additionally read each
+ * shot's recorded ScoreEvent bonuses.
  */
 export function finalizeScore(
   state: ScoreState,
-  shots: ScoredShot[],
+  shots: FinalShot[],
   context: FinalizeContext,
 ): ScoreSummary {
   const hits = shots.filter((shot) => shot.result !== "miss").length;
@@ -212,6 +316,22 @@ export function finalizeScore(
   const accuracyBonus = accuracy * ACCURACY_BONUS_PER_PERCENT;
   const victoryBonus = context.won ? VICTORY_BONUS : 0;
   const flawlessBonus = context.flawless ? FLAWLESS_BONUS : 0;
+
+  const bonusCount = (kind: ScoreBonusKind): number =>
+    shots.filter((shot) =>
+      shot.score?.bonuses.some((award) => award.bonus === kind),
+    ).length;
+  const medals: MedalId[] = [];
+  if (shots.length >= SHARPSHOOTER_MIN_SHOTS && accuracy >= SHARPSHOOTER_MIN_ACCURACY) {
+    medals.push("sharpshooter");
+  }
+  if (bonusCount("perfect-kill") >= EXECUTIONER_PERFECT_KILLS) {
+    medals.push("executioner");
+  }
+  if (flawlessBonus > 0) medals.push("untouchable");
+  if (bonusCount("first-blood") > 0) medals.push("first-strike");
+  if (state.maxMultiplier >= CHAIN_MASTER_MULTIPLIER) medals.push("chain-master");
+
   return {
     battlePoints: state.points,
     victoryBonus,
@@ -221,5 +341,6 @@ export function finalizeScore(
     accuracy,
     maxMultiplier: state.maxMultiplier,
     shipsSunk: shots.filter((shot) => shot.result === "sunk").length,
+    medals,
   };
 }

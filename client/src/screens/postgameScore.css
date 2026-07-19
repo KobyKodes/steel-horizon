@@ -64,7 +64,105 @@
   color: #ffd21f;
 }
 
+/* Rank title — stamped in after the total, like dog tags issued. */
+.pg-score-rank {
+  align-self: center;
+  margin-top: 0.2rem;
+  padding: 0.25rem 0.9rem;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #10131a;
+  background: #9fc3e8;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(1deg);
+  animation: pg-score-stamp 0.32s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+/* Medal badges — slapped on one after another. */
+.pg-score-medals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.pg-score-medal {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 rgba(16, 19, 26, 0.55);
+  animation: pg-score-stamp 0.28s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.pg-score-medal--untouchable {
+  background: #58d68d;
+}
+
+.pg-score-medal--chain-master {
+  background: #ff7a1a;
+}
+
+.pg-score-medal--executioner {
+  background: #ff2e3f;
+  color: #fff;
+}
+
+/* Win-streak tag inside the victory banner. */
+.pg-score-streak-tag {
+  display: inline-block;
+  margin-left: 0.7rem;
+  padding: 0.12em 0.5em;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-size: 0.55em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3em;
+  transform: rotate(-2deg);
+  animation: pg-score-stamp 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) 0.4s both;
+}
+
 /* --- Leaderboard ---------------------------------------------------- */
+
+.pg-score-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.pg-score-tab {
+  font-family: inherit;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.7rem;
+  color: #5c6e85;
+  background: transparent;
+  border: 2px solid #5c6e85;
+  border-radius: 0.3rem;
+  cursor: pointer;
+}
+
+.pg-score-tab--on {
+  color: #10131a;
+  background: #ffd21f;
+  border-color: #10131a;
+  box-shadow: 2px 2px 0 rgba(16, 19, 26, 0.55);
+}
 
 .pg-score-board {
   width: 100%;

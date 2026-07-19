@@ -13,7 +13,11 @@ import {
   type GameServer,
   type SocketServerDeps,
 } from "./socket.js";
-import { JsonHighScoreStore, resolveHighScorePath } from "./highscores.js";
+import {
+  InMemoryHighScoreStore,
+  JsonHighScoreStore,
+  resolveHighScorePath,
+} from "./highscores.js";
 
 export interface ServerHandles {
   app: express.Express;
@@ -24,8 +28,18 @@ export interface ServerHandles {
 export function createServer(deps: SocketServerDeps = {}): ServerHandles {
   const app = express();
 
+  // One store instance serves both the socket layer (gameover submissions)
+  // and the public HTTP read below.
+  const highscores = deps.highscores ?? new InMemoryHighScoreStore();
+
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", gridSize: GRID_SIZE });
+  });
+
+  // Public read-only leaderboards, so the landing page can show the boards
+  // without being in a room. Same shapes the gameover snapshot carries.
+  app.get("/leaderboard", (_req, res) => {
+    res.json({ allTime: highscores.top(), weekly: highscores.topWeekly() });
   });
 
   // Production static serving (07-01): when the built client exists
@@ -47,7 +61,7 @@ export function createServer(deps: SocketServerDeps = {}): ServerHandles {
   }
 
   const httpServer = http.createServer(app);
-  const io = createSocketServer(httpServer, deps);
+  const io = createSocketServer(httpServer, { ...deps, highscores });
 
   return { app, httpServer, io };
 }

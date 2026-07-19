@@ -3,9 +3,11 @@
 // quick match. Reads ?code= from the URL to prefill the join input.
 
 import { useEffect, useRef, useState } from "react";
-import type { ErrorCode } from "@steel-horizon/shared";
+import type { ErrorCode, HighScoreEntry } from "@steel-horizon/shared";
 import { getStoredName } from "../socket";
 import { useGameStore } from "../store";
+import LeaderboardPanel from "../components/LeaderboardPanel";
+import "../components/leaderboardOverlay.css";
 
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_CODE_LENGTH = 6;
@@ -16,6 +18,78 @@ const ERROR_MESSAGES: Partial<Record<ErrorCode, string>> = {
   INVALID_NAME: "Please enter a valid name.",
   ALREADY_JOINED: "You are already in a game.",
 };
+
+interface LeaderboardData {
+  allTime: HighScoreEntry[];
+  weekly: HighScoreEntry[];
+}
+
+/**
+ * "View leaderboards" overlay — same tabbed board as the PostGame screen,
+ * fed by the public GET /leaderboard endpoint (no room required).
+ * Fetches on every open so the boards are always current.
+ */
+function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
+  const [data, setData] = useState<LeaderboardData | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/leaderboard")
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json() as Promise<LeaderboardData>;
+      })
+      .then((boards) => {
+        if (!cancelled) setData(boards);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="lb-overlay" onClick={onClose}>
+      <div
+        className="lb-overlay-card"
+        role="dialog"
+        aria-label="Leaderboards"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="lb-overlay-close"
+          aria-label="Close leaderboards"
+          onClick={onClose}
+        >
+          &times;
+        </button>
+        {failed && (
+          <div className="lb-overlay-status">
+            Couldn&rsquo;t load the leaderboards. Close this and try again.
+          </div>
+        )}
+        {!failed && data === null && (
+          <div className="lb-overlay-status">Loading&hellip;</div>
+        )}
+        {data !== null && (
+          <LeaderboardPanel allTime={data.allTime} weekly={data.weekly} />
+        )}
+      </div>
+    </div>
+  );
+}
 
 function filterCode(raw: string): string {
   return raw
@@ -39,6 +113,7 @@ export default function LandingScreen() {
     filterCode(new URLSearchParams(location.search).get("code") ?? ""),
   );
   const [waitingForMatch, setWaitingForMatch] = useState(false);
+  const [showLeaderboards, setShowLeaderboards] = useState(false);
   const codeInputRef = useRef<HTMLInputElement>(null);
 
   // Shareable-link prefill: focus the join-code input when ?code= is present.
@@ -130,6 +205,18 @@ export default function LandingScreen() {
 
       {waitingForMatch && !lastError && (
         <p className="waiting">Waiting for an opponent&hellip;</p>
+      )}
+
+      <button
+        type="button"
+        className="lb-open"
+        onClick={() => setShowLeaderboards(true)}
+      >
+        View leaderboards
+      </button>
+
+      {showLeaderboards && (
+        <LeaderboardOverlay onClose={() => setShowLeaderboards(false)} />
       )}
     </div>
   );

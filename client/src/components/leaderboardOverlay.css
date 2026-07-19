@@ -1,0 +1,79 @@
+/* Landing-page leaderboard overlay. Class names all prefixed `lb-overlay`
+   per the 03-03 unique-class-name rule; the board inside is the shared
+   LeaderboardPanel (pg-score classes). */
+
+.lb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(4, 7, 12, 0.78);
+}
+
+.lb-overlay-card {
+  position: relative;
+  width: min(34rem, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  text-transform: uppercase;
+  animation: lb-overlay-stamp 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.lb-overlay-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 1;
+  width: 1.8rem;
+  height: 1.8rem;
+  font-family: inherit;
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 2px 2px 0 rgba(16, 19, 26, 0.55);
+  cursor: pointer;
+}
+
+.lb-overlay-status {
+  padding: 1rem;
+  text-align: center;
+  color: #9fc3e8;
+  letter-spacing: 0.1em;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+}
+
+/* Landing button that opens the overlay — quiet chip, comic voice. */
+.lb-open {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@keyframes lb-overlay-stamp {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-overlay-card {
+    animation: none;
+  }
+}

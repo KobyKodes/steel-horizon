@@ -18,7 +18,16 @@ const BONUS_LABELS: Record<ScoreBonusKind, string> = {
   "first-blood": "FIRST BLOOD!",
   sink: "SINK BONUS",
   "perfect-kill": "PERFECT KILL!",
+  "quick-draw": "QUICK DRAW!",
+  comeback: "COMEBACK!",
+  "called-shot": "CALLED SHOT ×2",
 };
+
+function bonusLabel(bonus: ScoreBonusKind, points: number): string {
+  // A negative called-shot award is the double-or-nothing bust.
+  if (bonus === "called-shot" && points < 0) return "BUSTED!";
+  return BONUS_LABELS[bonus];
+}
 
 export interface ScorePopupProps {
   score: ScoreEvent;
@@ -33,15 +42,18 @@ export function ScorePopup({ score, onDone }: ScorePopupProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (score.points <= 0) return null;
+  if (score.points === 0) return null;
+  const penalty = score.points < 0;
 
   return (
     <div
-      className={`score-popup score-popup--${chainHeat(score.multiplier)}`}
+      className={`score-popup score-popup--${chainHeat(score.multiplier)}${penalty ? " score-popup--penalty" : ""}`}
       aria-live="polite"
     >
       <div className="score-popup-points">
-        +{score.points.toLocaleString()}
+        {penalty
+          ? `−${Math.abs(score.points).toLocaleString()}`
+          : `+${score.points.toLocaleString()}`}
         {score.multiplier > 1 && (
           <span className="score-popup-mult">×{score.multiplier}</span>
         )}
@@ -52,7 +64,7 @@ export function ScorePopup({ score, onDone }: ScorePopupProps) {
           className={`score-popup-bonus score-popup-bonus--${award.bonus}`}
           style={{ animationDelay: `${0.3 + i * 0.16}s` }}
         >
-          {BONUS_LABELS[award.bonus]}
+          {bonusLabel(award.bonus, award.points)}
         </div>
       ))}
     </div>
