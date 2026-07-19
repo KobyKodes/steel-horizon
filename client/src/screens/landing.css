@@ -154,6 +154,55 @@
   transform: scale(1.12);
 }
 
+/* --- Account chip (signed-in call sign + sign out) --- */
+
+.landing-account {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.landing-callsign {
+  padding: 0.35rem 0.8rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #9fc3e8;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-0.5deg);
+}
+
+.landing-callsign strong {
+  color: #f4f7ff;
+}
+
+.landing .landing-signout {
+  padding: 0.35rem 0.7rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #5c6e85;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(0.6deg);
+}
+
+.landing .landing-signout:hover {
+  color: #f4f7ff;
+  background: #16202e;
+}
+
 /* --- Form fields --- */
 
 .landing .field span {
@@ -299,6 +348,8 @@
   display: flex;
   gap: 0.6rem;
   margin-top: 0.3rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .landing .lb-open {
@@ -318,13 +369,13 @@
 /* --- Cadence: cover elements stamp in one by one --- */
 
 .landing .banner,
-.landing .field,
+.landing-account,
 .landing .actions > *,
 .landing-footer {
   animation: landing-stamp 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both;
 }
 
-.landing .field {
+.landing-account {
   animation-delay: 0.08s;
 }
 

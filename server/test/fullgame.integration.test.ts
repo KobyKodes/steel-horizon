@@ -33,7 +33,25 @@ describe("full game over sockets", () => {
   let bob: TestClient;
 
   it("plays a scripted game to victory with winner mapping and fleet reveal", async () => {
-    const setup = await startBattle(server);
+    // Accounts are how scores reach the durable leaderboard now: sign both
+    // players up over the REST API and connect their sockets with the
+    // minted bearer tokens.
+    async function signUp(username: string): Promise<string> {
+      const response = await fetch(`${server.baseUrl}/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password: "s3cret-pass" }),
+      });
+      expect(response.ok).toBe(true);
+      const body = (await response.json()) as { token: string };
+      return body.token;
+    }
+    const [tokenA, tokenB] = await Promise.all([
+      signUp("Alice"),
+      signUp("Bob"),
+    ]);
+
+    const setup = await startBattle(server, "Alice", "Bob", tokenA, tokenB);
     alice = setup.a;
     bob = setup.b;
 
@@ -96,6 +114,22 @@ describe("full game over sockets", () => {
     };
     expect(boards.allTime).toHaveLength(2);
     expect(boards.weekly).toHaveLength(2);
+
+    // Durable player stats: the winner's profile shows the recorded game.
+    const profileResponse = await fetch(`${server.baseUrl}/players/bob/stats`);
+    expect(profileResponse.ok).toBe(true);
+    const profile = (await profileResponse.json()) as {
+      username: string;
+      stats: { gamesPlayed: number; gamesWon: number; bestScore: number };
+      recentGames: { won: boolean; mode: string }[];
+    };
+    expect(profile.username).toBe("Bob");
+    expect(profile.stats.gamesPlayed).toBe(1);
+    expect(profile.stats.gamesWon).toBe(1);
+    expect(profile.stats.bestScore).toBe(winnerFinal.total);
+    expect(profile.recentGames).toEqual([
+      expect.objectContaining({ won: true, mode: "pvp" }),
+    ]);
     expect(Array.isArray(winnerFinal.medals)).toBe(true);
     expect(snapB.winStreak).toEqual({ you: 1, opponent: 0 });
     expect(snapA.winStreak).toEqual({ you: 0, opponent: 1 });

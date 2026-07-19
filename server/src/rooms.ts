@@ -16,6 +16,9 @@ export interface RoomPlayer {
   connected: boolean;
   /** Server-driven bot seat: no socket, never counts toward abandonment. */
   isBot?: boolean;
+  /** Account id when the seat belongs to a signed-in user — the hook that
+   *  lets settleGameOver attribute durable game/stats rows. */
+  userId?: string;
 }
 
 export interface Room {
@@ -42,6 +45,9 @@ export interface Room {
   winStreaks: Record<string, number>;
   /** Present when this is a solo-vs-bot room. */
   bot: { sessionId: string; difficulty: BotDifficulty } | null;
+  /** Epoch ms when the CURRENT game object was created (reset on rematch);
+   *  null in the lobby. Feeds games.started_at. */
+  gameStartedAt: number | null;
 }
 
 export interface RoomStore {

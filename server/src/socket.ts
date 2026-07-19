@@ -42,9 +42,15 @@ import {
 import { buildSnapshot } from "./snapshot.js";
 import { resolveGraceMs } from "./config.js";
 import { InMemoryHighScoreStore, type HighScoreStore } from "./highscores.js";
+import { userForToken } from "./auth.js";
+import { recordGame, type PlayerResultInput } from "./stats.js";
+import type { Db } from "./db/index.js";
+import type { GameMode } from "./db/schema.js";
 
 export interface SocketData {
   sessionId: string;
+  /** Account id resolved from the handshake authToken, if signed in. */
+  userId?: string;
 }
 
 export type GameServer = Server<
@@ -71,8 +77,11 @@ export interface SocketServerDeps {
   graceMs?: number;
   /** Delay before a bot fires on its turn (ms); tests inject ~0–10ms. */
   botDelayMs?: number;
-  /** High-score persistence; index.ts injects the JSON-file store. */
+  /** High-score persistence; index.ts injects the SQLite-backed store. */
   highscores?: HighScoreStore;
+  /** Account/stats database. When present, handshake auth tokens resolve
+   *  to users and finished games are recorded durably. */
+  db?: Db;
 }
 
 const NAME_MAX_LENGTH = 20;
@@ -146,6 +155,7 @@ export function createSocketServer(
   const graceMs = resolveGraceMs(deps.graceMs);
   const botDelayMs = deps.botDelayMs;
   const highscores = deps.highscores ?? new InMemoryHighScoreStore();
+  const db = deps.db;
 
   /** Live socket per session, for per-viewer snapshot sends and pairing. */
   const socketsBySession = new Map<string, GameSocket>();
@@ -164,6 +174,13 @@ export function createSocketServer(
     const auth = socket.handshake.auth as HandshakeAuth;
     const offered =
       typeof auth.sessionId === "string" ? auth.sessionId : undefined;
+
+    // Account identity rides alongside the room-resume sessionId: a valid
+    // bearer token pins the connection to its user for stats attribution.
+    if (db !== undefined) {
+      const user = userForToken(db, auth.authToken);
+      if (user !== null) socket.data.userId = user.id;
+    }
 
     if (offered !== undefined && sessions.get(offered) !== undefined) {
       socket.data.sessionId = offered;
@@ -214,6 +231,56 @@ export function createSocketServer(
 
     room.scoresSubmitted = true;
     const date = new Date().toISOString();
+
+    // Durable record first (game + per-user results + stats aggregates),
+    // so the SQLite leaderboard's rank probes below already see this
+    // game's rows. Guests (no userId) simply contribute no result rows.
+    if (db !== undefined) {
+      const finishedAt = new Date();
+      const mode: GameMode =
+        room.bot === null ? "pvp" : (`bot_${room.bot.difficulty}` as GameMode);
+      const results: PlayerResultInput[] = [];
+      for (const player of room.players) {
+        if (player.isBot === true || player.userId === undefined) continue;
+        const summary = game.finalScores[player.sessionId];
+        if (summary === undefined) continue;
+        const shots = game.players[player.sessionId]?.shots ?? [];
+        const hits = shots.filter((s) => s.result !== "miss").length;
+        const opponent = room.players.find(
+          (p) => p.sessionId !== player.sessionId,
+        );
+        const opponentSummary =
+          opponent === undefined
+            ? undefined
+            : game.finalScores[opponent.sessionId];
+        results.push({
+          userId: player.userId,
+          score: summary.total,
+          won: game.winner === player.sessionId,
+          hits,
+          misses: shots.length - hits,
+          accuracy: summary.accuracy,
+          shipsSunk: summary.shipsSunk,
+          shipsLost: opponentSummary?.shipsSunk ?? 0,
+          maxMultiplier: summary.maxMultiplier,
+          medalsEarned: summary.medals.length,
+        });
+      }
+      if (results.length > 0) {
+        const winnerSeat = room.players.find(
+          (p) => p.sessionId === game.winner,
+        );
+        recordGame(db, {
+          mode,
+          startedAt: new Date(room.gameStartedAt ?? finishedAt.getTime()),
+          finishedAt,
+          winnerUserId: winnerSeat?.userId ?? null,
+          winnerIsBot: winnerSeat?.isBot === true,
+          results,
+        });
+      }
+    }
+
     for (const player of room.players) {
       const summary = game.finalScores[player.sessionId];
       if (summary === undefined) continue;
@@ -394,6 +461,9 @@ export function createSocketServer(
         name: e.name,
         ready: false,
         connected: true,
+        // Account attribution comes from the seat-holder's live socket —
+        // quick-match pairings only carry sessionId+name through the queue.
+        userId: socketsBySession.get(e.sessionId)?.data.userId,
       })),
       phase: "lobby",
       game: null,
@@ -403,6 +473,7 @@ export function createSocketServer(
       leaderboardRanks: {},
       winStreaks: {},
       bot: null,
+      gameStartedAt: null,
     };
     rooms.create(room);
 
@@ -495,6 +566,7 @@ export function createSocketServer(
       if (human !== undefined) human.ready = true;
       room.phase = "placement";
       room.game = createGame([sessionId, botSessionId], rng);
+      room.gameStartedAt = Date.now();
       enginePlaceFleet(room.game, botSessionId, generateRandomFleet());
       sendRoomState(room);
     });
@@ -521,7 +593,13 @@ export function createSocketServer(
       }
 
       matchmaking.remove(sessionId);
-      room.players.push({ sessionId, name, ready: false, connected: true });
+      room.players.push({
+        sessionId,
+        name,
+        ready: false,
+        connected: true,
+        userId: socket.data.userId,
+      });
       sessions.set(sessionId, { name, roomCode: code });
       socket.join(code);
       sendRoomState(room);
@@ -579,6 +657,7 @@ export function createSocketServer(
         const [first, second] = room.players;
         if (first !== undefined && second !== undefined) {
           room.game = createGame([first.sessionId, second.sessionId], rng);
+          room.gameStartedAt = Date.now();
         }
       }
       sendRoomState(room);
@@ -681,6 +760,7 @@ export function createSocketServer(
         // ready flags so snapshots read as a clean placement phase. The
         // leaderboard state resets too — the new game submits its own.
         room.game = result.game;
+        room.gameStartedAt = Date.now();
         room.scoresSubmitted = false;
         room.leaderboard = null;
         room.weeklyLeaderboard = null;

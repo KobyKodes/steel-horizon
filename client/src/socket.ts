@@ -31,6 +31,9 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
     cb({
       sessionId: sessionStorage.getItem(SESSION_ID_KEY) ?? undefined,
       name: sessionStorage.getItem(NAME_KEY) ?? undefined,
+      // Account bearer token (localStorage — survives new tabs/restarts),
+      // so the server attributes this connection's games to the account.
+      authToken: localStorage.getItem("authToken") ?? undefined,
     });
   },
 });

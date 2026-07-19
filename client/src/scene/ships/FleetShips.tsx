@@ -9,6 +9,7 @@ import {
   type ShipPlacement,
 } from "@steel-horizon/shared";
 import { ShipModel } from "./ShipHull";
+import { SHIP_CLASSES } from "./ShipClasses";
 import { gerstnerHeight } from "../waves";
 import { cellToWorld } from "../grid/gridCoords";
 import { useSinkingTransform } from "./SinkingShip";
@@ -26,6 +27,29 @@ import { ShipWreckage } from "./Wreckage";
 // via atan2. This keeps the ship's tilt physically consistent with the
 // water surface's actual local slope rather than an arbitrary wobble.
 const SAMPLE_OFFSET = 1.5;
+
+// Ships ride at the wave height sampled at their CENTER, but pitch/roll
+// rotate the hull about that same center — so on a steep wave the bow and
+// stern swing below the surface. On the longest hulls that end-dip exceeds
+// the freeboard and the ship reads as briefly submerged. Two corrections,
+// both keyed to hull size rather than a flat fudge:
+//   FLOAT_LIFT_DRAFTS  extra freeboard, in multiples of the class's draft.
+//   TILT_DAMPING       fraction of the true surface slope actually applied,
+//                      so long hulls stay closer to level than the water is.
+// The ship still visibly bobs and tilts with the water; it just stops
+// burying its ends in it.
+//
+// The lift is per-class (USER direction): the cruiser and destroyer sit on
+// proportionally deeper drafts than their hull volume suggests, so at the
+// shared 0.55 they still rode noticeably low next to the rest of the fleet.
+const FLOAT_LIFT_DRAFTS: Record<ShipClassId, number> = {
+  carrier: 0.55,
+  battleship: 0.55,
+  cruiser: 2.0,
+  submarine: 0.55,
+  destroyer: 2.0,
+};
+const TILT_DAMPING = 0.55;
 
 interface FloatingShipProps {
   shipClass: ShipClassId;
@@ -64,6 +88,8 @@ function FloatingShip({
 }: FloatingShipProps) {
   const groupRef = useRef<Group>(null);
   const [x, z] = position;
+  const floatLift =
+    SHIP_CLASSES[shipClass].draft * FLOAT_LIFT_DRAFTS[shipClass];
 
   // A fully-submerged ship leaves a persistent per-cell wreckage field in
   // its place. Historical (sunk-before-mount) ships start wrecked — they
@@ -115,17 +141,16 @@ function FloatingShip({
 
     // Sinking drop is ADDITIVE on top of the live wave height, so a
     // half-sunk ship keeps bobbing with the water instead of freezing.
-    group.position.set(x, centerY + yDrop, z);
+    group.position.set(x, centerY + floatLift + yDrop, z);
 
     // Pitch (rotation around Z, tilting bow/stern) from the length-axis slope.
-    group.rotation.z = Math.atan2(
-      lengthAheadY - lengthBehindY,
-      SAMPLE_OFFSET * 2,
-    );
+    group.rotation.z =
+      Math.atan2(lengthAheadY - lengthBehindY, SAMPLE_OFFSET * 2) * TILT_DAMPING;
     // Roll (rotation around X, tilting side to side) from the beam-axis
-    // slope, plus the additive capsize list angle.
+    // slope, plus the additive capsize list angle (undamped — the capsize
+    // is meant to read as a violent, unnatural roll).
     group.rotation.x =
-      -Math.atan2(beamRightY - beamLeftY, SAMPLE_OFFSET * 2) +
+      -Math.atan2(beamRightY - beamLeftY, SAMPLE_OFFSET * 2) * TILT_DAMPING +
       listAngle * listSignRef.current;
   });
 

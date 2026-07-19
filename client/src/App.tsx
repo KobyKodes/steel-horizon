@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useGameStore } from "./store";
+import AuthScreen from "./screens/AuthScreen";
 import LandingScreen from "./screens/LandingScreen";
 import LobbyScreen from "./screens/LobbyScreen";
 import PlacementScreen from "./screens/PlacementScreen";
@@ -35,6 +36,8 @@ function StatusBar() {
 
 export default function App() {
   const snapshot = useGameStore((s) => s.snapshot);
+  const authUser = useGameStore((s) => s.authUser);
+  const authChecked = useGameStore((s) => s.authChecked);
   const phase = snapshot?.phase;
 
   // Battle lingers through gameover until the player advances; a rematch
@@ -43,6 +46,11 @@ export default function App() {
   useEffect(() => {
     if (phase !== "gameover") setResultsShown(false);
   }, [phase]);
+
+  // Account gate: hold blank until the boot-time token check settles (so a
+  // signed-in returnee never flashes the auth screen), then require login.
+  if (!authChecked) return null;
+  if (authUser === null) return <AuthScreen />;
 
   let screen;
   if (snapshot === null) {

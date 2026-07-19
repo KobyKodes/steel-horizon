@@ -15,6 +15,12 @@ import type {
   ShotOutcome,
 } from "@steel-horizon/shared";
 import { connect, getStoredName, socket, storeSessionId } from "./socket";
+import {
+  checkAuth,
+  logIn as authLogIn,
+  logOut as authLogOut,
+  signUp as authSignUp,
+} from "./auth";
 
 export type ConnectionState =
   | "idle"
@@ -34,6 +40,20 @@ interface GameStore {
   connection: ConnectionState;
   lastError: { code: ErrorCode; message: string } | null;
   shotFeed: ShotFeedEntry[];
+
+  /** Signed-in account's call sign; null when signed out. */
+  authUser: string | null;
+  /** False until the boot-time /auth/me check settles (splash gate). */
+  authChecked: boolean;
+  /** Sign-in/sign-up failure message for the auth screen. */
+  authError: string | null;
+  /** True while a credential request is in flight. */
+  authBusy: boolean;
+
+  signIn: (username: string, password: string) => Promise<void>;
+  signUpAccount: (username: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  clearAuthError: () => void;
 
   clearError: () => void;
   createRoom: (name: string) => void;
@@ -60,6 +80,43 @@ export const useGameStore = create<GameStore>((set) => ({
   connection: "idle",
   lastError: null,
   shotFeed: [],
+
+  authUser: null,
+  authChecked: false,
+  authError: null,
+  authBusy: false,
+
+  signIn: async (username, password) => {
+    set({ authBusy: true, authError: null });
+    const outcome = await authLogIn(username, password);
+    if (outcome.ok) {
+      set({ authUser: outcome.username, authBusy: false });
+      // Reconnect so the handshake carries the fresh token — the server
+      // resolves account identity once, at connection time.
+      if (socket.connected) socket.disconnect();
+    } else {
+      set({ authError: outcome.error, authBusy: false });
+    }
+  },
+
+  signUpAccount: async (username, password) => {
+    set({ authBusy: true, authError: null });
+    const outcome = await authSignUp(username, password);
+    if (outcome.ok) {
+      set({ authUser: outcome.username, authBusy: false });
+      if (socket.connected) socket.disconnect();
+    } else {
+      set({ authError: outcome.error, authBusy: false });
+    }
+  },
+
+  signOut: async () => {
+    await authLogOut();
+    if (socket.connected) socket.disconnect();
+    set({ authUser: null, snapshot: null, connection: "idle" });
+  },
+
+  clearAuthError: () => set({ authError: null }),
 
   clearError: () => set({ lastError: null }),
 
@@ -137,10 +194,14 @@ if (import.meta.env.DEV) {
   window.__gameStore = useGameStore;
 }
 
-// Refresh resume: if this tab already has an identity, reconnect immediately —
-// the server's session-resume snapshot restores the correct screen without
-// any user action. (Auth callback pulls sessionId/name from sessionStorage.)
-if (getStoredName()) {
-  useGameStore.setState({ connection: "connecting" });
-  socket.connect();
-}
+// Boot-time re-entry: validate the stored account token (one-time login —
+// a returning player skips the auth screen entirely), THEN resume any
+// in-flight game this tab had (session-resume snapshot restores the
+// correct screen without user action).
+void checkAuth().then((username) => {
+  useGameStore.setState({ authUser: username, authChecked: true });
+  if (username !== null && getStoredName()) {
+    useGameStore.setState({ connection: "connecting" });
+    socket.connect();
+  }
+});

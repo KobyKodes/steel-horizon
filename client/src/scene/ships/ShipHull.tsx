@@ -41,6 +41,10 @@ const INK = "#10131a";
 const STEEL_DARK = "#16202e";
 const PAPER = "#f4f7ff";
 const HIT_YELLOW = "#ffd21f";
+/** Carrier flight-deck asphalt — near-ink so the runway paint pops off it. */
+const DECK_ASPHALT = "#1b2330";
+/** Runway centerline paint: hot safety orange, not the HUD's hit-yellow. */
+const RUNWAY_ORANGE = "#ff7a1a";
 
 // One bold comic color per class (hull + a contrasting accent for the
 // superstructure) so classes are tellable at a glance from the top-down
@@ -98,17 +102,24 @@ interface Palette {
   bright: THREE.Material;
   /** Paper-white: barrels, runway threshold. */
   paper: THREE.Material;
+  /** Runway centerline paint (carrier only). */
+  runway: THREE.Material;
 }
 
 function buildPalette(shipClass: ShipClassId, sunk: boolean): Palette {
   const colors = CLASS_COLORS[shipClass];
+  // The carrier's deck is asphalt, not a tint of its white hull — a light
+  // deck leaves the runway paint invisible from the top-down camera.
+  const deck =
+    shipClass === "carrier" ? new THREE.Color(DECK_ASPHALT) : deckColorFor(colors.hull);
   return {
     hull: toonMaterial(sunk ? SUNK.hull : colors.hull),
-    deck: toonMaterial(sunk ? SUNK.deck : deckColorFor(colors.hull)),
+    deck: toonMaterial(sunk ? SUNK.deck : deck),
     accent: toonMaterial(sunk ? SUNK.accent : colors.accent),
     dark: toonMaterial(sunk ? SUNK.dark : STEEL_DARK),
     bright: toonMaterial(sunk ? SUNK.bright : HIT_YELLOW),
     paper: toonMaterial(sunk ? SUNK.hull : PAPER),
+    runway: toonMaterial(sunk ? SUNK.bright : RUNWAY_ORANGE),
   };
 }
 
@@ -316,9 +327,9 @@ function CarrierModel({ spec, palette }: { spec: ShipClassSpec; palette: Palette
         <Ink thickness={0.07} />
       </mesh>
 
-      {/* Runway markings: yellow centerline dashes + white bow threshold. */}
+      {/* Runway markings: orange centerline dashes + white bow threshold. */}
       {dashes.map((x) => (
-        <mesh key={x} position={[x, deckTop + 0.012, 0]} material={palette.bright}>
+        <mesh key={x} position={[x, deckTop + 0.012, 0]} material={palette.runway}>
           <boxGeometry args={[length * 0.055, 0.02, beam * 0.045]} />
         </mesh>
       ))}

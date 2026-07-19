@@ -1,0 +1,301 @@
+/* Auth screen — the enlistment office. Same comic-cover language as
+   landing.css (Impact italic, hit-yellow #ffd21f, ink #10131a, radar-blue
+   #9fc3e8, stamped panels, hard offset shadows) with the fleet backdrop
+   behind. The submit stamp is this screen's ONE loud yellow element. */
+
+.auth {
+  position: relative;
+  gap: 1.4rem;
+  isolation: isolate;
+}
+
+/* Fleet cover art + halftone print texture, identical to the landing
+   screen's fixed backdrop so the enlistment office reads as the same
+   comic issue. */
+.auth::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-color: #05070b;
+  background-image: url("/fleet-backdrop.svg");
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+}
+
+.auth::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(
+    rgba(159, 195, 232, 0.1) 1px,
+    transparent 1.6px
+  );
+  background-size: 16px 16px;
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 40%, transparent 78%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 30%,
+    #000 40%,
+    transparent 78%
+  );
+}
+
+/* --- Masthead --- */
+
+.auth-masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: auth-stamp 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+.auth h1 {
+  margin: 0;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 9vw, 3.4rem);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #f4f7ff;
+  transform: rotate(-2deg);
+  text-shadow:
+    3px 3px 0 #10131a,
+    6px 6px 0 #ffd21f;
+}
+
+.auth-tagline {
+  margin: 0.7rem 0 0;
+  padding: 0.2rem 0.9rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #10131a;
+  background: #9fc3e8;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(1deg);
+}
+
+/* --- Enlistment card --- */
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.4rem 1.5rem 1.6rem;
+  background: rgba(10, 14, 22, 0.92);
+  border: 2px solid #10131a;
+  border-radius: 0.4rem;
+  box-shadow:
+    5px 5px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+  transform: rotate(-0.6deg);
+  animation: auth-stamp 0.3s 0.1s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+/* --- Mode tabs --- */
+
+.auth-tabs {
+  display: flex;
+  align-self: center;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  background: #0a0e16;
+  overflow: hidden;
+}
+
+.auth-tab {
+  padding: 0.45rem 1.2rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #5c6e85;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.auth-tab + .auth-tab {
+  border-left: 2px solid #10131a;
+}
+
+.auth-tab.selected {
+  background: #9fc3e8;
+  color: #10131a;
+}
+
+.auth-tab:focus-visible {
+  outline: 2px solid #ffd21f;
+  outline-offset: -2px;
+}
+
+/* --- Fields --- */
+
+.auth .field span {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #9fc3e8;
+}
+
+.auth input[type="text"],
+.auth input[type="password"] {
+  font: inherit;
+  padding: 0.6rem 0.8rem;
+  background: #0a0e16;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+  color: #f4f7ff;
+}
+
+.auth input:focus {
+  outline: 2px solid #ffd21f;
+  outline-offset: 1px;
+}
+
+.auth input::placeholder {
+  color: #5c6e85;
+}
+
+/* --- Error stamp --- */
+
+.auth-error {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem;
+  color: #f4f7ff;
+  background: #8a2f3b;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(0.4deg);
+  animation: auth-stamp 0.25s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+/* --- Submit: the one loud yellow stamp --- */
+
+.auth-submit {
+  margin-top: 0.2rem;
+  padding: 0.7rem 1.1rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-1deg);
+  cursor: pointer;
+  transition:
+    translate 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: #ffdc4d;
+  translate: -1px -1px;
+  box-shadow: 4px 4px 0 rgba(16, 19, 26, 0.55);
+}
+
+.auth-submit:active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 rgba(16, 19, 26, 0.55);
+}
+
+.auth-submit:focus-visible {
+  outline: 2px solid #f4f7ff;
+  outline-offset: 2px;
+}
+
+.auth-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* --- Switch-mode hint --- */
+
+.auth-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  text-align: center;
+  color: #5c6e85;
+}
+
+.auth-switch {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #9fc3e8;
+  background: none;
+  border: none;
+  box-shadow: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-switch:hover {
+  color: #ffd21f;
+  background: none;
+}
+
+.auth-switch:focus-visible {
+  outline: 2px solid #ffd21f;
+  outline-offset: 2px;
+}
+
+.auth-footnote {
+  margin: 0;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: #9fc3e8;
+  animation: auth-stamp 0.3s 0.25s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+@keyframes auth-stamp {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-masthead,
+  .auth-card,
+  .auth-error,
+  .auth-footnote {
+    animation: none;
+  }
+}

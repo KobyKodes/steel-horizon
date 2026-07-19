@@ -8,9 +8,9 @@ import type {
   ErrorCode,
   HighScoreEntry,
 } from "@steel-horizon/shared";
-import { getStoredName } from "../socket";
 import { useGameStore } from "../store";
 import LeaderboardPanel from "../components/LeaderboardPanel";
+import MyStatsOverlay from "../components/MyStatsOverlay";
 import ScoringGuideOverlay from "../components/ScoringGuideOverlay";
 import "../components/leaderboardOverlay.css";
 import "./landing.css";
@@ -120,8 +120,9 @@ export default function LandingScreen() {
   const joinRoom = useGameStore((s) => s.joinRoom);
   const quickMatch = useGameStore((s) => s.quickMatch);
   const playBot = useGameStore((s) => s.playBot);
+  const authUser = useGameStore((s) => s.authUser);
+  const signOut = useGameStore((s) => s.signOut);
 
-  const [name, setName] = useState(getStoredName);
   const [code, setCode] = useState(() =>
     filterCode(new URLSearchParams(location.search).get("code") ?? ""),
   );
@@ -129,6 +130,7 @@ export default function LandingScreen() {
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>("medium");
   const [showLeaderboards, setShowLeaderboards] = useState(false);
   const [showScoringGuide, setShowScoringGuide] = useState(false);
+  const [showMyStats, setShowMyStats] = useState(false);
   const codeInputRef = useRef<HTMLInputElement>(null);
 
   // Shareable-link prefill: focus the join-code input when ?code= is present.
@@ -138,7 +140,9 @@ export default function LandingScreen() {
     }
   }, []);
 
-  const trimmedName = name.trim();
+  // App only renders this screen signed-in; the account's call sign is the
+  // player name everywhere (leaderboards, lobby, stats attribution).
+  const trimmedName = authUser ?? "";
   const busy = connection === "connecting";
   const canAct = trimmedName.length > 0 && !busy;
 
@@ -175,16 +179,18 @@ export default function LandingScreen() {
         </div>
       )}
 
-      <label className="field">
-        <span>Your name</span>
-        <input
-          type="text"
-          value={name}
-          maxLength={24}
-          placeholder="Enter your name"
-          onChange={(e) => setName(e.target.value)}
-        />
-      </label>
+      <div className="landing-account">
+        <span className="landing-callsign">
+          <strong>{authUser}</strong>
+        </span>
+        <button
+          type="button"
+          className="landing-signout"
+          onClick={() => void signOut()}
+        >
+          Sign out
+        </button>
+      </div>
 
       <div className="actions">
         <button
@@ -270,6 +276,14 @@ export default function LandingScreen() {
         <button
           type="button"
           className="lb-open"
+          onClick={() => setShowMyStats(true)}
+        >
+          My stats
+        </button>
+
+        <button
+          type="button"
+          className="lb-open"
           onClick={() => setShowLeaderboards(true)}
         >
           View leaderboards
@@ -283,6 +297,13 @@ export default function LandingScreen() {
           How scoring works
         </button>
       </div>
+
+      {showMyStats && authUser !== null && (
+        <MyStatsOverlay
+          username={authUser}
+          onClose={() => setShowMyStats(false)}
+        />
+      )}
 
       {showLeaderboards && (
         <LeaderboardOverlay onClose={() => setShowLeaderboards(false)} />

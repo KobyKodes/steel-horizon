@@ -10,6 +10,8 @@ export default defineConfig({
     proxy: {
       "/health": "http://localhost:3001",
       "/leaderboard": "http://localhost:3001",
+      "/auth": "http://localhost:3001",
+      "/players": "http://localhost:3001",
       "/socket.io": {
         target: "http://localhost:3001",
         ws: true,

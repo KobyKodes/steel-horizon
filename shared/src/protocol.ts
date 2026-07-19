@@ -111,6 +111,10 @@ export interface RoomSnapshot {
 export interface HandshakeAuth {
   sessionId?: string;
   name?: string;
+  /** Persistent account bearer token (client's localStorage authToken), so
+   *  the server can attribute this connection's games to a signed-in user.
+   *  Independent of `sessionId`, which is only a room-resume credential. */
+  authToken?: string;
 }
 
 /** Events the client emits to the server. */

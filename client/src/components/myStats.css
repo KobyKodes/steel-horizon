@@ -1,0 +1,314 @@
+/* "My stats" overlay — the service record. Class names prefixed `ms-` per
+   the unique-class-name rule. Shares the lb-/sg- overlay shell (dark
+   backdrop, stamped card, yellow close chip); the headline numbers get the
+   comic treatment while the tables stay quiet and readable. */
+
+.ms-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(4, 7, 12, 0.78);
+}
+
+.ms-card {
+  position: relative;
+  width: min(36rem, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1.5rem;
+  color: #d7e6f7;
+  background: #0a0e16;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 4px 4px 0 rgba(16, 19, 26, 0.55);
+  animation: ms-stamp 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.ms-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 1;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0;
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 2px 2px 0 rgba(16, 19, 26, 0.55);
+  cursor: pointer;
+}
+
+.ms-title {
+  margin: 0 0 0.9rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #ffd21f;
+}
+
+.ms-status,
+.ms-empty {
+  margin: 0.5rem 0;
+  color: #9fc3e8;
+}
+
+/* --- Identity strip --- */
+
+.ms-identity {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 2px solid #1b2532;
+}
+
+.ms-callsign {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #f4f7ff;
+  overflow-wrap: anywhere;
+}
+
+.ms-since {
+  font-size: 0.8rem;
+  color: #5c6e85;
+}
+
+/* --- Headline stat tiles --- */
+
+.ms-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+}
+
+.ms-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.7rem;
+  background: rgba(16, 19, 26, 0.6);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.2);
+}
+
+/* One loud tile per overlay: lifetime points, the number that matters. */
+.ms-tile.loud {
+  background: #ffd21f;
+  transform: rotate(-1deg);
+}
+
+.ms-tile-value {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.5rem;
+  line-height: 1.05;
+  color: #f4f7ff;
+}
+
+.ms-tile.loud .ms-tile-value {
+  color: #10131a;
+}
+
+.ms-tile-label {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9fc3e8;
+}
+
+.ms-tile.loud .ms-tile-label {
+  color: rgba(16, 19, 26, 0.75);
+}
+
+/* --- Sections --- */
+
+.ms-section {
+  margin-bottom: 1.1rem;
+}
+
+.ms-section h3 {
+  margin: 0 0 0.5rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #9fc3e8;
+}
+
+.ms-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.35rem 1.2rem;
+  margin: 0;
+}
+
+.ms-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed #1b2532;
+}
+
+.ms-row dt {
+  font-size: 0.85rem;
+  color: #8fa0b5;
+}
+
+.ms-row dd {
+  margin: 0;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: #f4f7ff;
+}
+
+/* --- Bot record --- */
+
+.ms-bots {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ms-bot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1 1 5rem;
+  padding: 0.45rem 0.6rem;
+  background: rgba(16, 19, 26, 0.6);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 2px 2px 0 rgba(16, 19, 26, 0.55);
+}
+
+.ms-bot-level {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #5c6e85;
+}
+
+.ms-bot-record {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.05rem;
+  color: #f4f7ff;
+}
+
+/* --- Recent battles --- */
+
+.ms-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-game {
+  display: grid;
+  grid-template-columns: 3.2rem 1fr auto 2.6rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: rgba(16, 19, 26, 0.5);
+  border-left: 3px solid #5c6e85;
+  border-radius: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.ms-game.won {
+  border-left-color: #ffd21f;
+}
+
+.ms-game.lost {
+  border-left-color: #ff5b66;
+}
+
+.ms-game-result {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ms-game.won .ms-game-result {
+  color: #ffd21f;
+}
+
+.ms-game.lost .ms-game-result {
+  color: #ff5b66;
+}
+
+.ms-game-mode {
+  color: #8fa0b5;
+}
+
+.ms-game-score {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  color: #f4f7ff;
+}
+
+.ms-game-date {
+  font-size: 0.75rem;
+  text-align: right;
+  color: #5c6e85;
+}
+
+@keyframes ms-stamp {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-card {
+    animation: none;
+  }
+}

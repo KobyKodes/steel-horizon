@@ -43,6 +43,7 @@ describe("InMemoryRoomStore", () => {
     players: [],
     phase: "lobby",
     game: null,
+    gameStartedAt: null,
     scoresSubmitted: false,
     leaderboard: null,
     weeklyLeaderboard: null,

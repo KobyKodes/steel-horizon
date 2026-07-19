@@ -186,12 +186,16 @@ export async function startBattle(
   server: TestServer,
   nameA = "Alice",
   nameB = "Bob",
+  tokenA?: string,
+  tokenB?: string,
 ): Promise<BattleSetup> {
   const { socket: a, sessionId: aSession } = await server.connect({
     name: nameA,
+    ...(tokenA !== undefined ? { authToken: tokenA } : {}),
   });
   const { socket: b, sessionId: bSession } = await server.connect({
     name: nameB,
+    ...(tokenB !== undefined ? { authToken: tokenB } : {}),
   });
 
   const created = waitFor(a, "roomState");
