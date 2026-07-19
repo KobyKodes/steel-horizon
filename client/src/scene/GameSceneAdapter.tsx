@@ -39,6 +39,7 @@ import {
   sinkSlam,
   tierUp,
 } from "../audio/arcadeSfx";
+import { missWaterSplash, sunkShipExplosion } from "../audio/sfx";
 
 /** Heat tier ordering for detecting upward crossings. */
 const HEAT_ORDER = { cold: 0, warm: 1, hot: 2, critical: 3 } as const;
@@ -315,6 +316,7 @@ export function GameSceneAdapter({
 
     if (newBursts.length > 0) {
       setDebrisBursts((bursts) => [...bursts, ...newBursts]);
+      sunkShipExplosion();
     }
   }, [sunkShips, yourFleet]);
 
@@ -377,6 +379,7 @@ export function GameSceneAdapter({
       };
     });
     setEnemyDebrisBursts((bursts) => [...bursts, ...newBursts]);
+    sunkShipExplosion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shots]);
 
@@ -442,6 +445,7 @@ export function GameSceneAdapter({
     if (!pending) return;
     setImpactPosition(pos);
     triggerCameraShake(shakeFor(pending.shot.result));
+    if (pending.shot.result === "miss") missWaterSplash();
     showCallout(pending.shot.result);
     if (pending.kind === "outgoing") revealOutgoingScore(pending.shot);
     setSequenceStage("impact");

@@ -10,7 +10,7 @@
 // land (App's phase router follows) — there is no separate ready toggle
 // here (the server's setReady is lobby-only).
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FLEET,
   generateRandomFleet,
@@ -22,6 +22,7 @@ import {
 } from "@steel-horizon/shared";
 import { PlacementSceneAdapter } from "../scene/PlacementSceneAdapter";
 import { useGameStore } from "../store";
+import { startFleetPlacementDrums, stopFleetPlacementDrums } from "../audio/sfx";
 import "./battle.css";
 import "./placement.css";
 
@@ -43,6 +44,11 @@ export default function PlacementScreen() {
   const [draft, setDraft] = useState<Map<ShipClassId, ShipPlacement>>(
     () => new Map(),
   );
+
+  useEffect(() => {
+    startFleetPlacementDrums();
+    return () => stopFleetPlacementDrums();
+  }, []);
 
   // App routes here only when a placement-phase snapshot exists.
   if (snapshot === null) return null;
@@ -120,7 +126,8 @@ export default function PlacementScreen() {
           </div>
           <p className="placement-hint">
             Drag ships from the dock onto the grid · press R while dragging
-            to rotate · right-click a placed ship to rotate it
+            to rotate · right-click (or double-tap) a placed ship to rotate
+            it
           </p>
           <p className="placement-status">
             {snapshot.opponent !== null

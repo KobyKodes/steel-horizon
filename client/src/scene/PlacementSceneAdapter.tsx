@@ -12,6 +12,14 @@
 // in place. All draft-time legality (bounds + no-overlap-with-other-ships)
 // is ported verbatim from the 2D PlacementBoard's `isLegalInDraft`.
 //
+// Touch: a touch pointerdown on a dock card implicitly captures to that
+// DOM node (outside the R3F canvas), which would otherwise starve the
+// canvas of pointermove and freeze hover for the whole drag — the dock
+// card's onPointerDown releases that capture so the finger's later moves
+// hit-test normally. There's no right-click on touch, so a placed ship
+// also rotates on a double-tap (two taps with no movement between, within
+// DOUBLE_TAP_MS), detected in the shared pointerup handler below.
+//
 // Controlled contract, identical to the retired PlacementBoard: a
 // `draft: Map<ShipClassId, ShipPlacement>` plus `onChange`, and an optional
 // `disabled` for the locked post-submission view. The camera stays in
@@ -74,7 +82,14 @@ interface DragState {
   ship: ShipClassId;
   orientation: Orientation;
   hover: Coordinate | null;
+  /** True when the drag was lifted from an already-placed grid cell (as
+   *  opposed to a dock ship) — only these count toward double-tap-to-rotate. */
+  fromGrid: boolean;
 }
+
+/** Two taps on the same placed ship within this window count as a
+ *  double-tap (rotate) instead of two independent no-op taps. */
+const DOUBLE_TAP_MS = 350;
 
 // Ghost preview colors: match the 2D board's green/red legality signal,
 // tuned bright for the additive-blended hologram look.
@@ -130,6 +145,9 @@ export function PlacementSceneAdapter({
   const [drag, setDrag] = useState<DragState | null>(null);
   const [flashShip, setFlashShip] = useState<ShipClassId | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Last no-op tap (pointerdown+up with no hover change) on a placed ship,
+  // for double-tap-to-rotate detection — see the onUp handler below.
+  const lastTapRef = useRef<{ ship: ShipClassId; time: number } | null>(null);
 
   // Refs mirror the latest props/state so the window-level drag listeners
   // (registered once per drag) never see stale closures — same pattern the
@@ -154,12 +172,13 @@ export function PlacementSceneAdapter({
     flashTimer.current = setTimeout(() => setFlashShip(null), 450);
   }
 
-  function startDrag(ship: ShipClassId): void {
+  function startDrag(ship: ShipClassId, fromGrid = false): void {
     if (disabled) return;
     setDrag({
       ship,
       orientation: draft.get(ship)?.orientation ?? "horizontal",
       hover: null,
+      fromGrid,
     });
   }
 
@@ -194,7 +213,7 @@ export function PlacementSceneAdapter({
       }
     }
     if (owner === null) return;
-    if (button === 0) startDrag(owner);
+    if (button === 0) startDrag(owner, true);
     else if (button === 2) rotatePlaced(owner);
   }
 
@@ -208,6 +227,9 @@ export function PlacementSceneAdapter({
     const onUp = () => {
       const d = dragRef.current;
       if (d !== null && d.hover !== null) {
+        // A real drag (the pointer crossed onto a grid cell): commit or
+        // snap back as before, and this ship no longer has a pending tap.
+        lastTapRef.current = null;
         const candidate: ShipPlacement = {
           ship: d.ship,
           origin: d.hover,
@@ -217,6 +239,32 @@ export function PlacementSceneAdapter({
           const next = new Map(draftRef.current);
           next.set(d.ship, candidate);
           onChangeRef.current(next);
+        }
+      } else if (d !== null && d.fromGrid) {
+        // Press-and-release with no movement on a placed ship, i.e. a tap
+        // (touch has no right-click for the desktop rotate gesture). Two
+        // of these on the same ship within DOUBLE_TAP_MS rotate it in
+        // place; a single tap is a no-op, same as before this feature.
+        const now = Date.now();
+        const lastTap = lastTapRef.current;
+        if (lastTap !== null && lastTap.ship === d.ship && now - lastTap.time < DOUBLE_TAP_MS) {
+          lastTapRef.current = null;
+          const placement = draftRef.current.get(d.ship);
+          if (placement !== undefined) {
+            const rotated: ShipPlacement = {
+              ...placement,
+              orientation: flip(placement.orientation),
+            };
+            if (isLegalInDraft(rotated, draftRef.current)) {
+              const next = new Map(draftRef.current);
+              next.set(d.ship, rotated);
+              onChangeRef.current(next);
+            } else {
+              flash(d.ship);
+            }
+          }
+        } else {
+          lastTapRef.current = { ship: d.ship, time: now };
         }
       }
       // Illegal or off-grid drop: no onChange — the ship snaps back.
@@ -302,6 +350,15 @@ export function PlacementSceneAdapter({
                 onPointerDown={(e) => {
                   if (e.button !== 0) return;
                   e.preventDefault();
+                  // Touch pointers implicitly capture to whatever DOM node
+                  // they went down on (the dock card here, outside the R3F
+                  // canvas). Left uncontested, every later pointermove keeps
+                  // targeting this card instead of the canvas, so the
+                  // dragged ship never gets a hover cell over the grid and
+                  // every drop looks illegal — release the capture so the
+                  // browser hit-tests under the finger as it moves, same as
+                  // desktop hover already does.
+                  e.currentTarget.releasePointerCapture(e.pointerId);
                   startDrag(ship);
                 }}
               >

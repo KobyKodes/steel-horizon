@@ -13,6 +13,7 @@ import {
 } from "@steel-horizon/shared";
 import { useGameStore } from "../store";
 import { GameSceneAdapter } from "../scene/GameSceneAdapter";
+import { gameOverStinger, victoryStinger } from "../audio/sfx";
 import ShotLog from "../components/ShotLog";
 import ScoreHud from "../components/ScoreHud";
 import "../components/callShot.css";
@@ -96,6 +97,12 @@ export default function BattleScreen({
     const timer = setTimeout(() => setVictoryShown(true), 2400);
     return () => clearTimeout(timer);
   }, [gameOver, cinematicsSettled, victoryShown]);
+
+  useEffect(() => {
+    if (!victoryShown) return;
+    if (snapshot?.winner === "you") victoryStinger();
+    else if (snapshot?.winner) gameOverStinger();
+  }, [victoryShown, snapshot?.winner]);
 
   if (!snapshot) return null;
 

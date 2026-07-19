@@ -215,6 +215,13 @@
   border: 1px solid #26374d;
 }
 
+/* The R3F canvas handles its own drag/tap gestures (ship placement,
+   targeting); stop the browser's touch scroll/zoom from competing with
+   them on phones. */
+.game-scene canvas {
+  touch-action: none;
+}
+
 /* Battle boards get the full panel ink: thick border, hard offset shadow. */
 .battle-screen .game-scene {
   border: 3px solid #10131a;
@@ -247,7 +254,9 @@
 .battle-main,
 .battle-side {
   width: 100%;
-  max-width: min(40rem, calc(100vh - 26rem));
+  /* Floor at 16rem: on short viewports (phone landscape) the height-fit
+     calc goes negative and would collapse the boards to zero width. */
+  max-width: min(40rem, max(16rem, calc(100vh - 26rem)));
 }
 
 /* Post-game reveal boards (04-06): two smaller side-by-side boards. */
@@ -506,6 +515,52 @@
   }
   .battle-log-wrap {
     grid-row: 7;
+  }
+}
+
+/* Phone landscape: short viewport but wide enough for both boards — keep
+   them side by side (overrides the narrow-width stack above, which a
+   landscape phone's ~50rem width would otherwise trigger) and size the
+   boards from the height that's actually available. */
+@media (orientation: landscape) and (max-height: 32rem) {
+  .battle-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1rem;
+  }
+
+  .battle-hud-enemy {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .battle-hud-you {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .battle-main {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .battle-side {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .battle-under-enemy {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .battle-under-you {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .battle-log-wrap {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    width: min(24rem, 90vw);
+  }
+
+  .battle-main,
+  .battle-side {
+    max-width: min(46vw, max(14rem, calc(100vh - 8rem)));
   }
 }
 
