@@ -19,6 +19,9 @@ import type {
 /** Lifecycle of a room, lobby through gameover. */
 export type RoomPhase = "lobby" | "placement" | "battle" | "gameover";
 
+/** Bot opponent skill level (createBotGame). */
+export type BotDifficulty = "easy" | "medium" | "hard";
+
 export type ShotOutcome = "hit" | "miss" | "sunk";
 
 export type ErrorCode =
@@ -111,6 +114,8 @@ export interface HandshakeAuth {
 /** Events the client emits to the server. */
 export interface ClientToServerEvents {
   createRoom: (payload: { name: string }) => void;
+  /** Solo game against a server-driven bot; skips the lobby entirely. */
+  createBotGame: (payload: { name: string; difficulty: BotDifficulty }) => void;
   joinRoom: (payload: { name: string; code: string }) => void;
   quickMatch: (payload: { name: string }) => void;
   setReady: (payload: { ready: boolean }) => void;

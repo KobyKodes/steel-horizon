@@ -2,7 +2,11 @@
 // code — Socket.IO rooms are only a broadcast mechanism, never the source
 // of truth. Store is a Map behind a narrow interface (Redis-swappable).
 
-import type { HighScoreEntry, RoomPhase } from "@steel-horizon/shared";
+import type {
+  BotDifficulty,
+  HighScoreEntry,
+  RoomPhase,
+} from "@steel-horizon/shared";
 import type { Game } from "./game/engine.js";
 
 export interface RoomPlayer {
@@ -10,6 +14,8 @@ export interface RoomPlayer {
   name: string;
   ready: boolean;
   connected: boolean;
+  /** Server-driven bot seat: no socket, never counts toward abandonment. */
+  isBot?: boolean;
 }
 
 export interface Room {
@@ -34,6 +40,8 @@ export interface Room {
   >;
   /** Consecutive wins per session across this room's rematches. */
   winStreaks: Record<string, number>;
+  /** Present when this is a solo-vs-bot room. */
+  bot: { sessionId: string; difficulty: BotDifficulty } | null;
 }
 
 export interface RoomStore {

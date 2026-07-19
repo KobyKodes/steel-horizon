@@ -151,6 +151,43 @@ input[type="text"]:focus {
   font-style: italic;
 }
 
+/* --- Play-vs-bot row: difficulty radio chips + launch button --- */
+
+.bot-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.bot-difficulty {
+  display: flex;
+  border: 1px solid #3a4a5e;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bot-difficulty-option {
+  flex: 1;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 0;
+  background: #0c1117;
+  color: #8fa0b5;
+}
+
+.bot-difficulty-option + .bot-difficulty-option {
+  border-left: 1px solid #3a4a5e;
+}
+
+.bot-difficulty-option.selected {
+  background: #27364a;
+  color: #dce3ec;
+}
+
+.bot-row > button {
+  flex: 1;
+}
+
 /* --- Banners --- */
 
 .banner {

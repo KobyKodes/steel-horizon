@@ -47,6 +47,7 @@ describe("InMemoryRoomStore", () => {
     leaderboard: null,
     weeklyLeaderboard: null,
     leaderboardRanks: {},
+    bot: null,
     winStreaks: {},
   });
 

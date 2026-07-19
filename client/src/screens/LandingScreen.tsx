@@ -3,7 +3,11 @@
 // quick match. Reads ?code= from the URL to prefill the join input.
 
 import { useEffect, useRef, useState } from "react";
-import type { ErrorCode, HighScoreEntry } from "@steel-horizon/shared";
+import type {
+  BotDifficulty,
+  ErrorCode,
+  HighScoreEntry,
+} from "@steel-horizon/shared";
 import { getStoredName } from "../socket";
 import { useGameStore } from "../store";
 import LeaderboardPanel from "../components/LeaderboardPanel";
@@ -12,6 +16,12 @@ import "../components/leaderboardOverlay.css";
 
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_CODE_LENGTH = 6;
+
+const BOT_DIFFICULTIES: { id: BotDifficulty; label: string }[] = [
+  { id: "easy", label: "Easy" },
+  { id: "medium", label: "Medium" },
+  { id: "hard", label: "Hard" },
+];
 
 const ERROR_MESSAGES: Partial<Record<ErrorCode, string>> = {
   ROOM_NOT_FOUND: "No game found with that code. Check it and try again.",
@@ -108,12 +118,14 @@ export default function LandingScreen() {
   const createRoom = useGameStore((s) => s.createRoom);
   const joinRoom = useGameStore((s) => s.joinRoom);
   const quickMatch = useGameStore((s) => s.quickMatch);
+  const playBot = useGameStore((s) => s.playBot);
 
   const [name, setName] = useState(getStoredName);
   const [code, setCode] = useState(() =>
     filterCode(new URLSearchParams(location.search).get("code") ?? ""),
   );
   const [waitingForMatch, setWaitingForMatch] = useState(false);
+  const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>("medium");
   const [showLeaderboards, setShowLeaderboards] = useState(false);
   const [showScoringGuide, setShowScoringGuide] = useState(false);
   const codeInputRef = useRef<HTMLInputElement>(null);
@@ -203,6 +215,40 @@ export default function LandingScreen() {
         >
           Quick match
         </button>
+
+        <div className="bot-row">
+          <div
+            className="bot-difficulty"
+            role="radiogroup"
+            aria-label="Bot difficulty"
+          >
+            {BOT_DIFFICULTIES.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={botDifficulty === id}
+                className={
+                  botDifficulty === id
+                    ? "bot-difficulty-option selected"
+                    : "bot-difficulty-option"
+                }
+                onClick={() => setBotDifficulty(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={!canAct}
+            onClick={() =>
+              withFreshError(() => playBot(trimmedName, botDifficulty))
+            }
+          >
+            Play vs bot
+          </button>
+        </div>
       </div>
 
       {waitingForMatch && !lastError && (

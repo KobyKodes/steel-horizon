@@ -6,6 +6,7 @@
 
 import { create } from "zustand";
 import type {
+  BotDifficulty,
   Coordinate,
   ErrorCode,
   FleetPlacement,
@@ -38,6 +39,7 @@ interface GameStore {
   createRoom: (name: string) => void;
   joinRoom: (name: string, code: string) => void;
   quickMatch: (name: string) => void;
+  playBot: (name: string, difficulty: BotDifficulty) => void;
   setReady: (ready: boolean) => void;
   placeFleet: (fleet: FleetPlacement) => void;
   fire: (target: Coordinate, calledShot?: boolean) => void;
@@ -69,6 +71,11 @@ export const useGameStore = create<GameStore>((set) => ({
 
   quickMatch: (name) =>
     connectAndEmit(name, () => socket.emit("quickMatch", { name })),
+
+  playBot: (name, difficulty) =>
+    connectAndEmit(name, () =>
+      socket.emit("createBotGame", { name, difficulty }),
+    ),
 
   setReady: (ready) => socket.emit("setReady", { ready }),
 
@@ -116,6 +123,19 @@ socket.on("shotResult", (entry) => {
 socket.on("errorEvent", (payload) => {
   useGameStore.setState({ lastError: payload });
 });
+
+// Dev-only E2E hook: Playwright cannot click the R3F canvas, so tests
+// drive the real store directly. A dynamic import('/src/store.ts') from
+// page.evaluate can land on a second module instance (Vite versions module
+// URLs), so the app's own instance is published here.
+declare global {
+  interface Window {
+    __gameStore?: typeof useGameStore;
+  }
+}
+if (import.meta.env.DEV) {
+  window.__gameStore = useGameStore;
+}
 
 // Refresh resume: if this tab already has an identity, reconnect immediately —
 // the server's session-resume snapshot restores the correct screen without

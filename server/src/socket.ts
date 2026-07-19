@@ -13,14 +13,17 @@
 import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
 import { Server, type Socket } from "socket.io";
-import type {
-  ClientToServerEvents,
-  Coordinate,
-  ErrorCode,
-  FleetPlacement,
-  HandshakeAuth,
-  ServerToClientEvents,
+import {
+  generateRandomFleet,
+  type BotDifficulty,
+  type ClientToServerEvents,
+  type Coordinate,
+  type ErrorCode,
+  type FleetPlacement,
+  type HandshakeAuth,
+  type ServerToClientEvents,
 } from "@steel-horizon/shared";
+import { chooseBotShot, isBotDifficulty } from "./game/bot.js";
 import { InMemorySessionStore, type SessionStore } from "./session.js";
 import {
   generateRoomCode,
@@ -66,11 +69,23 @@ export interface SocketServerDeps {
   rng?: () => number;
   /** Disconnect grace before forfeit (ms); tests inject ~100–200ms. */
   graceMs?: number;
+  /** Delay before a bot fires on its turn (ms); tests inject ~0–10ms. */
+  botDelayMs?: number;
   /** High-score persistence; index.ts injects the JSON-file store. */
   highscores?: HighScoreStore;
 }
 
 const NAME_MAX_LENGTH = 20;
+
+/** Base thinking time before a bot shot; a little jitter rides on top. */
+const BOT_DELAY_MS = 1200;
+const BOT_DELAY_JITTER_MS = 600;
+
+const BOT_NAMES: Record<BotDifficulty, string> = {
+  easy: "Cadet Bot",
+  medium: "Captain Bot",
+  hard: "Admiral Bot",
+};
 
 /** Trimmed 1–20 char name, or null when invalid. */
 function validateName(raw: unknown): string | null {
@@ -129,6 +144,7 @@ export function createSocketServer(
   const matchmaking = deps.matchmaking ?? new MatchmakingQueue();
   const rng = deps.rng ?? Math.random;
   const graceMs = resolveGraceMs(deps.graceMs);
+  const botDelayMs = deps.botDelayMs;
   const highscores = deps.highscores ?? new InMemoryHighScoreStore();
 
   /** Live socket per session, for per-viewer snapshot sends and pairing. */
@@ -136,6 +152,9 @@ export function createSocketServer(
 
   /** Pending disconnect-grace timers, keyed by room+player. */
   const graceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  /** Pending bot-shot timers, keyed by room code (one bot per room). */
+  const botTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   const io: GameServer = new Server(httpServer);
 
@@ -198,6 +217,14 @@ export function createSocketServer(
     for (const player of room.players) {
       const summary = game.finalScores[player.sessionId];
       if (summary === undefined) continue;
+      // Rematch win streaks: winner climbs, loser resets. (Bots included —
+      // the streak renders in the snapshot — but bots never reach the
+      // global leaderboard below.)
+      room.winStreaks[player.sessionId] =
+        game.winner === player.sessionId
+          ? (room.winStreaks[player.sessionId] ?? 0) + 1
+          : 0;
+      if (player.isBot === true) continue;
       room.leaderboardRanks[player.sessionId] = highscores.submit({
         name: player.name,
         score: summary.total,
@@ -206,14 +233,72 @@ export function createSocketServer(
         shipsSunk: summary.shipsSunk,
         date,
       });
-      // Rematch win streaks: winner climbs, loser resets.
-      room.winStreaks[player.sessionId] =
-        game.winner === player.sessionId
-          ? (room.winStreaks[player.sessionId] ?? 0) + 1
-          : 0;
     }
     room.leaderboard = highscores.top();
     room.weeklyLeaderboard = highscores.topWeekly();
+  }
+
+  /**
+   * Resolve one bot shot through the SAME path a human shot takes:
+   * engineFire, shotResult cue, settle, snapshot. Re-checked at fire time —
+   * the room, game, or turn may have changed while the timer was pending
+   * (forfeit, disconnect-grace expiry, room deletion).
+   */
+  function fireBotShot(roomCode: string): void {
+    const room = rooms.get(roomCode);
+    const bot = room?.bot;
+    const game = room?.game;
+    if (room === undefined || bot == null || game == null) return;
+    if (game.phase !== "battle" || game.currentPlayer !== bot.sessionId) {
+      return;
+    }
+
+    const shots = game.players[bot.sessionId]?.shots ?? [];
+    const target = chooseBotShot(shots, bot.difficulty, rng);
+    const result = engineFire(game, bot.sessionId, target, {});
+    if (!result.ok) return; // chooseBotShot only yields legal cells.
+
+    const botName =
+      room.players.find((p) => p.sessionId === bot.sessionId)?.name ?? "Bot";
+    io.to(room.code).emit("shotResult", {
+      shooter: botName,
+      target: result.record.target,
+      result: result.record.result,
+      score: result.score,
+      ...(result.record.sunkShip !== undefined
+        ? {
+            sunkShip: result.record.sunkShip,
+            sunkShipCells: result.record.sunkShipCells,
+          }
+        : {}),
+    });
+
+    syncRoomPhase(room);
+    settleGameOver(room);
+    sendRoomState(room);
+  }
+
+  /**
+   * Arm the bot's shot timer when (and only when) it is the bot's turn in
+   * a live battle. Idempotent — an already-armed room keeps its timer.
+   * Call after every transition that could hand the bot the turn.
+   */
+  function scheduleBotTurn(room: Room): void {
+    const bot = room.bot;
+    const game = room.game;
+    if (bot == null || game == null) return;
+    if (game.phase !== "battle" || game.currentPlayer !== bot.sessionId) {
+      return;
+    }
+    if (botTimers.has(room.code)) return;
+
+    const delay = botDelayMs ?? BOT_DELAY_MS + rng() * BOT_DELAY_JITTER_MS;
+    const timer = setTimeout(() => {
+      botTimers.delete(room.code);
+      fireBotShot(room.code);
+    }, delay);
+    timer.unref();
+    botTimers.set(room.code, timer);
   }
 
   /** The room the session is seated in, if any. */
@@ -254,12 +339,18 @@ export function createSocketServer(
    * store does not leak.
    */
   function maybeDeleteRoom(room: Room): void {
-    const abandoned = room.players.every((p) => !p.connected);
+    // Bots are always "connected" but never hold a room open.
+    const abandoned = room.players.every((p) => p.isBot === true || !p.connected);
     const graced = room.players.some((p) =>
       graceTimers.has(graceKey(room.code, p.sessionId)),
     );
     if (!abandoned || graced) return;
     for (const player of room.players) detachSession(player.sessionId);
+    const botTimer = botTimers.get(room.code);
+    if (botTimer !== undefined) {
+      clearTimeout(botTimer);
+      botTimers.delete(room.code);
+    }
     rooms.delete(room.code);
   }
 
@@ -311,6 +402,7 @@ export function createSocketServer(
       weeklyLeaderboard: null,
       leaderboardRanks: {},
       winStreaks: {},
+      bot: null,
     };
     rooms.create(room);
 
@@ -351,6 +443,9 @@ export function createSocketServer(
       // Reconnector gets the resume snapshot; the opponent's snapshot
       // flips `opponent.connected` back to true.
       sendRoomState(seatedRoom);
+      // Safety net: if it is somehow the bot's turn with no timer armed
+      // (schedule is idempotent), re-arm so the game cannot stall.
+      scheduleBotTurn(seatedRoom);
     }
 
     socket.on("createRoom", (payload) => {
@@ -365,6 +460,42 @@ export function createSocketServer(
 
       matchmaking.remove(sessionId);
       const room = createRoomWith([{ sessionId, name }]);
+      sendRoomState(room);
+    });
+
+    socket.on("createBotGame", (payload) => {
+      const name = validateName(payload?.name);
+      if (name === null) {
+        return fail(socket, "INVALID_NAME", "Name must be 1-20 characters.");
+      }
+      const session = sessions.get(sessionId);
+      if (session?.roomCode != null) {
+        return fail(socket, "ALREADY_JOINED", "You are already in a room.");
+      }
+      const difficulty: BotDifficulty = isBotDifficulty(payload?.difficulty)
+        ? payload.difficulty
+        : "medium";
+
+      matchmaking.remove(sessionId);
+      const room = createRoomWith([{ sessionId, name }]);
+      const botSessionId = `bot:${randomUUID()}`;
+      room.players.push({
+        sessionId: botSessionId,
+        name: BOT_NAMES[difficulty],
+        ready: true,
+        connected: true,
+        isBot: true,
+      });
+      room.bot = { sessionId: botSessionId, difficulty };
+
+      // Skip the lobby: both seats count as ready, the engine starts in
+      // placement, and the bot's fleet lands immediately. The human's
+      // placeFleet flips the game to battle exactly like a 2P game.
+      const human = room.players.find((p) => p.sessionId === sessionId);
+      if (human !== undefined) human.ready = true;
+      room.phase = "placement";
+      room.game = createGame([sessionId, botSessionId], rng);
+      enginePlaceFleet(room.game, botSessionId, generateRandomFleet());
       sendRoomState(room);
     });
 
@@ -475,6 +606,8 @@ export function createSocketServer(
       // is the only serialization path and redacts per viewer.
       syncRoomPhase(room);
       sendRoomState(room);
+      // Battle may have just started with the coin flip landing on the bot.
+      scheduleBotTurn(room);
     });
 
     socket.on("fire", (payload) => {
@@ -520,6 +653,7 @@ export function createSocketServer(
       syncRoomPhase(room);
       settleGameOver(room);
       sendRoomState(room);
+      scheduleBotTurn(room);
     });
 
     socket.on("requestRematch", () => {
@@ -531,9 +665,15 @@ export function createSocketServer(
         return fail(socket, "WRONG_PHASE", "There is no finished game.");
       }
 
-      const result = engineRequestRematch(room.game, sessionId);
+      let result = engineRequestRematch(room.game, sessionId);
       if (!result.ok) {
         return fail(socket, result.code);
+      }
+
+      // A bot opponent accepts instantly, completing the pair.
+      if (result.game === null && room.bot !== null) {
+        const botAccept = engineRequestRematch(room.game, room.bot.sessionId);
+        if (botAccept.ok) result = botAccept;
       }
 
       if (result.game !== null) {
@@ -547,6 +687,14 @@ export function createSocketServer(
         room.leaderboardRanks = {};
         // winStreaks survive the rematch — that's the whole point of them.
         for (const player of room.players) player.ready = false;
+        // The fresh game needs the bot seated again: ready + fleet down.
+        if (room.bot !== null) {
+          const botSeat = room.players.find(
+            (p) => p.sessionId === room.bot!.sessionId,
+          );
+          if (botSeat !== undefined) botSeat.ready = true;
+          enginePlaceFleet(room.game, room.bot.sessionId, generateRandomFleet());
+        }
       }
       syncRoomPhase(room);
       sendRoomState(room);
