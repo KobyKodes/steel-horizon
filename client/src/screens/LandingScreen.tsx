@@ -13,6 +13,7 @@ import { useGameStore } from "../store";
 import LeaderboardPanel from "../components/LeaderboardPanel";
 import ScoringGuideOverlay from "../components/ScoringGuideOverlay";
 import "../components/leaderboardOverlay.css";
+import "./landing.css";
 
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_CODE_LENGTH = 6;
@@ -153,8 +154,17 @@ export default function LandingScreen() {
 
   return (
     <div className="screen landing">
-      <h1>Steel Horizon</h1>
-      <p className="tagline">Naval battle for two players</p>
+      <header className="landing-masthead">
+        <h1>Steel Horizon</h1>
+        <p className="tagline">Naval battle for two players</p>
+        <span className="landing-burst" aria-hidden="true">
+          All
+          <br />
+          hands on
+          <br />
+          deck!
+        </span>
+      </header>
 
       {errorText && (
         <div className="banner error" role="alert">
@@ -205,6 +215,7 @@ export default function LandingScreen() {
 
         <button
           type="button"
+          className="landing-quick"
           disabled={!canAct || waitingForMatch}
           onClick={() =>
             withFreshError(() => {
@@ -255,21 +266,23 @@ export default function LandingScreen() {
         <p className="waiting">Waiting for an opponent&hellip;</p>
       )}
 
-      <button
-        type="button"
-        className="lb-open"
-        onClick={() => setShowLeaderboards(true)}
-      >
-        View leaderboards
-      </button>
+      <div className="landing-footer">
+        <button
+          type="button"
+          className="lb-open"
+          onClick={() => setShowLeaderboards(true)}
+        >
+          View leaderboards
+        </button>
 
-      <button
-        type="button"
-        className="lb-open"
-        onClick={() => setShowScoringGuide(true)}
-      >
-        How scoring works
-      </button>
+        <button
+          type="button"
+          className="lb-open"
+          onClick={() => setShowScoringGuide(true)}
+        >
+          How scoring works
+        </button>
+      </div>
 
       {showLeaderboards && (
         <LeaderboardOverlay onClose={() => setShowLeaderboards(false)} />

@@ -36,6 +36,9 @@ export const COMEBACK_BONUS = 300;
 /** Called shot: a hit pays double; a miss costs this on top of the reset. */
 export const CALLED_SHOT_PENALTY = 200;
 
+/** Each player may stake a called shot at most this many times per game. */
+export const CALLED_SHOT_LIMIT = 3;
+
 /** Live per-player score, carried in snapshots during battle. */
 export interface ScoreState {
   points: number;

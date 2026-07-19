@@ -12,7 +12,6 @@
 // hover/click at all).
 
 import { useEffect, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
 import {
   placementFromCells,
   type Coordinate,
@@ -26,13 +25,9 @@ import { FleetShips, placementCenterWorld } from "./ships/FleetShips";
 import { HoloGrid, type CellState, GRID_ALTITUDE } from "./grid/HoloGrid";
 import { cellToWorld } from "./grid/gridCoords";
 import { gerstnerHeight } from "./waves";
-import type { CameraView, ViewConfig } from "./camera/CameraRig";
+import type { CameraView } from "./camera/CameraRig";
 import { triggerCameraShake } from "./camera/CameraRig";
-import {
-  ShellProjectile,
-  easeInOutQuad,
-  parabolicPosition,
-} from "./effects/ShellProjectile";
+import { ShellProjectile } from "./effects/ShellProjectile";
 import { ParticleBurst, type BurstPreset } from "./effects/ParticleBurst";
 import { ResultCallout } from "./effects/ResultCallout";
 import { ScorePopup } from "./effects/ScorePopup";
@@ -104,17 +99,24 @@ function cellStatesFrom(shots: ShotRecord[]): Map<string, CellState> {
 const SHELL_FLIGHT_SECONDS = 0.9;
 const SHELL_ARC_HEIGHT = 5;
 
-// Fixed launch point just outside the grid's near edge (the grid spans
-// roughly x/z=[-19.7, 19.7] at GRID_ALTITUDE, per 04-07's CameraRig
-// notes) — the firing ship's exact world position isn't tracked by this
-// adapter, so every shot launches from this one point regardless of which
-// ship fired it.
-const LAUNCH_POINT: [number, number, number] = [0, GRID_ALTITUDE + 3, 24];
-
-// Chase-cam offset applied on top of the shell's live position (flight)
-// or the impact point (post-impact hold), so the camera watches from
-// slightly above/behind rather than sitting exactly on top of the action.
-const CAMERA_FOLLOW_OFFSET: [number, number] = [10, 12];
+// Fixed launch points just outside the grid's edges (the grid spans
+// roughly x/z=[-19.7, 19.7] at GRID_ALTITUDE) — the firing ship's exact
+// world position isn't tracked by this adapter. With the near-top-down
+// camera, +z is the bottom of the canvas and -z the top, so an OUTGOING
+// shot arcs in from the bottom of the screen (your side) and an INCOMING
+// shot arcs in from the top (the enemy's side). The camera itself never
+// moves during either cinematic (USER direction 2026-07-19: no camera
+// angle changes on the boards — each board keeps its fixed view).
+const LAUNCH_POINT_OUTGOING: [number, number, number] = [
+  0,
+  GRID_ALTITUDE + 3,
+  24,
+];
+const LAUNCH_POINT_INCOMING: [number, number, number] = [
+  0,
+  GRID_ALTITUDE + 3,
+  -24,
+];
 
 const SHAKE_INTENSITY: Record<"hit" | "miss", number> = {
   hit: 0.55,
@@ -125,57 +127,19 @@ type SequenceStage = "flight" | "impact" | null;
 
 // A cinematic can be driven by one of two shot streams:
 //  - "outgoing": a shot YOU fired, animating on the enemy-waters targeting
-//    grid (the shooter's experience).
-//  - "incoming": a shot fired AT you, animating on your own fleet grid (the
-//    defender's experience, 05-03 checkpoint expansion). The main view is
-//    forced to "fleet" for its duration so the defender watches the shell
-//    arc into their own fleet and see exactly where it struck.
-// Both reuse the identical ShellProjectile/ParticleBurst/CameraRig
-// primitives and the shared presetFor/shakeFor mapping — never duplicated.
+//    grid (the shooter's experience) — shell arcs in from the bottom of
+//    the canvas.
+//  - "incoming": a shot fired AT you, animating on your own fleet grid
+//    (the defender's experience) — shell arcs in from the top of the
+//    canvas. Runs on whichever adapter instance receives `incomingShots`
+//    (the BattleScreen's dedicated "Your fleet" board).
+// Both reuse the identical ShellProjectile/ParticleBurst primitives and
+// the shared presetFor/shakeFor mapping — never duplicated. Neither moves
+// the camera.
 type PendingKind = "outgoing" | "incoming";
 interface PendingShot {
   kind: PendingKind;
   shot: ShotRecord;
-}
-
-/**
- * Drives `shellFocus` every frame while the shell is in flight, reusing
- * ShellProjectile's exact eased/parabolic math (imported, not re-derived)
- * so the camera's chase target and the visible shell never diverge. Lives
- * inside the Canvas (as a SceneRoot child) purely for its useFrame loop —
- * it renders nothing.
- */
-function ShellFocusTracker({
-  start,
-  end,
-  durationSeconds,
-  arcHeight,
-  onUpdate,
-}: {
-  start: [number, number, number];
-  end: [number, number, number];
-  durationSeconds: number;
-  arcHeight: number;
-  onUpdate: (focus: ViewConfig) => void;
-}) {
-  const elapsedRef = useRef(0);
-
-  useFrame((_state, delta) => {
-    elapsedRef.current += delta;
-    const t = Math.min(elapsedRef.current / durationSeconds, 1);
-    const easedT = easeInOutQuad(t);
-    const shellPos = parabolicPosition(start, end, easedT, arcHeight);
-    onUpdate({
-      position: [
-        shellPos[0] + CAMERA_FOLLOW_OFFSET[0],
-        shellPos[1] + CAMERA_FOLLOW_OFFSET[1],
-        shellPos[2] + CAMERA_FOLLOW_OFFSET[0],
-      ],
-      lookAt: shellPos,
-    });
-  });
-
-  return null;
 }
 
 export interface GameSceneAdapterProps {
@@ -187,18 +151,17 @@ export interface GameSceneAdapterProps {
   /** Shot history against this fleet's opponent, driving the grid's markers. */
   shots: ShotRecord[];
   /**
-   * Shots fired AT you (`shotsAgainstYou`). Interactive main-panel only.
-   * When a NEW one arrives after mount, the main view flips to your own
-   * fleet grid and plays the incoming-shot cinematic at the struck cell
-   * (05-03 defender-side expansion). Omit for reveal instances / any board
+   * Shots fired AT you (`shotsAgainstYou`). Pass on the always-fleet-view
+   * "Your fleet" board: when a NEW one arrives after mount it plays the
+   * incoming-shot cinematic there — shell from the top of the canvas into
+   * the struck cell, camera fixed. Omit for reveal instances / any board
    * that should never run an incoming cinematic.
    */
   incomingShots?: ShotRecord[];
   /**
    * Fired whenever an incoming-shot cinematic starts (true) or ends
-   * (false), so the parent can relabel the panel ("Incoming fire!") while
-   * the view is force-flipped to the fleet grid. View-flipping itself stays
-   * internal to this adapter; the parent only needs the flag for its label.
+   * (false), so the parent can relabel the panel ("Incoming fire!") for
+   * its duration.
    */
   onIncomingActiveChange?: (active: boolean) => void;
   /** Whether firing is currently allowed (your turn). Ignored in "reveal" mode. */
@@ -249,7 +212,6 @@ export function GameSceneAdapter({
   const [impactPosition, setImpactPosition] = useState<
     [number, number, number] | null
   >(null);
-  const [shellFocus, setShellFocus] = useState<ViewConfig | null>(null);
 
   // Comic-book result word ("HIT!"/"SUNK!"/"MISS!") shown once per shot, at
   // the moment the outcome lands on screen: normally at shell impact, or at
@@ -474,20 +436,11 @@ export function GameSceneAdapter({
     setPending(null);
     setSequenceStage(null);
     setImpactPosition(null);
-    setShellFocus(null);
   }
 
   function handleImpact(pos: [number, number, number]) {
     if (!pending) return;
     setImpactPosition(pos);
-    setShellFocus({
-      position: [
-        pos[0] + CAMERA_FOLLOW_OFFSET[0],
-        pos[1] + CAMERA_FOLLOW_OFFSET[1],
-        pos[2] + CAMERA_FOLLOW_OFFSET[0],
-      ],
-      lookAt: pos,
-    });
     triggerCameraShake(shakeFor(pending.shot.result));
     showCallout(pending.shot.result);
     if (pending.kind === "outgoing") revealOutgoingScore(pending.shot);
@@ -511,12 +464,11 @@ export function GameSceneAdapter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReveal, pending]);
 
-  // During an incoming cinematic the main view is forced to the fleet grid
-  // so the defender watches the shell arc into their own fleet; otherwise
-  // it honors the caller's chosen `view`. Reverts automatically the instant
-  // the cinematic settles (pending -> null), returning the defender to
-  // their normal flow with no BattleScreen state change required.
-  const effectiveView: CameraView = incomingActive ? "fleet" : view;
+  // The view never changes at runtime (USER direction 2026-07-19): each
+  // board keeps the fixed camera its owner chose. Incoming cinematics run
+  // on the board that receives `incomingShots` (the always-fleet-view
+  // "Your fleet" board), so no force-flip exists anymore.
+  const effectiveView: CameraView = view;
 
   // Which shot stream feeds the grid markers depends on which board the
   // camera is framing. Fleet framing shows the shots fired AT you on your
@@ -547,7 +499,7 @@ export function GameSceneAdapter({
         if (!isReveal && pending) settleSequence();
       }}
     >
-      <SceneRoot view={effectiveView} shellFocus={shellFocus}>
+      <SceneRoot view={effectiveView}>
         {/* In interactive mode, ships only render in fleet view — the grid
             is shared physical space for both views (04-05 established one
             cellToWorld mapping for everything), but it stands for two
@@ -630,23 +582,18 @@ export function GameSceneAdapter({
                 }
           }
         />
-        {sequenceStage === "flight" && shellTarget && (
-          <>
-            <ShellProjectile
-              start={LAUNCH_POINT}
-              end={shellTarget}
-              durationSeconds={SHELL_FLIGHT_SECONDS}
-              arcHeight={SHELL_ARC_HEIGHT}
-              onImpact={handleImpact}
-            />
-            <ShellFocusTracker
-              start={LAUNCH_POINT}
-              end={shellTarget}
-              durationSeconds={SHELL_FLIGHT_SECONDS}
-              arcHeight={SHELL_ARC_HEIGHT}
-              onUpdate={setShellFocus}
-            />
-          </>
+        {sequenceStage === "flight" && shellTarget && pending && (
+          <ShellProjectile
+            start={
+              pending.kind === "incoming"
+                ? LAUNCH_POINT_INCOMING
+                : LAUNCH_POINT_OUTGOING
+            }
+            end={shellTarget}
+            durationSeconds={SHELL_FLIGHT_SECONDS}
+            arcHeight={SHELL_ARC_HEIGHT}
+            onImpact={handleImpact}
+          />
         )}
         {sequenceStage === "impact" && impactPosition && pending && (
           <ParticleBurst

@@ -10,6 +10,7 @@
 
 import {
   applyShot,
+  CALLED_SHOT_LIMIT,
   finalizeScore,
   initialScoreState,
   isFleetDestroyed,
@@ -36,6 +37,8 @@ export interface PlayerGameState {
   shots: ShotRecord[];
   /** Live arcade score, folded forward by fire() via the shared rules. */
   score: ScoreState;
+  /** Called-shot stakes spent so far (capped at CALLED_SHOT_LIMIT). */
+  calledShotsUsed: number;
 }
 
 export interface Game {
@@ -83,8 +86,18 @@ export function createGame(
   return {
     playerIds,
     players: {
-      [playerIds[0]]: { fleet: null, shots: [], score: initialScoreState() },
-      [playerIds[1]]: { fleet: null, shots: [], score: initialScoreState() },
+      [playerIds[0]]: {
+        fleet: null,
+        shots: [],
+        score: initialScoreState(),
+        calledShotsUsed: 0,
+      },
+      [playerIds[1]]: {
+        fleet: null,
+        shots: [],
+        score: initialScoreState(),
+        calledShotsUsed: 0,
+      },
     },
     phase: "placement",
     currentPlayer: null,
@@ -189,6 +202,11 @@ export function fire(
   const shipsSunk = shooter.shots.filter(
     (shot) => shot.result === "sunk",
   ).length;
+  // The stake is server-limited: past CALLED_SHOT_LIMIT the flag is simply
+  // ignored (the shot resolves unstaked), so no client can over-spend it.
+  const calledShot =
+    options.calledShot === true && shooter.calledShotsUsed < CALLED_SHOT_LIMIT;
+  if (calledShot) shooter.calledShotsUsed += 1;
   const scored = applyShot(
     game.players[playerId]!.score,
     resolution.result === "sunk"
@@ -208,7 +226,7 @@ export function fire(
       quickDraw:
         game.turnStartedAt !== null &&
         game.now() - game.turnStartedAt <= QUICK_DRAW_WINDOW_MS,
-      calledShot: options.calledShot === true,
+      calledShot,
       comeback: shipsLost > shipsSunk,
     },
   );

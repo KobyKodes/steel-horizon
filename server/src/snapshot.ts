@@ -12,10 +12,11 @@
 //     once the game is over; before that it is always null.
 //   - `currentTurn` / `winner` are mapped to viewer-relative "you"/"opponent".
 
-import type {
-  RoomSnapshot,
-  ShipClassId,
-  ShotRecord,
+import {
+  CALLED_SHOT_LIMIT,
+  type RoomSnapshot,
+  type ShipClassId,
+  type ShotRecord,
 } from "@steel-horizon/shared";
 import type { Room } from "./rooms.js";
 
@@ -87,6 +88,10 @@ export function buildSnapshot(
       yourState !== undefined && opponentState !== undefined
         ? { you: yourState.score, opponent: opponentState.score }
         : null,
+    calledShotsRemaining: Math.max(
+      0,
+      CALLED_SHOT_LIMIT - (yourState?.calledShotsUsed ?? 0),
+    ),
     finalScores:
       gameOver &&
       opponent !== undefined &&

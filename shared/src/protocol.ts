@@ -87,6 +87,8 @@ export interface RoomSnapshot {
   rematch: { youRequested: boolean; opponentRequested: boolean };
   /** Live arcade scores; null until a game exists. */
   scores: { you: ScoreState; opponent: ScoreState } | null;
+  /** Called-shot stakes the viewer still has this game (of CALLED_SHOT_LIMIT). */
+  calledShotsRemaining: number;
   /** Final score breakdowns; non-null only at phase === "gameover". */
   finalScores: { you: ScoreSummary; opponent: ScoreSummary } | null;
   /** Global top-20 leaderboard; non-null only at phase === "gameover". */

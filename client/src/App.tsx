@@ -1,6 +1,10 @@
 // Phase router — snapshot.phase IS the routing (no router library, no
 // client-side transition logic). The server changes the phase; we follow.
+// One exception (USER request): gameover holds on the battle screen so the
+// final sink cinematic + victory banner play out; the banner's button
+// advances to the post-game screen.
 
+import { useEffect, useState } from "react";
 import { useGameStore } from "./store";
 import LandingScreen from "./screens/LandingScreen";
 import LobbyScreen from "./screens/LobbyScreen";
@@ -31,6 +35,14 @@ function StatusBar() {
 
 export default function App() {
   const snapshot = useGameStore((s) => s.snapshot);
+  const phase = snapshot?.phase;
+
+  // Battle lingers through gameover until the player advances; a rematch
+  // (phase leaves gameover) re-arms the hold for the next game.
+  const [resultsShown, setResultsShown] = useState(false);
+  useEffect(() => {
+    if (phase !== "gameover") setResultsShown(false);
+  }, [phase]);
 
   let screen;
   if (snapshot === null) {
@@ -39,8 +51,11 @@ export default function App() {
     screen = <LobbyScreen snapshot={snapshot} />;
   } else if (snapshot.phase === "placement") {
     screen = <PlacementScreen />;
-  } else if (snapshot.phase === "battle") {
-    screen = <BattleScreen />;
+  } else if (
+    snapshot.phase === "battle" ||
+    (snapshot.phase === "gameover" && !resultsShown)
+  ) {
+    screen = <BattleScreen onShowResults={() => setResultsShown(true)} />;
   } else {
     screen = <PostGameScreen />;
   }

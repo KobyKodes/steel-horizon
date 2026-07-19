@@ -1,5 +1,9 @@
-/* Battle + post-game styles (plan 03-03). Plain 2D utilitarian — Phase 4/5
-   replaces the visuals entirely. */
+/* Battle screen — the comic PAGE mid-action, matching the landing/placement
+   language (Impact italic, hit-yellow #ffd21f, ink #10131a, radar-blue
+   #9fc3e8, kill-red #ff2e3f, halftone dots, stamped panels with hard offset
+   shadows). The two boards are inked comic panels with caption boxes
+   stapled over their top corners; the turn indicator is a narration slab
+   that re-stamps on every turn flip. Post-game styles live at the bottom. */
 
 /* .screen.battle-screen (not bare .battle-screen): styles.css's generic
    `.screen { max-width: 26rem }` is injected AFTER this stylesheet in the
@@ -13,51 +17,163 @@
   justify-content: flex-start;
 }
 
-/* --- Turn indicator --- */
+/* Halftone print texture behind the whole page. */
+.screen.battle-screen {
+  position: relative;
+  isolation: isolate;
+}
+
+.screen.battle-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(
+    rgba(159, 195, 232, 0.1) 1px,
+    transparent 1.6px
+  );
+  background-size: 16px 16px;
+  mask-image: radial-gradient(ellipse at 50% 25%, #000 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 25%,
+    #000 40%,
+    transparent 80%
+  );
+}
+
+/* --- Turn indicator: the narration slab ---
+   Re-stamped on every turn flip (keyed by currentTurn in the TSX). Your
+   turn is the loud yellow caption; opponent's turn is a dim steel one. */
 
 .turn-indicator {
-  width: 100%;
-  text-align: center;
-  padding: 0.55rem 1rem;
-  border-radius: 6px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  background: #1d2836;
-  border: 1px solid #3a4a5e;
-  color: #8fa0b5;
+  align-self: center;
+  padding: 0.45rem 1.4rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9fc3e8;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+  transform: rotate(-1deg);
+  animation: battle-stamp 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) both;
 }
 
 .turn-indicator.your-turn {
-  background: #14321c;
-  border-color: #2e6b3e;
-  color: #8fe6a0;
+  font-size: 1.15rem;
+  color: #10131a;
+  background: #ffd21f;
+  box-shadow: 4px 4px 0 rgba(16, 19, 26, 0.55);
 }
 
-/* --- Layout --- */
+/* --- Layout: the comic-page grid ---
+   Two board columns. Row 1: each side's HUD (enemy score | your score +
+   call-shot). Row 2: the board panels. Row 3: dossier cards centered under
+   their boards with the battle log centered between them. */
 
 .battle-layout {
-  display: flex;
-  gap: 2rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
+  align-items: start;
+  column-gap: 2rem;
+  row-gap: 1rem;
   width: 100%;
+  max-width: 86rem;
+  margin-inline: auto;
+}
+
+.battle-hud {
+  display: flex;
+  align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  align-items: flex-start;
+  gap: 0.9rem;
+  align-self: center;
+}
+
+.battle-hud-enemy {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.battle-hud-you {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+/* The enemy staked their shot: kill-red flash on their HUD. */
+.enemy-called {
+  padding: 0.35rem 0.8rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: #ff2e3f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(1deg);
+  animation: battle-stamp 0.3s cubic-bezier(0.2, 1.7, 0.4, 1) both;
 }
 
 .battle-main,
 .battle-side {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  animation: battle-stamp 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both;
 }
 
+.battle-main {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.battle-side {
+  grid-column: 2;
+  grid-row: 2;
+  animation-delay: 0.08s;
+}
+
+/* Caption boxes stapled over the panels' top-left corners: enemy waters
+   gets the hit-yellow narration box, your fleet the radar-blue one. The
+   negative bottom margin makes the box straddle the panel's inked border. */
 .battle-main h2,
 .battle-side h2 {
-  margin: 0;
-  font-size: 1.1rem;
+  z-index: 2;
+  align-self: flex-start;
+  margin: 0 0 -0.8rem 1rem;
+  padding: 0.3rem 0.85rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-2deg);
 }
 
-/* --- 3D scene (plan 04-05) --- */
+.battle-side h2 {
+  background: #9fc3e8;
+  transform: rotate(1.5deg);
+}
+
+/* --- 3D scene (plan 04-05): the inked comic panel --- */
 
 .battle-main-header {
   display: flex;
@@ -85,68 +201,174 @@
   position: relative;
   width: 100%;
   max-width: 56rem;
-  aspect-ratio: 4 / 3;
+  /* Square: the near-top-down camera projects the square board to almost
+     the full frame, so a square canvas lets the grid cover it edge to
+     edge instead of floating in side margins. */
+  aspect-ratio: 1 / 1;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #26374d;
 }
 
-/* Give both battle panels room to actually reach their scenes' max
-   widths instead of shrinking to their text content. */
-.battle-main {
-  flex: 1 1 40rem;
-  max-width: 56rem;
+/* Battle boards get the full panel ink: thick border, hard offset shadow. */
+.battle-screen .game-scene {
+  border: 3px solid #10131a;
+  border-radius: 0.4rem;
+  box-shadow:
+    5px 5px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
 }
 
+/* Incoming-fire cinematic: the whole fleet panel runs hot — kill-red
+   caption and frame, throbbing until the shell resolves. */
+.battle-side--incoming h2 {
+  color: #fff;
+  background: #ff2e3f;
+  animation: battle-alarm 0.7s ease-in-out infinite;
+}
+
+.battle-side--incoming .game-scene {
+  border-color: #ff2e3f;
+  animation: battle-alarm 0.7s ease-in-out infinite;
+}
+
+/* The two boards are EQUAL twins (USER direction 2026-07-19): enemy
+   waters and your fleet side by side at the same size. Height-fit: the
+   square scenes otherwise size purely from width, pushing the page taller
+   than a laptop screen — cap each board COLUMN by the viewport height
+   minus the chrome stacked above/below it (turn banner, HUD row, dossier
+   cards) so battle fits without scrolling. Capping the section (not the
+   scene) keeps the caption box pinned to the panel's actual left edge. */
+.battle-main,
 .battle-side {
-  flex: 0 1 30rem;
+  width: 100%;
+  max-width: min(40rem, calc(100vh - 26rem));
 }
 
-/* Smaller secondary/reveal boards (04-06): the battle side panel's
-   always-visible "your fleet" reveal, and the post-game screen's two
-   side-by-side reveal boards. */
-.battle-side .game-scene,
+/* Post-game reveal boards (04-06): two smaller side-by-side boards. */
 .postgame-boards .game-scene {
   max-width: 30rem;
 }
 
-.battle-side h3,
-.battle-main h3,
-.fleet-status h3 {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #8fa0b5;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+/* --- Row 3: dossier cards under their boards, log centered between --- */
+
+.battle-under-enemy {
+  grid-column: 1;
+  grid-row: 3;
+  transform: rotate(-0.6deg);
+  animation: battle-stamp 0.35s 0.16s cubic-bezier(0.2, 1.6, 0.4, 1) both;
 }
 
-/* --- Fleet status lists --- */
+.battle-under-you {
+  grid-column: 2;
+  grid-row: 3;
+  transform: rotate(0.6deg);
+  animation: battle-stamp 0.35s 0.16s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.battle-log-wrap {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: min(20rem, 26vw);
+  animation: battle-stamp 0.35s 0.24s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+/* Not enough middle gap for the log to share the row: drop it below. */
+@media (max-width: 78rem) {
+  .battle-log-wrap {
+    grid-row: 4;
+    width: min(24rem, 90vw);
+  }
+}
+
+.battle-side h3,
+.battle-main h3,
+.fleet-status h3,
+.battle-log-wrap h3 {
+  margin: 0;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.8rem;
+  color: #9fc3e8;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+/* --- Fleet status: stamped dossier cards --- */
+
+.fleet-status {
+  min-width: 15rem;
+  padding: 0.55rem 0.8rem 0.7rem;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
 
 .fleet-status ul {
-  margin: 0;
+  margin: 0.4rem 0 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.25rem;
   font-size: 0.85rem;
+  color: #f4f7ff;
 }
 
+.fleet-status li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* A sunk ship is crossed off the hit list in kill-red. */
 .fleet-status li.sunk {
-  color: #e05a6e;
-  text-decoration: line-through;
+  color: #ff2e3f;
+  text-decoration: line-through 2px;
 }
 
-/* --- Shot log --- */
+/* Damage report hull cells: one block per cell, hits filled kill-red. */
+.dmg-cells {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.dmg-cells i {
+  width: 0.6rem;
+  height: 0.6rem;
+  background: #0a0e16;
+  border: 1px solid #5c6e85;
+}
+
+.dmg-cells i.hit {
+  background: #ff2e3f;
+  border-color: #10131a;
+}
+
+/* --- Shot log: the radio-caption feed --- */
 
 .shot-log {
   width: 100%;
-  max-width: 20rem;
-  height: 11rem;
+  /* Fixed-height on roomy screens, shrinking on short laptop viewports so
+     the battle side column never pushes the page past the screen. */
+  height: clamp(6rem, calc(100vh - 47rem), 11rem);
   overflow-y: auto;
-  background: #0c1117;
-  border: 1px solid #232f3f;
-  border-radius: 6px;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
   padding: 0.5rem 0.7rem;
   font-size: 0.8rem;
 }
@@ -161,64 +383,378 @@
 }
 
 .shot-log .log-miss {
-  color: #8fa0b5;
+  color: #5c6e85;
 }
 
 .shot-log .log-hit {
-  color: #f0c4ca;
+  color: #ffd21f;
 }
 
 .shot-log .log-sunk {
-  color: #e6b450;
-  font-weight: 600;
+  color: #ff2e3f;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .shot-log .log-section {
   margin: 0.35rem 0 0.15rem;
-  color: #61708a;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  color: #9fc3e8;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   font-size: 0.7rem;
 }
 
 .shot-log .log-empty {
   margin: 0;
-  color: #61708a;
+  color: #5c6e85;
   font-style: italic;
 }
 
-/* --- Post-game --- */
+/* --- Error banner: kill-red stamp --- */
 
-.result-banner {
-  width: 100%;
+.battle-screen .banner.error {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: #ff2e3f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  animation: battle-stamp 0.3s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+/* --- Animations --- */
+
+@keyframes battle-stamp {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes battle-alarm {
+  0%,
+  100% {
+    box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  }
+  50% {
+    box-shadow:
+      3px 3px 0 rgba(16, 19, 26, 0.55),
+      0 0 14px #ff2e3f;
+  }
+}
+
+/* Narrow screens: single-column stack in reading order — enemy column
+   first (their HUD, their waters, their fleet), then yours, then the log. */
+@media (max-width: 52rem) {
+  .battle-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .battle-hud-enemy,
+  .battle-main,
+  .battle-under-enemy,
+  .battle-hud-you,
+  .battle-side,
+  .battle-under-you,
+  .battle-log-wrap {
+    grid-column: 1;
+  }
+
+  .battle-hud-enemy {
+    grid-row: 1;
+  }
+  .battle-main {
+    grid-row: 2;
+  }
+  .battle-under-enemy {
+    grid-row: 3;
+  }
+  .battle-hud-you {
+    grid-row: 4;
+  }
+  .battle-side {
+    grid-row: 5;
+  }
+  .battle-under-you {
+    grid-row: 6;
+  }
+  .battle-log-wrap {
+    grid-row: 7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-indicator,
+  .battle-main,
+  .battle-side,
+  .battle-under-enemy,
+  .battle-under-you,
+  .battle-log-wrap,
+  .enemy-called,
+  .battle-screen .banner.error,
+  .battle-side--incoming h2,
+  .battle-side--incoming .game-scene {
+    animation: none;
+  }
+}
+
+/* --- Victory overlay: the game-winning beat, in the SUNK! voice ---
+   Slams in over the battle screen after the final sink cinematic settles.
+   Winner's name over the starburst, then the button to the post-game. */
+
+.victory-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(4, 7, 12, 0.78);
+  animation: battle-overlay-fade 0.25s ease both;
+}
+
+.victory-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 3rem 2rem;
+}
+
+/* The 16-point comic explosion flash behind the name (same starburst
+   geometry as the SUNK! callout). */
+.victory-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -58%;
+  width: min(34rem, 90vw);
+  aspect-ratio: 1;
+  z-index: -1;
+  background: radial-gradient(circle, #ffd21f 0%, #ff7a1a 55%, #ff2e3f 100%);
+  clip-path: polygon(
+    50% 0%, 61% 32%, 93% 15%, 74% 43%, 100% 50%, 74% 57%,
+    93% 85%, 61% 68%, 50% 100%, 39% 68%, 7% 85%, 26% 57%,
+    0% 50%, 26% 43%, 7% 15%, 39% 32%
+  );
+  opacity: 0.92;
+  animation: victory-burst-pop 0.4s cubic-bezier(0.18, 1.7, 0.4, 1) both;
+}
+
+/* Defeat keeps the same slam but the flash runs cold steel-blue. */
+.victory-overlay--lost .victory-burst {
+  background: radial-gradient(circle, #9fc3e8 0%, #33506e 60%, #10131a 100%);
+  opacity: 0.85;
+}
+
+.victory-word {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.6rem, 8vw, 5rem);
+  line-height: 1;
   text-align: center;
-  padding: 1rem;
-  border-radius: 6px;
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ffd21f;
+  transform: rotate(-4deg);
+  -webkit-text-stroke: 3px #10131a;
+  paint-order: stroke fill;
+  text-shadow:
+    4px 4px 0 #10131a,
+    7px 7px 0 rgba(16, 19, 26, 0.35);
+  animation:
+    victory-word-pop 0.34s 0.1s cubic-bezier(0.18, 1.7, 0.4, 1) both,
+    victory-word-shudder 0.5s ease-out 0.44s;
+}
+
+.victory-overlay--lost .victory-word {
+  color: #9fc3e8;
+}
+
+.victory-word-sub {
+  font-size: 0.42em;
+  letter-spacing: 0.12em;
+  color: #f4f7ff;
+}
+
+.victory-continue {
+  padding: 0.7rem 1.6rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 4px 4px 0 rgba(16, 19, 26, 0.55);
+  cursor: pointer;
+  transform: rotate(-1deg);
+  transition:
+    translate 0.12s ease,
+    box-shadow 0.12s ease;
+  animation: battle-stamp 0.3s 0.55s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+.victory-continue:hover {
+  background: #ffdc4d;
+  translate: -1px -1px;
+  box-shadow: 5px 5px 0 rgba(16, 19, 26, 0.55);
+}
+
+.victory-continue:active {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 rgba(16, 19, 26, 0.55);
+}
+
+.victory-continue:focus-visible {
+  outline: 2px solid #f4f7ff;
+  outline-offset: 2px;
+}
+
+@keyframes battle-overlay-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes victory-burst-pop {
+  from {
+    opacity: 0;
+    scale: 0.1;
+    rotate: -20deg;
+  }
+  to {
+    opacity: 0.92;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes victory-word-pop {
+  from {
+    opacity: 0;
+    scale: 0.2;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes victory-word-shudder {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  20% {
+    translate: -5px 3px;
+  }
+  40% {
+    translate: 4px -3px;
+  }
+  60% {
+    translate: -3px 2px;
+  }
+  80% {
+    translate: 2px -1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .victory-overlay,
+  .victory-burst,
+  .victory-word,
+  .victory-continue {
+    animation: none;
+  }
+}
+
+/* --- Post-game: same comic language as the battle page --- */
+
+.screen.postgame-screen {
+  position: relative;
+  isolation: isolate;
+}
+
+.screen.postgame-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(
+    rgba(159, 195, 232, 0.1) 1px,
+    transparent 1.6px
+  );
+  background-size: 16px 16px;
+  mask-image: radial-gradient(ellipse at 50% 15%, #000 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 15%,
+    #000 40%,
+    transparent 80%
+  );
+}
+
+/* Result banner: the issue-title slab — yellow for the win, red for the
+   loss, tilted like a slammed stamp. */
+.result-banner {
+  align-self: center;
+  padding: 0.7rem 2.2rem;
+  text-align: center;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 3px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 5px 5px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-1.5deg);
+  animation: battle-stamp 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) both;
 }
 
 .result-banner.victory {
-  background: #14321c;
-  border: 1px solid #2e6b3e;
-  color: #8fe6a0;
+  color: #10131a;
+  background: #ffd21f;
 }
 
 .result-banner.defeat {
-  background: #3a1d22;
-  border: 1px solid #7a3540;
-  color: #f0c4ca;
+  color: #f4f7ff;
+  background: #ff2e3f;
 }
 
 .result-banner .win-reason {
   display: block;
-  margin-top: 0.25rem;
-  font-size: 0.9rem;
-  font-weight: 400;
-  letter-spacing: 0.04em;
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
   color: inherit;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .postgame-boards {
@@ -229,15 +765,39 @@
   width: 100%;
 }
 
+/* Reveal boards get the caption-box headers, like the battle panels. */
 .postgame-boards h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
-  text-align: center;
+  display: inline-block;
+  margin: 0 0 -0.6rem 1rem;
+  position: relative;
+  z-index: 2;
+  padding: 0.25rem 0.8rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #10131a;
+  background: #9fc3e8;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 3px 3px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-1.5deg);
 }
 
+.postgame-screen .game-scene {
+  border: 3px solid #10131a;
+  border-radius: 0.4rem;
+  box-shadow:
+    5px 5px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
+
+/* Stats: stamped arcade tiles. */
 .stats {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.2rem;
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
@@ -247,26 +807,45 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.15rem;
   padding: 0.6rem 1rem;
-  background: #1d2836;
-  border: 1px solid #3a4a5e;
-  border-radius: 6px;
   min-width: 7rem;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
+
+.stat:nth-child(odd) {
+  transform: rotate(-0.8deg);
+}
+
+.stat:nth-child(even) {
+  transform: rotate(0.8deg);
 }
 
 .stat .stat-value {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.4rem;
+  color: #f4f7ff;
+  text-shadow: 2px 2px 0 #10131a;
 }
 
 .stat .stat-label {
-  font-size: 0.75rem;
-  color: #8fa0b5;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.7rem;
+  color: #9fc3e8;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 
+/* Rematch: the yellow INSERT COIN slab; Leave stays the quiet exit. */
 .rematch-row {
   display: flex;
   flex-direction: column;
@@ -274,21 +853,74 @@
   gap: 0.5rem;
 }
 
+.rematch-row > button:first-of-type {
+  padding: 0.65rem 1.6rem;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 4px 4px 0 rgba(16, 19, 26, 0.55);
+  transform: rotate(-1deg);
+  transition:
+    translate 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.rematch-row > button:first-of-type:hover:not(:disabled) {
+  background: #ffdc4d;
+  translate: -1px -1px;
+  box-shadow: 5px 5px 0 rgba(16, 19, 26, 0.55);
+}
+
+.rematch-row > button:first-of-type:active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 rgba(16, 19, 26, 0.55);
+}
+
+.rematch-row > button:first-of-type:disabled {
+  opacity: 0.5;
+}
+
+.rematch-row > button:first-of-type:focus-visible {
+  outline: 2px solid #f4f7ff;
+  outline-offset: 2px;
+}
+
 .rematch-note {
   margin: 0;
-  color: #8fa0b5;
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
   font-style: italic;
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #9fc3e8;
 }
 
 .rematch-note.opponent-wants {
-  color: #e6b450;
-  font-style: normal;
+  color: #ffd21f;
+  animation: battle-blink 1.1s steps(2, jump-none) infinite;
+}
+
+@keyframes battle-blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
 }
 
 .leave-link {
   background: none;
   border: none;
-  color: #61708a;
+  color: #5c6e85;
   text-decoration: underline;
   padding: 0.25rem;
   font-size: 0.85rem;
@@ -296,5 +928,12 @@
 
 .leave-link:hover:not(:disabled) {
   background: none;
-  color: #8fa0b5;
+  color: #9fc3e8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-banner,
+  .rematch-note.opponent-wants {
+    animation: none;
+  }
 }

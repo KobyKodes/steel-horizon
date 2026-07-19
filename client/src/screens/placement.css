@@ -29,7 +29,10 @@
 /* Placement is a single-board screen: let its scene run larger than the
    battle screen's shared default. */
 .placement-scene .game-scene {
-  max-width: 64rem;
+  /* Width-capped by the viewport HEIGHT too (4/3 aspect, minus the screen
+     chrome above/below the board) so the whole page fits on a laptop
+     screen without scrolling. */
+  max-width: min(64rem, calc(100vh - 18rem));
   flex: 1 1 40rem;
 }
 
@@ -139,4 +142,195 @@
   font-size: 0.8rem;
   color: #5f7085;
   text-align: center;
+}
+
+/* --- Comic/arcade treatment (matches landing.css / lb-overlay language:
+   Impact italic, hit-yellow #ffd21f, ink #10131a, radar-blue #9fc3e8,
+   stamped panels with hard offset shadows). Scoped under .placement so
+   battle keeps the plain chrome. --- */
+
+.screen.placement {
+  position: relative;
+  isolation: isolate;
+}
+
+.screen.placement::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(
+    rgba(159, 195, 232, 0.1) 1px,
+    transparent 1.6px
+  );
+  background-size: 16px 16px;
+  mask-image: radial-gradient(ellipse at 50% 20%, #000 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 20%,
+    #000 40%,
+    transparent 80%
+  );
+}
+
+.placement h1 {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #f4f7ff;
+  transform: rotate(-1deg);
+  text-shadow:
+    2px 2px 0 #10131a,
+    4px 4px 0 #ffd21f;
+  animation: placement-stamp 0.35s cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+/* Dock: stamped ship cards with the comic label voice. */
+.placement .dock h2 {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #9fc3e8;
+}
+
+.placement .dock-ship {
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
+
+.placement .dock-ship-name {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #f4f7ff;
+}
+
+.placement .dock-ship-cells i {
+  background: #33506e;
+  border: 1px solid #9fc3e8;
+}
+
+.placement .dock-ship.flash-illegal {
+  animation: placement-flash-illegal 0.45s ease-out;
+}
+
+@keyframes placement-flash-illegal {
+  0%,
+  60% {
+    background: #8a2f3b;
+    border-color: #10131a;
+    box-shadow:
+      3px 3px 0 rgba(16, 19, 26, 0.55),
+      inset 0 0 0 1px #c05563;
+  }
+  100% {
+    background: rgba(10, 14, 22, 0.85);
+    border-color: #10131a;
+    box-shadow:
+      3px 3px 0 rgba(16, 19, 26, 0.55),
+      inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+  }
+}
+
+.placement .dock-empty {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #ffd21f;
+}
+
+/* Controls: stamped panels; Ready is the loud yellow slab. */
+.placement .placement-controls button {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #f4f7ff;
+  background: rgba(10, 14, 22, 0.85);
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow:
+    3px 3px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+  transition:
+    translate 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.placement .placement-controls button:hover:not(:disabled) {
+  background: #16202e;
+  translate: -1px -1px;
+  box-shadow:
+    4px 4px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.35);
+}
+
+.placement .placement-controls button:active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow:
+    1px 1px 0 rgba(16, 19, 26, 0.55),
+    inset 0 0 0 1px rgba(159, 195, 232, 0.25);
+}
+
+.placement .placement-controls button:focus-visible {
+  outline: 2px solid #ffd21f;
+  outline-offset: 2px;
+}
+
+.placement .placement-controls .ready-button {
+  padding: 0.55rem 1.8rem;
+  font-size: 1rem;
+  color: #10131a;
+  background: #ffd21f;
+  transform: rotate(-1deg);
+}
+
+.placement .placement-controls .ready-button:hover:not(:disabled) {
+  background: #ffdc4d;
+}
+
+/* Status + hint in the caption voice. */
+.placement .placement-status {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9fc3e8;
+}
+
+.placement .placement-hint {
+  letter-spacing: 0.02em;
+  color: #5c6e85;
+}
+
+@keyframes placement-stamp {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .placement h1 {
+    animation: none;
+  }
 }

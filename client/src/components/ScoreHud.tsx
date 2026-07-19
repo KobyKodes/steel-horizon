@@ -54,9 +54,22 @@ export interface ScoreHudProps {
   points: number;
   streak: number;
   multiplier: number;
+  /** Score-box label; defaults to "Score". */
+  label?: string;
+  /**
+   * Quiet mode for the opponent's mirror HUD: no screen-edge glow and no
+   * chain-break sfx — those cues belong to the player's own chain only.
+   */
+  quiet?: boolean;
 }
 
-export default function ScoreHud({ points, streak, multiplier }: ScoreHudProps) {
+export default function ScoreHud({
+  points,
+  streak,
+  multiplier,
+  label = "Score",
+  quiet = false,
+}: ScoreHudProps) {
   // Pulse the plate when the multiplier climbs; shatter a ghost of it when
   // a miss knocks the chain back down.
   const previousMultiplier = useRef(multiplier);
@@ -72,9 +85,9 @@ export default function ScoreHud({ points, streak, multiplier }: ScoreHudProps) 
       setBumpKey(performance.now());
     } else if (multiplier < previous && previous > 1) {
       setShatter({ mult: previous, key: performance.now() });
-      chainBreak();
+      if (!quiet) chainBreak();
     }
-  }, [multiplier]);
+  }, [multiplier, quiet]);
 
   useEffect(() => {
     if (!shatter) return;
@@ -93,9 +106,9 @@ export default function ScoreHud({ points, streak, multiplier }: ScoreHudProps) 
       <div
         className="score-hud-score"
         role="status"
-        aria-label={`Score ${points}`}
+        aria-label={`${label} ${points}`}
       >
-        <span className="score-hud-label">Score</span>
+        <span className="score-hud-label">{label}</span>
         <Odometer value={points} />
       </div>
 
@@ -133,7 +146,7 @@ export default function ScoreHud({ points, streak, multiplier }: ScoreHudProps) 
         )}
       </div>
 
-      {(heat === "hot" || heat === "critical") && (
+      {!quiet && (heat === "hot" || heat === "critical") && (
         <div
           className={`score-hud-glow score-hud-glow--${heat}`}
           aria-hidden="true"

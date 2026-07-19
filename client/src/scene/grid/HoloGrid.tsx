@@ -19,8 +19,6 @@ import { cellToWorld, CELL_SIZE as CELL_PITCH } from "./gridCoords";
 
 /** Rendered quad size per cell; the gap to CELL_PITCH forms the grid lines. */
 const CELL_QUAD_SIZE = 3.4;
-/** Small marker quad size for recorded shot states, layered above the cell. */
-const MARKER_SIZE = 1.4;
 /**
  * Height of the grid plane above the ocean's rest height. Must clear the
  * summed Gerstner crest amplitude (~1.05 world units for waves.ts's WAVES)
@@ -30,29 +28,54 @@ export const GRID_ALTITUDE = 1.8;
 
 // Holographic cell states, consistent with Ocean.tsx's teal/cyan palette.
 // Additive blending makes the dim base color read as a faint projected
-// light plane; the hover state is the same hue pushed to a bright glow,
-// and the selected state is a warm amber "target lock" — the one contrast
-// note against the all-teal scene so a locked cell is unmistakable.
+// light plane; the hover state is the hue pushed to paper-white glow, and
+// the selected state is the UI's hit-yellow "target lock" (#ffd21f — same
+// accent the 2D comic chrome uses) so a locked cell is unmistakable.
 const COLOR_CELL = new THREE.Color("#2fa3bd");
-const COLOR_HOVERED = new THREE.Color("#c9f6ff");
-const COLOR_SELECTED = new THREE.Color("#ffb45e");
+const COLOR_HOVERED = new THREE.Color("#f4f7ff");
+const COLOR_SELECTED = new THREE.Color("#ffd21f");
 
 /** Recorded shot outcome for a cell, keyed `` `${col},${row}` ``. */
 export type CellState = "hit" | "miss" | "sunk";
 
-// Shot-marker colors: dim marker for a miss, warning-yellow for a ship
-// that's hit but still afloat, red once the ship is confirmed sunk (USER
-// direction 2026-07-18 — damage escalates yellow -> red, so a red cell
-// always means a kill; this consciously sits near the amber "selected"
-// accent but reads differently in context since selected is transient).
-const COLOR_MISS = new THREE.Color("#5c6e85");
+// Shot-marker colors: bright paper-white splash ring for a miss,
+// warning-yellow for a ship that's hit but still afloat, red once the
+// ship is confirmed sunk (USER direction 2026-07-18 — damage escalates
+// yellow -> red, so a red cell always means a kill). Every marker sits on
+// an ink under-shape so it reads as an outlined comic stamp, not a flat
+// decal (USER direction 2026-07-19 — the old grey miss "O" was drab).
+const COLOR_MISS = new THREE.Color("#f4f7ff");
 const COLOR_HIT = new THREE.Color("#ffd21f");
 const COLOR_SUNK = new THREE.Color("#ff2e3f");
-const MARKER_COLORS: Record<CellState, THREE.Color> = {
-  miss: COLOR_MISS,
-  hit: COLOR_HIT,
-  sunk: COLOR_SUNK,
-};
+const COLOR_MARKER_INK = new THREE.Color("#10131a");
+
+// Comic shot-marker shapes: a miss is a splash ring, a hit is an 8-point
+// comic star, a sunk cell gets a bigger 12-point burst — the same starburst
+// vocabulary the 2D chrome's landing-page badge uses. Each marker is tilted
+// by a deterministic per-cell angle so a board full of shots reads as
+// hand-stamped, not machine-tiled.
+function starGeometry(
+  points: number,
+  outer: number,
+  inner: number,
+): THREE.ShapeGeometry {
+  const shape = new THREE.Shape();
+  for (let i = 0; i < points * 2; i++) {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
+}
+
+/** Stable pseudo-random stamp tilt (radians) for a cell. */
+function stampTilt(cell: GridCell): number {
+  return ((cell.col * 7 + cell.row * 13) % 12) * 0.09 - 0.5;
+}
 
 interface GridCell {
   col: number;
@@ -134,6 +157,29 @@ export function HoloGrid({
   const markerCells = cellStates
     ? cells.filter((cell) => cellStates.has(cellKey(cell)))
     : [];
+  const missCells = markerCells.filter(
+    (cell) => cellStates?.get(cellKey(cell)) === "miss",
+  );
+  const hitCells = markerCells.filter(
+    (cell) => cellStates?.get(cellKey(cell)) === "hit",
+  );
+  const sunkCells = markerCells.filter(
+    (cell) => cellStates?.get(cellKey(cell)) === "sunk",
+  );
+
+  // Each marker shape pairs with a slightly larger ink under-shape that
+  // renders beneath it, forming the comic outline.
+  const markerGeometries = useMemo(
+    () => ({
+      miss: new THREE.RingGeometry(0.55, 1.0, 32),
+      missInk: new THREE.RingGeometry(0.35, 1.22, 32),
+      hit: starGeometry(8, 1.5, 0.65),
+      hitInk: starGeometry(8, 1.78, 0.82),
+      sunk: starGeometry(12, 1.9, 0.85),
+      sunkInk: starGeometry(12, 2.2, 1.02),
+    }),
+    [],
+  );
 
   return (
     <group position={[0, GRID_ALTITUDE, 0]} rotation-x={-Math.PI / 2}>
@@ -213,31 +259,134 @@ export function HoloGrid({
         })}
       </Instances>
 
+      {/* Comic-panel frame: an ink border with hit-yellow corner rivets,
+          reading the board as one panel torn from the page. Non-interactive
+          and drawn with normal blending (ink would vanish additively). */}
+      <PanelFrame />
+
       {/* Shot markers: layered above the base cell, non-interactive (each
           Instance's raycast is disabled so markers never intercept hover
-          or click — those keep hitting the base cell layer beneath). */}
-      <Instances limit={GRID_SIZE * GRID_SIZE} renderOrder={2}>
-        <planeGeometry args={[MARKER_SIZE, MARKER_SIZE]} />
-        <meshBasicMaterial
-          transparent
-          opacity={0.9}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-          toneMapped={false}
-        />
-        {markerCells.map((cell) => {
-          const state = cellStates?.get(cellKey(cell));
-          if (!state) return null;
-          return (
+          or click — those keep hitting the base cell layer beneath).
+          One Instances batch per outcome shape. */}
+      <MarkerLayer
+        cells={missCells}
+        geometry={markerGeometries.miss}
+        inkGeometry={markerGeometries.missInk}
+        color={COLOR_MISS}
+      />
+      <MarkerLayer
+        cells={hitCells}
+        geometry={markerGeometries.hit}
+        inkGeometry={markerGeometries.hitInk}
+        color={COLOR_HIT}
+      />
+      <MarkerLayer
+        cells={sunkCells}
+        geometry={markerGeometries.sunk}
+        inkGeometry={markerGeometries.sunkInk}
+        color={COLOR_SUNK}
+      />
+    </group>
+  );
+}
+
+/** One instanced batch of same-shaped shot markers, stamp-tilted per cell:
+    an ink under-shape batch drawn first, the colored shape on top. */
+function MarkerLayer({
+  cells,
+  geometry,
+  inkGeometry,
+  color,
+}: {
+  cells: GridCell[];
+  geometry: THREE.BufferGeometry;
+  inkGeometry: THREE.BufferGeometry;
+  color: THREE.Color;
+}) {
+  const layers = [
+    { geometry: inkGeometry, color: COLOR_MARKER_INK, order: 2, z: 0.008 },
+    { geometry, color, order: 3, z: 0.01 },
+  ];
+  return (
+    <>
+      {layers.map((layer, i) => (
+        <Instances
+          key={i}
+          limit={GRID_SIZE * GRID_SIZE}
+          renderOrder={layer.order}
+          geometry={layer.geometry}
+        >
+          <meshBasicMaterial
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            toneMapped={false}
+          />
+          {cells.map((cell) => (
             <Instance
               key={cellKey(cell)}
-              position={[cell.x, cell.y, 0.01]}
-              color={MARKER_COLORS[state]}
+              position={[cell.x, cell.y, layer.z]}
+              rotation={[0, 0, stampTilt(cell)]}
+              color={layer.color}
               raycast={() => null}
             />
-          );
-        })}
-      </Instances>
+          ))}
+        </Instances>
+      ))}
+    </>
+  );
+}
+
+// Frame metrics: the cells span ±(GRID_SIZE/2 * CELL_PITCH); the ink border
+// sits just outside that with the rivets on its corners.
+const FRAME_INNER = (GRID_SIZE / 2) * CELL_PITCH + 0.35;
+const FRAME_THICKNESS = 0.7;
+const FRAME_MID = FRAME_INNER + FRAME_THICKNESS / 2;
+const FRAME_LENGTH = FRAME_INNER * 2 + FRAME_THICKNESS * 2;
+const RIVET_SIZE = 1.6;
+const FRAME_INK = "#10131a";
+const RIVET_COLOR = "#ffd21f";
+
+function PanelFrame() {
+  return (
+    <group renderOrder={2}>
+      {/* Top / bottom / left / right border bars. */}
+      {([
+        [0, FRAME_MID, FRAME_LENGTH, FRAME_THICKNESS],
+        [0, -FRAME_MID, FRAME_LENGTH, FRAME_THICKNESS],
+        [-FRAME_MID, 0, FRAME_THICKNESS, FRAME_INNER * 2],
+        [FRAME_MID, 0, FRAME_THICKNESS, FRAME_INNER * 2],
+      ] as const).map(([x, y, w, h], i) => (
+        <mesh key={i} position={[x, y, 0.005]} raycast={() => null}>
+          <planeGeometry args={[w, h]} />
+          <meshBasicMaterial
+            color={FRAME_INK}
+            transparent
+            opacity={0.92}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+      {/* Hit-yellow corner rivets, tilted like slapped-on stickers. */}
+      {([
+        [-FRAME_MID, FRAME_MID, -0.2],
+        [FRAME_MID, FRAME_MID, 0.15],
+        [-FRAME_MID, -FRAME_MID, 0.25],
+        [FRAME_MID, -FRAME_MID, -0.1],
+      ] as const).map(([x, y, tilt], i) => (
+        <mesh key={i} position={[x, y, 0.01]} rotation={[0, 0, tilt]} raycast={() => null}>
+          <planeGeometry args={[RIVET_SIZE, RIVET_SIZE]} />
+          <meshBasicMaterial
+            color={RIVET_COLOR}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }

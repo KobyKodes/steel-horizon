@@ -96,11 +96,13 @@ describe("createGame", () => {
       fleet: null,
       shots: [],
       score: EMPTY_SCORE,
+      calledShotsUsed: 0,
     });
     expect(game.players[BOB]).toEqual({
       fleet: null,
       shots: [],
       score: EMPTY_SCORE,
+      calledShotsUsed: 0,
     });
   });
 });
@@ -298,6 +300,31 @@ describe("fire", () => {
       code: "WRONG_PHASE",
     });
   });
+
+  it("ignores called-shot stakes past the per-game limit of 3", () => {
+    const game = makeBattle();
+    // Alice stakes every shot; Bob burns turns on distinct guaranteed
+    // misses. Carrier cells (row 5, cols 5–9) make every Alice shot a hit,
+    // so each accepted stake shows up as a "called-shot" bonus.
+    for (let i = 0; i < 4; i++) {
+      const result = fire(
+        game,
+        ALICE,
+        { col: 5 + i, row: 5 },
+        { calledShot: true },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      const staked = result.score.bonuses.some(
+        (bonus) => bonus.bonus === "called-shot",
+      );
+      // First three stakes apply; the fourth is silently unstaked.
+      expect(staked).toBe(i < 3);
+      expect(fire(game, BOB, { col: i, row: 5 }).ok).toBe(true);
+    }
+    expect(game.players[ALICE]!.calledShotsUsed).toBe(3);
+    expect(game.players[BOB]!.calledShotsUsed).toBe(0);
+  });
 });
 
 describe("requestRematch", () => {
@@ -340,11 +367,13 @@ describe("requestRematch", () => {
       fleet: null,
       shots: [],
       score: EMPTY_SCORE,
+      calledShotsUsed: 0,
     });
     expect(fresh.players[BOB]).toEqual({
       fleet: null,
       shots: [],
       score: EMPTY_SCORE,
+      calledShotsUsed: 0,
     });
     expect(fresh.rematchRequests.size).toBe(0);
   });

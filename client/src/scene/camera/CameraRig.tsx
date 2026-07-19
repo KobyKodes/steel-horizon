@@ -24,16 +24,26 @@ export interface ViewConfig {
 }
 
 const VIEWS: Record<CameraView, ViewConfig> = {
-  // Both views tightened + centered in 04-07 (user feedback: grid/ships
-  // read too small, and the grid sat low in the frame). The lookAt z
-  // values are solved numerically so the grid's near/far edges (z ±19.7 at
-  // altitude 1.8) project to symmetric NDC y (~±0.77) — the grid is
-  // vertically centered with margin on all sides in every consumer
-  // (placement, both battle views, the smaller side/post-game reveal
-  // boards) — verified via headless screenshots of each.
+  // Both views tightened + centered in 04-07, then pulled in further
+  // (user feedback 2026-07-19: the board should span the scene container,
+  // not float in blue margin). The lookAt z values keep the grid's
+  // near/far edges (z ±19.7 at altitude 1.8) projecting to symmetric NDC
+  // y — near full-height in the 4/3 frame across every consumer
+  // (placement, both battle views, side/post-game reveal boards) —
+  // verified via headless screenshots of each.
+  // Near-top-down (USER direction 2026-07-19: the board must cover the
+  // whole canvas, so the perspective trapezoid has to be nearly a
+  // rectangle): high elevation, small z offset for a hint of depth. With
+  // fov 50 the grid+frame (half-extent ~21) fills a square canvas at
+  // distance ~45; lookAt targets the grid plane (altitude 1.8) so the
+  // near/far edges project symmetrically.
+  // The z offset must stay tiny: it is what tapers the far edge inward
+  // (USER 2026-07-19: top corners must reach the canvas edge like the
+  // bottom ones), but can't be 0 or lookAt degenerates against the
+  // default up vector.
   fleet: {
-    position: [0, 48, 22],
-    lookAt: [0, 0, 2],
+    position: [0, 46, 1.2],
+    lookAt: [0, 1.8, 0],
   },
   // Overhead like the fleet view (user feedback: the enemy grid should be
   // viewable from above just like your own fleet), but slightly higher and
@@ -41,8 +51,8 @@ const VIEWS: Record<CameraView, ViewConfig> = {
   // small framing difference keeps the damped view toggle reading as a
   // camera move rather than an instant content swap.
   targeting: {
-    position: [0, 56, 14],
-    lookAt: [0, 0, 1],
+    position: [0, 45.5, 0.8],
+    lookAt: [0, 1.8, 0],
   },
 };
 
