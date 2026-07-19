@@ -7,6 +7,7 @@ import type { ErrorCode, HighScoreEntry } from "@steel-horizon/shared";
 import { getStoredName } from "../socket";
 import { useGameStore } from "../store";
 import LeaderboardPanel from "../components/LeaderboardPanel";
+import ScoringGuideOverlay from "../components/ScoringGuideOverlay";
 import "../components/leaderboardOverlay.css";
 
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -114,6 +115,7 @@ export default function LandingScreen() {
   );
   const [waitingForMatch, setWaitingForMatch] = useState(false);
   const [showLeaderboards, setShowLeaderboards] = useState(false);
+  const [showScoringGuide, setShowScoringGuide] = useState(false);
   const codeInputRef = useRef<HTMLInputElement>(null);
 
   // Shareable-link prefill: focus the join-code input when ?code= is present.
@@ -215,8 +217,20 @@ export default function LandingScreen() {
         View leaderboards
       </button>
 
+      <button
+        type="button"
+        className="lb-open"
+        onClick={() => setShowScoringGuide(true)}
+      >
+        How scoring works
+      </button>
+
       {showLeaderboards && (
         <LeaderboardOverlay onClose={() => setShowLeaderboards(false)} />
+      )}
+
+      {showScoringGuide && (
+        <ScoringGuideOverlay onClose={() => setShowScoringGuide(false)} />
       )}
     </div>
   );

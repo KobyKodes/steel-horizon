@@ -1,0 +1,126 @@
+/* Scoring-guide overlay. Class names all prefixed `sg-` per the 03-03
+   unique-class-name rule. Shell matches the lb-overlay look (dark backdrop,
+   stamp-in card, yellow close chip) but body copy stays lowercase and
+   readable — only headings get the comic Impact voice. */
+
+.sg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(4, 7, 12, 0.78);
+}
+
+.sg-card {
+  position: relative;
+  width: min(34rem, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1.5rem;
+  color: #d7e6f7;
+  background: #0a0e16;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 4px 4px 0 rgba(16, 19, 26, 0.55);
+  animation: sg-stamp 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.sg-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 1;
+  width: 1.8rem;
+  height: 1.8rem;
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1;
+  color: #10131a;
+  background: #ffd21f;
+  border: 2px solid #10131a;
+  border-radius: 0.3rem;
+  box-shadow: 2px 2px 0 rgba(16, 19, 26, 0.55);
+  cursor: pointer;
+}
+
+.sg-title,
+.sg-section h3 {
+  font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sg-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.3rem;
+  color: #ffd21f;
+}
+
+.sg-section {
+  margin-top: 1rem;
+}
+
+.sg-section h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  color: #9fc3e8;
+}
+
+.sg-section p,
+.sg-section li {
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.sg-section ul {
+  margin: 0.25rem 0;
+  padding-left: 1.1rem;
+}
+
+.sg-section strong {
+  color: #ffd21f;
+  font-weight: 700;
+}
+
+.sg-table {
+  margin: 0.4rem 0;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.sg-table th,
+.sg-table td {
+  padding: 0.2rem 0.9rem 0.2rem 0;
+  text-align: left;
+  border-bottom: 1px solid rgba(92, 110, 133, 0.4);
+}
+
+.sg-table th {
+  color: #9fc3e8;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+@keyframes sg-stamp {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-card {
+    animation: none;
+  }
+}
