@@ -61,10 +61,17 @@
   background: #1d2836;
   border: 1px solid #3a4a5e;
   border-radius: 6px;
-  cursor: grab;
+  /* Tappable (deploy to a random spot) as well as draggable, so a plain
+     pointer beats the grab hand as the primary affordance. */
+  cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dock-ship:active {
+  cursor: grabbing;
 }
 
 .dock-ship.lifting {
@@ -95,16 +102,14 @@
   font-size: 0.9rem;
 }
 
-.dock-ship-cells {
-  display: flex;
-  gap: 2px;
-}
-
-.dock-ship-cells i {
-  width: 0.9rem;
-  height: 0.9rem;
-  background: #33506e;
-  border: 1px solid #4a7bb5;
+/* The card's ship portrait. Fixed height with the canvas filling it, so
+   every class sits on the same baseline and the row of cards stays even
+   however long the hull is; the canvas itself is transparent. */
+.dock-ship-preview {
+  display: block;
+  width: 100%;
+  height: 2.6rem;
+  pointer-events: none;
 }
 
 .dock-empty {
@@ -216,9 +221,11 @@
   color: #f4f7ff;
 }
 
-.placement .dock-ship-cells i {
-  background: #33506e;
-  border: 1px solid #9fc3e8;
+/* Portraits sit in a recessed radar-blue well, like a berth in the dock. */
+.placement .dock-ship-preview {
+  border-radius: 0.2rem;
+  background: rgba(51, 80, 110, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(159, 195, 232, 0.25);
 }
 
 .placement .dock-ship.flash-illegal {

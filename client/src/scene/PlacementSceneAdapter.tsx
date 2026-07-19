@@ -18,7 +18,12 @@
 // card's onPointerDown releases that capture so the finger's later moves
 // hit-test normally. There's no right-click on touch, so a placed ship
 // also rotates on a double-tap (two taps with no movement between, within
-// DOUBLE_TAP_MS), detected in the shared pointerup handler below.
+// DOUBLE_TAP_MS). A tap on a DOCK card (never reaching the grid) deploys
+// that ship to a random free spot, which the player then drags into place
+// — dock-to-grid dragging is the awkward gesture on a phone; grid-to-grid
+// is not. All three are detected in the shared pointerup handler below,
+// distinguished by `hover` (did the pointer reach the grid?) and
+// `fromGrid` (was the ship already placed?).
 //
 // Controlled contract, identical to the retired PlacementBoard: a
 // `draft: Map<ShipClassId, ShipPlacement>` plus `onChange`, and an optional
@@ -30,6 +35,7 @@ import * as THREE from "three";
 import { Instance, Instances } from "@react-three/drei";
 import {
   FLEET,
+  GRID_SIZE,
   SHIP_LENGTHS,
   cellsForPlacement,
   inBounds,
@@ -40,6 +46,7 @@ import {
 } from "@steel-horizon/shared";
 import { SceneRoot } from "./SceneRoot";
 import { FleetShips } from "./ships/FleetShips";
+import { ShipPreview } from "./ships/ShipPreview";
 import { HoloGrid, GRID_ALTITUDE } from "./grid/HoloGrid";
 import { cellToWorld } from "./grid/gridCoords";
 
@@ -76,6 +83,33 @@ function isLegalInDraft(candidate: ShipPlacement, draft: FleetDraft): boolean {
     for (const cell of cellsForPlacement(placement)) occupied.add(cellKey(cell));
   }
   return cells.every((cell) => !occupied.has(cellKey(cell)));
+}
+
+/**
+ * A uniformly-random legal spot for one ship given the rest of the draft,
+ * or null when the board has no room left for it. Enumerating every
+ * candidate (at most 200 per ship) and picking one keeps the distribution
+ * even and terminates deterministically — no retry-until-it-fits loop.
+ */
+function randomLegalPlacement(
+  ship: ShipClassId,
+  draft: FleetDraft,
+): ShipPlacement | null {
+  const candidates: ShipPlacement[] = [];
+  for (const orientation of ["horizontal", "vertical"] as const) {
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE; col++) {
+        const candidate: ShipPlacement = {
+          ship,
+          origin: { col, row },
+          orientation,
+        };
+        if (isLegalInDraft(candidate, draft)) candidates.push(candidate);
+      }
+    }
+  }
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)]!;
 }
 
 interface DragState {
@@ -266,6 +300,22 @@ export function PlacementSceneAdapter({
         } else {
           lastTapRef.current = { ship: d.ship, time: now };
         }
+      } else if (d !== null) {
+        // Tap on a DOCK ship (pressed and released without ever reaching
+        // the grid). Dragging a card straight onto a 10x10 board is fiddly
+        // on a phone, so a tap deploys the ship to a random free spot and
+        // the player drags it from there — the grid-to-grid drag above is
+        // a much easier gesture than dock-to-grid.
+        lastTapRef.current = null;
+        const spot = randomLegalPlacement(d.ship, draftRef.current);
+        if (spot !== null) {
+          const next = new Map(draftRef.current);
+          next.set(d.ship, spot);
+          onChangeRef.current(next);
+        } else {
+          // No room anywhere for this hull — say so rather than no-op.
+          flash(d.ship);
+        }
       }
       // Illegal or off-grid drop: no onChange — the ship snaps back.
       setDrag(null);
@@ -362,13 +412,9 @@ export function PlacementSceneAdapter({
                   startDrag(ship);
                 }}
               >
-                <span className="dock-ship-name">
-                  {SHIP_NAMES[ship]} &middot; {SHIP_LENGTHS[ship]}
-                </span>
-                <span className="dock-ship-cells">
-                  {Array.from({ length: SHIP_LENGTHS[ship] }, (_, i) => (
-                    <i key={i} />
-                  ))}
+                <span className="dock-ship-name">{SHIP_NAMES[ship]}</span>
+                <span className="dock-ship-preview" aria-hidden="true">
+                  <ShipPreview shipClass={ship} />
                 </span>
               </div>
             ))

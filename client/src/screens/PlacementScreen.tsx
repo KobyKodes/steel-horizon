@@ -125,9 +125,9 @@ export default function PlacementScreen() {
             </button>
           </div>
           <p className="placement-hint">
-            Drag ships from the dock onto the grid · press R while dragging
-            to rotate · right-click (or double-tap) a placed ship to rotate
-            it
+            Tap a ship to deploy it, then drag it where you want · or drag
+            it straight from the dock · press R while dragging to rotate ·
+            right-click (or double-tap) a placed ship to rotate it
           </p>
           <p className="placement-status">
             {snapshot.opponent !== null
