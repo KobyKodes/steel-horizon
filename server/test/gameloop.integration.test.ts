@@ -82,7 +82,7 @@ async function connect(name: string): Promise<TestClient> {
 beforeAll(async () => {
   // rng () => 0 makes the coin flip deterministic: player 0 (the room
   // creator, Alice) always fires first.
-  handles = createServer({ rng: () => 0 });
+  handles = await createServer({ rng: () => 0 });
   await new Promise<void>((resolve) => handles.httpServer.listen(0, resolve));
   const address = handles.httpServer.address();
   if (address === null || typeof address === "string") {

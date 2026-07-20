@@ -1,6 +1,6 @@
 // Durable game outcomes: writes one games row + per-human game_results rows
 // and transactionally maintains the player_stats aggregates. Also provides
-// the SQLite-backed HighScoreStore so the legacy JSON leaderboard is a
+// the Postgres-backed HighScoreStore so the legacy JSON leaderboard is a
 // drop-in swap (same interface, same top-20/weekly semantics — but backed
 // by full match history instead of a truncated top-100 array).
 
@@ -49,10 +49,13 @@ export interface GameRecordInput {
 }
 
 /** Persist a finished game and roll every player's aggregates forward. */
-export function recordGame(db: Db, input: GameRecordInput): void {
-  db.transaction((tx) => {
+export async function recordGame(
+  db: Db,
+  input: GameRecordInput,
+): Promise<void> {
+  await db.transaction(async (tx) => {
     const gameId = randomUUID();
-    tx.insert(games)
+    await tx.insert(games)
       .values({
         id: gameId,
         mode: input.mode,
@@ -60,11 +63,10 @@ export function recordGame(db: Db, input: GameRecordInput): void {
         finishedAt: input.finishedAt,
         winnerUserId: input.winnerUserId,
         winnerIsBot: input.winnerIsBot,
-      })
-      .run();
+      });
 
     for (const result of input.results) {
-      tx.insert(gameResults)
+      await tx.insert(gameResults)
         .values({
           id: randomUUID(),
           gameId,
@@ -79,17 +81,16 @@ export function recordGame(db: Db, input: GameRecordInput): void {
           maxMultiplier: result.maxMultiplier,
           medalsEarned: result.medalsEarned,
           createdAt: input.finishedAt,
-        })
-        .run();
+        });
 
       const winInc = result.won ? 1 : 0;
       const isBot = input.mode !== "pvp";
-      tx.update(playerStats)
+      await tx.update(playerStats)
         .set({
           gamesPlayed: sql`${playerStats.gamesPlayed} + 1`,
           gamesWon: sql`${playerStats.gamesWon} + ${winInc}`,
           totalPoints: sql`${playerStats.totalPoints} + ${result.score}`,
-          bestScore: sql`max(${playerStats.bestScore}, ${result.score})`,
+          bestScore: sql`greatest(${playerStats.bestScore}, ${result.score})`,
           totalHits: sql`${playerStats.totalHits} + ${result.hits}`,
           totalMisses: sql`${playerStats.totalMisses} + ${result.misses}`,
           totalShipsSunk: sql`${playerStats.totalShipsSunk} + ${result.shipsSunk}`,
@@ -97,7 +98,7 @@ export function recordGame(db: Db, input: GameRecordInput): void {
             ? sql`${playerStats.currentWinStreak} + 1`
             : 0,
           bestWinStreak: result.won
-            ? sql`max(${playerStats.bestWinStreak}, ${playerStats.currentWinStreak} + 1)`
+            ? sql`greatest(${playerStats.bestWinStreak}, ${playerStats.currentWinStreak} + 1)`
             : playerStats.bestWinStreak,
           botEasyPlayed: sql`${playerStats.botEasyPlayed} + ${isBot && input.mode === "bot_easy" ? 1 : 0}`,
           botEasyWon: sql`${playerStats.botEasyWon} + ${input.mode === "bot_easy" ? winInc : 0}`,
@@ -107,8 +108,7 @@ export function recordGame(db: Db, input: GameRecordInput): void {
           botHardWon: sql`${playerStats.botHardWon} + ${input.mode === "bot_hard" ? winInc : 0}`,
           updatedAt: input.finishedAt,
         })
-        .where(eq(playerStats.userId, result.userId))
-        .run();
+        .where(eq(playerStats.userId, result.userId));
     }
   });
 }
@@ -140,18 +140,21 @@ export interface PlayerProfile {
 }
 
 /** Public profile: aggregates + last 10 games. Null when unknown. */
-export function playerProfile(db: Db, username: string): PlayerProfile | null {
-  const row = db
+export async function playerProfile(
+  db: Db,
+  username: string,
+): Promise<PlayerProfile | null> {
+  const [row] = await db
     .select()
     .from(users)
     .innerJoin(playerStats, eq(playerStats.userId, users.id))
     .where(eq(users.usernameLower, username.trim().toLowerCase()))
-    .get();
+    .limit(1);
   if (row === undefined) return null;
 
   const { users: user, player_stats: stats } = row;
   const shots = stats.totalHits + stats.totalMisses;
-  const recent = db
+  const recent = await db
     .select({
       mode: games.mode,
       score: gameResults.score,
@@ -163,8 +166,7 @@ export function playerProfile(db: Db, username: string): PlayerProfile | null {
     .innerJoin(games, eq(games.id, gameResults.gameId))
     .where(eq(gameResults.userId, user.id))
     .orderBy(desc(gameResults.createdAt))
-    .limit(10)
-    .all();
+    .limit(10);
 
   return {
     username: user.username,
@@ -204,7 +206,17 @@ interface BoardRow {
   accuracy: number;
   max_multiplier: number;
   ships_sunk: number;
-  created_at: number;
+  created_at: Date;
+}
+
+/**
+ * Both drivers return `{ rows }` from `execute`, but their static types
+ * disagree (node-postgres yields a pg QueryResult, PGlite its own shape),
+ * so the row array is narrowed here in one place rather than at each call.
+ */
+function rowsOf<T>(result: unknown): T[] {
+  const rows = (result as { rows?: unknown }).rows;
+  return Array.isArray(rows) ? (rows as T[]) : [];
 }
 
 /**
@@ -214,24 +226,30 @@ interface BoardRow {
  * `submit` is a read-only rank probe here — the durable write happens in
  * recordGame, in the same settle path, before ranks are read.
  */
-export class SqliteHighScoreStore implements HighScoreStore {
+export class PostgresHighScoreStore implements HighScoreStore {
   constructor(private readonly db: Db) {}
 
-  private query(sinceMs: number | null): HighScoreEntry[] {
-    const since = sinceMs ?? 0;
-    const rows = this.db.all<BoardRow>(sql`
-      SELECT u.username AS name, r.score, r.accuracy,
-             r.max_multiplier, r.ships_sunk, r.created_at
-        FROM game_results r JOIN users u ON u.id = r.user_id
-       WHERE r.created_at >= ${since}
-      UNION ALL
+  private async query(sinceMs: number | null): Promise<HighScoreEntry[]> {
+    // created_at is timestamptz, so the cutoff is a Date — the epoch-ms
+    // integer this compared against under the old SQLite schema would
+    // not coerce here.
+    const since = new Date(sinceMs ?? 0);
+    const result = await this.db.execute(sql`
       SELECT name, score, accuracy, max_multiplier, ships_sunk, created_at
-        FROM legacy_highscores
-       WHERE created_at >= ${since}
+        FROM (
+          SELECT u.username AS name, r.score, r.accuracy,
+                 r.max_multiplier, r.ships_sunk, r.created_at
+            FROM game_results r JOIN users u ON u.id = r.user_id
+           WHERE r.created_at >= ${since}
+          UNION ALL
+          SELECT name, score, accuracy, max_multiplier, ships_sunk, created_at
+            FROM legacy_highscores
+           WHERE created_at >= ${since}
+        ) AS board
        ORDER BY score DESC
        LIMIT ${HIGH_SCORE_LIMIT}
     `);
-    return rows.map((row) => ({
+    return rowsOf<BoardRow>(result).map((row) => ({
       name: row.name,
       score: row.score,
       accuracy: row.accuracy,
@@ -241,31 +259,34 @@ export class SqliteHighScoreStore implements HighScoreStore {
     }));
   }
 
-  top(): HighScoreEntry[] {
+  top(): Promise<HighScoreEntry[]> {
     return this.query(null);
   }
 
-  topWeekly(nowMs: number = Date.now()): HighScoreEntry[] {
+  topWeekly(nowMs: number = Date.now()): Promise<HighScoreEntry[]> {
     return this.query(nowMs - WEEK_MS);
   }
 
-  submit(entry: HighScoreEntry): SubmitResult {
+  async submit(entry: HighScoreEntry): Promise<SubmitResult> {
     const at = Date.parse(entry.date);
     const when = Number.isFinite(at) ? at : Date.now();
-    const rank = (sinceMs: number): number | null => {
-      const row = this.db.get<{ above: number }>(sql`
-        SELECT (SELECT count(*) FROM game_results
-                 WHERE score > ${entry.score} AND created_at >= ${sinceMs})
-             + (SELECT count(*) FROM legacy_highscores
-                 WHERE score > ${entry.score} AND created_at >= ${sinceMs})
+    const rank = async (sinceMs: number): Promise<number | null> => {
+      const cutoff = new Date(sinceMs);
+      // count(*) is bigint, which node-postgres hands back as a string;
+      // ::int keeps the arithmetic below numeric.
+      const result = await this.db.execute(sql`
+        SELECT (SELECT count(*)::int FROM game_results
+                 WHERE score > ${entry.score} AND created_at >= ${cutoff})
+             + (SELECT count(*)::int FROM legacy_highscores
+                 WHERE score > ${entry.score} AND created_at >= ${cutoff})
             AS above
       `);
-      const position = row?.above ?? 0;
+      const position = rowsOf<{ above: number }>(result)[0]?.above ?? 0;
       return position < HIGH_SCORE_LIMIT ? position : null;
     };
     return {
-      allTimeRank: rank(0),
-      weeklyRank: rank(when - WEEK_MS),
+      allTimeRank: await rank(0),
+      weeklyRank: await rank(when - WEEK_MS),
     };
   }
 }
@@ -277,11 +298,13 @@ export class SqliteHighScoreStore implements HighScoreStore {
  * when the table already has rows or the file is absent/corrupt). Runs at
  * startup, before the server accepts traffic.
  */
-export function importLegacyHighscores(db: Db, jsonPath: string): void {
-  const existing = db
-    .select({ count: sql<number>`count(*)` })
-    .from(legacyHighscores)
-    .get();
+export async function importLegacyHighscores(
+  db: Db,
+  jsonPath: string,
+): Promise<void> {
+  const [existing] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(legacyHighscores);
   if ((existing?.count ?? 0) > 0) return;
 
   let parsed: unknown;
@@ -301,10 +324,10 @@ export function importLegacyHighscores(db: Db, jsonPath: string): void {
   );
   if (entries.length === 0) return;
 
-  db.transaction((tx) => {
+  await db.transaction(async (tx) => {
     for (const entry of entries) {
       const at = Date.parse(entry.date ?? "");
-      tx.insert(legacyHighscores)
+      await tx.insert(legacyHighscores)
         .values({
           name: entry.name,
           score: entry.score,
@@ -312,8 +335,7 @@ export function importLegacyHighscores(db: Db, jsonPath: string): void {
           maxMultiplier: entry.maxMultiplier ?? 1,
           shipsSunk: entry.shipsSunk ?? 0,
           createdAt: new Date(Number.isFinite(at) ? at : Date.now()),
-        })
-        .run();
+        });
     }
   });
 }

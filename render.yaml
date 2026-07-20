@@ -10,3 +10,10 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /health
+    envVars:
+      # Neon Postgres connection string. sync: false keeps the value out of
+      # git — set it in the Render dashboard (Environment tab). Accounts and
+      # match history live here because Render's filesystem is ephemeral: a
+      # local database file is wiped on every deploy and spin-down.
+      - key: DATABASE_URL
+        sync: false

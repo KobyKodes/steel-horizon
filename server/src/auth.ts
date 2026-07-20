@@ -52,13 +52,17 @@ export function validatePassword(raw: unknown): string | null {
   return raw;
 }
 
-function mintToken(db: Db, userId: string): string {
+async function mintToken(db: Db, userId: string): Promise<string> {
   const token = randomBytes(32).toString("hex");
-  db.insert(authTokens).values({ token, userId }).run();
+  await db.insert(authTokens).values({ token, userId });
   return token;
 }
 
-export function signUp(db: Db, rawName: unknown, rawPassword: unknown): AuthResult {
+export async function signUp(
+  db: Db,
+  rawName: unknown,
+  rawPassword: unknown,
+): Promise<AuthResult> {
   const username = validateUsername(rawName);
   if (username === null) {
     return {
@@ -74,34 +78,37 @@ export function signUp(db: Db, rawName: unknown, rawPassword: unknown): AuthResu
     };
   }
 
-  const existing = db
+  const [existing] = await db
     .select({ id: users.id })
     .from(users)
     .where(eq(users.usernameLower, username.toLowerCase()))
-    .get();
+    .limit(1);
   if (existing !== undefined) {
     return { ok: false, error: "That call sign is already taken." };
   }
 
   const salt = randomBytes(16);
   const id = randomUUID();
-  db.insert(users)
+  await db.insert(users)
     .values({
       id,
       username,
       usernameLower: username.toLowerCase(),
       passwordHash: hashPassword(password, salt).toString("hex"),
       passwordSalt: salt.toString("hex"),
-    })
-    .run();
+    });
   // Stats row exists from day one so profile reads never special-case a
   // player with zero games.
-  db.insert(playerStats).values({ userId: id }).run();
+  await db.insert(playerStats).values({ userId: id });
 
-  return { ok: true, user: { id, username }, token: mintToken(db, id) };
+  return { ok: true, user: { id, username }, token: await mintToken(db, id) };
 }
 
-export function logIn(db: Db, rawName: unknown, rawPassword: unknown): AuthResult {
+export async function logIn(
+  db: Db,
+  rawName: unknown,
+  rawPassword: unknown,
+): Promise<AuthResult> {
   const username = validateUsername(rawName);
   const password = validatePassword(rawPassword);
   // Identical error for unknown user and wrong password — never leak which.
@@ -111,33 +118,36 @@ export function logIn(db: Db, rawName: unknown, rawPassword: unknown): AuthResul
   };
   if (username === null || password === null) return rejection;
 
-  const user = db
+  const [user] = await db
     .select()
     .from(users)
     .where(eq(users.usernameLower, username.toLowerCase()))
-    .get();
+    .limit(1);
   if (user === undefined) return rejection;
 
   const expected = Buffer.from(user.passwordHash, "hex");
   const actual = hashPassword(password, Buffer.from(user.passwordSalt, "hex"));
   if (!timingSafeEqual(expected, actual)) return rejection;
 
-  db.update(users)
+  await db
+    .update(users)
     .set({ lastSeenAt: new Date() })
-    .where(eq(users.id, user.id))
-    .run();
+    .where(eq(users.id, user.id));
 
   return {
     ok: true,
     user: { id: user.id, username: user.username },
-    token: mintToken(db, user.id),
+    token: await mintToken(db, user.id),
   };
 }
 
 /** Resolve a bearer token to its user, refreshing last-used stamps. */
-export function userForToken(db: Db, token: unknown): PublicUser | null {
+export async function userForToken(
+  db: Db,
+  token: unknown,
+): Promise<PublicUser | null> {
   if (typeof token !== "string" || token.length === 0) return null;
-  const row = db
+  const [row] = await db
     .select({
       userId: authTokens.userId,
       username: users.username,
@@ -145,21 +155,21 @@ export function userForToken(db: Db, token: unknown): PublicUser | null {
     .from(authTokens)
     .innerJoin(users, eq(users.id, authTokens.userId))
     .where(eq(authTokens.token, token))
-    .get();
+    .limit(1);
   if (row === undefined) return null;
 
   const now = new Date();
-  db.update(authTokens)
+  await db
+    .update(authTokens)
     .set({ lastUsedAt: now })
-    .where(eq(authTokens.token, token))
-    .run();
-  db.update(users).set({ lastSeenAt: now }).where(eq(users.id, row.userId)).run();
+    .where(eq(authTokens.token, token));
+  await db.update(users).set({ lastSeenAt: now }).where(eq(users.id, row.userId));
 
   return { id: row.userId, username: row.username };
 }
 
 /** Explicit logout: the token stops working everywhere it was copied. */
-export function revokeToken(db: Db, token: unknown): void {
+export async function revokeToken(db: Db, token: unknown): Promise<void> {
   if (typeof token !== "string" || token.length === 0) return;
-  db.delete(authTokens).where(eq(authTokens.token, token)).run();
+  await db.delete(authTokens).where(eq(authTokens.token, token));
 }

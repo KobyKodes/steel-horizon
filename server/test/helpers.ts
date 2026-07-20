@@ -119,7 +119,7 @@ export interface TestServer {
 export async function startTestServer(
   deps: SocketServerDeps = {},
 ): Promise<TestServer> {
-  const handles = createServer(deps);
+  const handles = await createServer(deps);
   await new Promise<void>((resolve) => handles.httpServer.listen(0, resolve));
   const address = handles.httpServer.address();
   if (address === null || typeof address === "string") {

@@ -77,7 +77,7 @@ export interface SocketServerDeps {
   graceMs?: number;
   /** Delay before a bot fires on its turn (ms); tests inject ~0–10ms. */
   botDelayMs?: number;
-  /** High-score persistence; index.ts injects the SQLite-backed store. */
+  /** High-score persistence; index.ts injects the Postgres-backed store. */
   highscores?: HighScoreStore;
   /** Account/stats database. When present, handshake auth tokens resolve
    *  to users and finished games are recorded durably. */
@@ -177,11 +177,32 @@ export function createSocketServer(
 
     // Account identity rides alongside the room-resume sessionId: a valid
     // bearer token pins the connection to its user for stats attribution.
-    if (db !== undefined) {
-      const user = userForToken(db, auth.authToken);
-      if (user !== null) socket.data.userId = user.id;
-    }
+    // The lookup is a DB round-trip now, so the rest of the handshake runs
+    // in its continuation; a failed lookup must not reject the connection
+    // (an unauthenticated socket is still allowed to play as a guest).
+    const identify =
+      db === undefined
+        ? Promise.resolve()
+        : userForToken(db, auth.authToken)
+            .then((user) => {
+              if (user !== null) socket.data.userId = user.id;
+            })
+            .catch((error: unknown) => {
+              console.error("[socket] auth token lookup failed:", error);
+            });
 
+    void identify.then(() => {
+      finishHandshake(socket, offered, auth, next);
+    });
+  });
+
+  /** Session half of the handshake: resume a known session or mint one. */
+  function finishHandshake(
+    socket: GameSocket,
+    offered: string | undefined,
+    auth: HandshakeAuth,
+    next: (err?: Error) => void,
+  ): void {
     if (offered !== undefined && sessions.get(offered) !== undefined) {
       socket.data.sessionId = offered;
       return next();
@@ -192,7 +213,7 @@ export function createSocketServer(
     sessions.set(sessionId, { name, roomCode: null });
     socket.data.sessionId = sessionId;
     next();
-  });
+  }
 
   function fail(socket: GameSocket, code: ErrorCode, message?: string): void {
     socket.emit("errorEvent", {
@@ -224,7 +245,7 @@ export function createSocketServer(
    * (winning shot and forfeit alike); a second call is a no-op. Must run
    * BEFORE sendRoomState so the gameover snapshots already carry the board.
    */
-  function settleGameOver(room: Room): void {
+  async function settleGameOver(room: Room): Promise<void> {
     const game = room.game;
     if (game === null || game.phase !== "gameover") return;
     if (game.finalScores === null || room.scoresSubmitted) return;
@@ -233,7 +254,7 @@ export function createSocketServer(
     const date = new Date().toISOString();
 
     // Durable record first (game + per-user results + stats aggregates),
-    // so the SQLite leaderboard's rank probes below already see this
+    // so the Postgres leaderboard's rank probes below already see this
     // game's rows. Guests (no userId) simply contribute no result rows.
     if (db !== undefined) {
       const finishedAt = new Date();
@@ -270,7 +291,7 @@ export function createSocketServer(
         const winnerSeat = room.players.find(
           (p) => p.sessionId === game.winner,
         );
-        recordGame(db, {
+        await recordGame(db, {
           mode,
           startedAt: new Date(room.gameStartedAt ?? finishedAt.getTime()),
           finishedAt,
@@ -292,7 +313,7 @@ export function createSocketServer(
           ? (room.winStreaks[player.sessionId] ?? 0) + 1
           : 0;
       if (player.isBot === true) continue;
-      room.leaderboardRanks[player.sessionId] = highscores.submit({
+      room.leaderboardRanks[player.sessionId] = await highscores.submit({
         name: player.name,
         score: summary.total,
         accuracy: summary.accuracy,
@@ -301,8 +322,22 @@ export function createSocketServer(
         date,
       });
     }
-    room.leaderboard = highscores.top();
-    room.weeklyLeaderboard = highscores.topWeekly();
+    room.leaderboard = await highscores.top();
+    room.weeklyLeaderboard = await highscores.topWeekly();
+  }
+
+  /**
+   * Settle, then broadcast. The snapshot must go out *after* settle fills in
+   * final scores and the leaderboard, so the two stay ordered even though
+   * settling now waits on Postgres. A settle failure still broadcasts: the
+   * game is over in memory regardless of whether the write landed.
+   */
+  function settleThen(room: Room, after: () => void): void {
+    void settleGameOver(room)
+      .catch((error: unknown) => {
+        console.error("[socket] failed to settle game over:", error);
+      })
+      .then(after);
   }
 
   /**
@@ -341,8 +376,7 @@ export function createSocketServer(
     });
 
     syncRoomPhase(room);
-    settleGameOver(room);
-    sendRoomState(room);
+    settleThen(room, () => sendRoomState(room));
   }
 
   /**
@@ -436,8 +470,7 @@ export function createSocketServer(
       const result = engineForfeit(room.game, sessionId);
       if (result.ok) {
         syncRoomPhase(room);
-        settleGameOver(room);
-        sendRoomState(room);
+        settleThen(room, () => sendRoomState(room));
       }
     } else if (room.game === null) {
       // Lobby: free the seat — a solo lobby stays open for a new joiner.
@@ -730,9 +763,10 @@ export function createSocketServer(
       // On gameover these snapshots carry winner + revealedOpponentFleet,
       // plus final scores and the freshly-updated global leaderboard.
       syncRoomPhase(room);
-      settleGameOver(room);
-      sendRoomState(room);
-      scheduleBotTurn(room);
+      settleThen(room, () => {
+        sendRoomState(room);
+        scheduleBotTurn(room);
+      });
     });
 
     socket.on("requestRematch", () => {

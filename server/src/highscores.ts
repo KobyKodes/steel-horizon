@@ -22,13 +22,16 @@ export interface SubmitResult {
   weeklyRank: number | null;
 }
 
+// Async because the durable implementation (PostgresHighScoreStore, in
+// stats.ts) talks to Postgres over the network; the in-memory and JSON
+// stores below satisfy the same contract by returning settled promises.
 export interface HighScoreStore {
   /** All-time top-20, best first. */
-  top(): HighScoreEntry[];
+  top(): Promise<HighScoreEntry[]>;
   /** Last-7-days top-20, best first. */
-  topWeekly(nowMs?: number): HighScoreEntry[];
+  topWeekly(nowMs?: number): Promise<HighScoreEntry[]>;
   /** Record an entry; returns where it placed on each board. */
-  submit(entry: HighScoreEntry): SubmitResult;
+  submit(entry: HighScoreEntry): Promise<SubmitResult>;
 }
 
 /** Insert `entry` into a best-first list, truncated to storage depth. */
@@ -60,15 +63,15 @@ function weeklyView(entries: HighScoreEntry[], nowMs: number): HighScoreEntry[] 
 export class InMemoryHighScoreStore implements HighScoreStore {
   private entries: HighScoreEntry[] = [];
 
-  top(): HighScoreEntry[] {
+  async top(): Promise<HighScoreEntry[]> {
     return this.entries.slice(0, HIGH_SCORE_LIMIT);
   }
 
-  topWeekly(nowMs: number = Date.now()): HighScoreEntry[] {
+  async topWeekly(nowMs: number = Date.now()): Promise<HighScoreEntry[]> {
     return weeklyView(this.entries, nowMs).slice(0, HIGH_SCORE_LIMIT);
   }
 
-  submit(entry: HighScoreEntry): SubmitResult {
+  async submit(entry: HighScoreEntry): Promise<SubmitResult> {
     const inserted = insertEntry(this.entries, entry);
     this.entries = inserted.entries;
     return inserted.result;
@@ -112,15 +115,15 @@ export class JsonHighScoreStore implements HighScoreStore {
     renameSync(tempPath, this.filePath);
   }
 
-  top(): HighScoreEntry[] {
+  async top(): Promise<HighScoreEntry[]> {
     return this.entries.slice(0, HIGH_SCORE_LIMIT);
   }
 
-  topWeekly(nowMs: number = Date.now()): HighScoreEntry[] {
+  async topWeekly(nowMs: number = Date.now()): Promise<HighScoreEntry[]> {
     return weeklyView(this.entries, nowMs).slice(0, HIGH_SCORE_LIMIT);
   }
 
-  submit(entry: HighScoreEntry): SubmitResult {
+  async submit(entry: HighScoreEntry): Promise<SubmitResult> {
     const inserted = insertEntry(this.entries, entry);
     this.entries = inserted.entries;
     this.persist();

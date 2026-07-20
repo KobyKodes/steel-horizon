@@ -49,7 +49,7 @@ async function connect(
 }
 
 beforeAll(async () => {
-  handles = createServer();
+  handles = await createServer();
   await new Promise<void>((resolve) => handles.httpServer.listen(0, resolve));
   const address = handles.httpServer.address();
   if (address === null || typeof address === "string") {
