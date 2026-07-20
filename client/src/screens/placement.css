@@ -104,11 +104,14 @@
 
 /* The card's ship portrait. Fixed height with the canvas filling it, so
    every class sits on the same baseline and the row of cards stays even
-   however long the hull is; the canvas itself is transparent. */
+   however long the hull is; the canvas itself is transparent. Tall enough
+   to clear the masts and superstructure of the highest-profile classes —
+   ShipPreview fits the silhouette to whichever axis is tighter, so too
+   short a well just shrinks every ship. */
 .dock-ship-preview {
   display: block;
   width: 100%;
-  height: 2.6rem;
+  height: 4.25rem;
   pointer-events: none;
 }
 
