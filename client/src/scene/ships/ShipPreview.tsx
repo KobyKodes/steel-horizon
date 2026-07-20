@@ -14,6 +14,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Box3, OrthographicCamera, Vector3 } from "three";
 import type { ShipClassId } from "@steel-horizon/shared";
 import { ShipModel } from "./ShipHull";
+import { SHIP_CLASSES } from "./ShipClasses";
 
 /** Matches SkyDome's sun direction so previews shade like the real scene. */
 const SUN: [number, number, number] = [40, 60, 20];
@@ -24,14 +25,28 @@ const EYE = new Vector3(0, 9, 7).normalize();
 const PAD = 1.12;
 
 /**
- * Frames the whole rendered ship — hull, island, masts and all — in the
- * card. Fitting to the class's hull `length` alone isn't enough: the camera
- * is angled, so a tall superstructure eats vertical screen space that a
- * width-only fit doesn't account for, and the tallest classes got clipped
- * off the top of the short card. So measure what actually got built and fit
- * the projected bounds on both axes.
+ * World length of the longest class. Every card is scaled so this — not
+ * whatever ship it happens to hold — spans the canvas, which is what makes
+ * the dock previews comparable to each other.
+ */
+const REFERENCE_LENGTH = Math.max(
+  ...Object.values(SHIP_CLASSES).map((spec) => spec.length),
+);
+
+/**
+ * Scales and centres the ship in its card.
  *
- * Runs as a child so it mounts after ShipModel's meshes exist.
+ * Zoom is deliberately class-independent: fitting each ship to its own card
+ * drew a 2-cell destroyer as large as a 5-cell carrier, so the dock said
+ * nothing about how much room a ship needs. Pinning the scale to the
+ * longest class instead means on-screen length tracks cell count — carrier
+ * biggest, then battleship, cruiser and submarine level at 3 cells each,
+ * destroyer smallest. Hulls lie along world x and the camera has pitch but
+ * no yaw, so world x maps straight to screen x and length is all that
+ * drives it.
+ *
+ * Centring still measures the built meshes, since ShipModel recenters on
+ * x/z but not y. Runs as a child so it mounts after those meshes exist.
  */
 function FitToShip({ shipClass }: { shipClass: ShipClassId }) {
   const camera = useThree((s) => s.camera) as OrthographicCamera;
@@ -51,25 +66,7 @@ function FitToShip({ shipClass }: { shipClass: ShipClassId }) {
     camera.lookAt(center);
     camera.updateMatrixWorld();
 
-    // Project the corners into camera space; the extents there are what the
-    // orthographic frustum has to cover.
-    let halfW = 0;
-    let halfH = 0;
-    const corner = new Vector3();
-    for (const x of [box.min.x, box.max.x]) {
-      for (const y of [box.min.y, box.max.y]) {
-        for (const z of [box.min.z, box.max.z]) {
-          corner.set(x, y, z).applyMatrix4(camera.matrixWorldInverse);
-          halfW = Math.max(halfW, Math.abs(corner.x));
-          halfH = Math.max(halfH, Math.abs(corner.y));
-        }
-      }
-    }
-
-    camera.zoom = Math.min(
-      size.width / (halfW * 2 * PAD),
-      size.height / (halfH * 2 * PAD),
-    );
+    camera.zoom = size.width / (REFERENCE_LENGTH * PAD);
     camera.updateProjectionMatrix();
     invalidate();
   }, [camera, scene, size.width, size.height, invalidate, shipClass]);
