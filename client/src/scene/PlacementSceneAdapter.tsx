@@ -412,7 +412,12 @@ export function PlacementSceneAdapter({
                   startDrag(ship);
                 }}
               >
-                <span className="dock-ship-name">{SHIP_NAMES[ship]}</span>
+                <span className="dock-ship-name">
+                  {SHIP_NAMES[ship]}
+                  <span className="dock-ship-length">
+                    {SHIP_LENGTHS[ship]}
+                  </span>
+                </span>
                 <span className="dock-ship-preview" aria-hidden="true">
                   <ShipPreview shipClass={ship} />
                 </span>

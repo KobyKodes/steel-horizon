@@ -99,7 +99,18 @@
 }
 
 .dock-ship-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
   font-size: 0.9rem;
+}
+
+/* How many grid cells the class occupies, so the dock answers "how much
+   room does this need" without the player counting the portrait. */
+.dock-ship-length {
+  font-variant-numeric: tabular-nums;
+  color: #8fa0b5;
 }
 
 /* The card's ship portrait. Fixed height with the canvas filling it, so
@@ -222,6 +233,18 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #f4f7ff;
+}
+
+/* Cell count as a hit-yellow chip — reads as a stat on the card rather
+   than part of the ship's name. */
+.placement .dock-ship-length {
+  flex: none;
+  padding: 0 0.35rem;
+  border-radius: 0.2rem;
+  background: #ffd21f;
+  color: #10131a;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
 }
 
 /* Portraits sit in a recessed radar-blue well, like a berth in the dock. */
